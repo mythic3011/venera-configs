@@ -2,6 +2,8 @@
 
 const fs = require("node:fs");
 const path = require("node:path");
+const babel = require("@babel/core");
+const terser = require("terser");
 
 const repoRoot = path.resolve(__dirname, "..");
 const sourceName = process.argv[2];
@@ -44,6 +46,10 @@ const banner = [
   "",
 ].join("\n");
 
+// Read _venera_.js for Venera API definitions
+const veneraPath = path.join(repoRoot, "_venera_.js");
+const veneraCode = fs.readFileSync(veneraPath, "utf8").trimEnd();
+
 const parts = moduleOrder.map((relativePath) => {
   const fullPath = path.join(repoRoot, relativePath);
   if (!fs.existsSync(fullPath)) {
@@ -52,6 +58,53 @@ const parts = moduleOrder.map((relativePath) => {
   return fs.readFileSync(fullPath, "utf8").trimEnd();
 });
 
-const output = `${banner}${parts.join("\n\n")}\n`;
-fs.writeFileSync(outputPath, output, "utf8");
-console.log("Built ehentai.js from src/ehentai");
+const output = `${banner}${veneraCode}\n\n${parts.join("\n\n")}\n`;
+
+// Transpile to ES2018 for flutter_qjs compatibility
+const result = babel.transformSync(output, {
+  filename: outputPath,
+  presets: [
+    [
+      "@babel/preset-env",
+      {
+        targets: "> 0.25%, not dead",
+        useBuiltIns: false,
+      },
+    ],
+  ],
+  plugins: [
+    [
+      "@babel/plugin-transform-class-properties",
+      {
+        loose: true,
+      },
+    ],
+  ],
+});
+
+(async () => {
+  if (result.code) {
+    // Minify the transpiled code
+    const minified = await terser.minify(result.code, {
+      compress: {
+        passes: 2,
+      },
+      mangle: true,
+      output: {
+        comments: /^!/,
+      },
+    });
+
+    if (minified.error) {
+      throw minified.error;
+    }
+
+    fs.writeFileSync(outputPath, minified.code, "utf8");
+    console.log("Built, transpiled, and minified ehentai.js from src/ehentai");
+  } else {
+    throw new Error("Failed to transpile output");
+  }
+})().catch((error) => {
+  console.error(error);
+  process.exit(1);
+});

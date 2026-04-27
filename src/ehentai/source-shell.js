@@ -1,44 +1,47 @@
 class Ehentai extends ComicSource {
   // Note: The fields which are marked as [Optional] should be removed if not used
 
-  // name of the source
-  name = "ehentai";
+  constructor() {
+    super();
+    // name of the source
+    this.name = "ehentai";
 
-  // unique id of the source
-  key = "ehentai";
+    // unique id of the source
+    this.key = "ehentai";
 
-  version = "1.2.0";
+    this.version = "1.2.0";
 
-  minAppVersion = "1.5.3";
+    this.minAppVersion = "1.5.3";
 
-  // update url
-  url = EhentaiModules.buildCdnSourceUrl("ehentai.js");
+    // update url
+    this.url = EhentaiModules.buildCdnSourceUrl("ehentai.js");
 
-  /**
-   * cached api key
-   * @type {string | null}
-   */
-  apiKey = null;
+    /**
+     * cached api key
+     * @type {string | null}
+     */
+    this.apikey = null;
 
-  /**
-   * cached uid key
-   * @type {string | null}
-   */
-  uid = null;
+    /**
+     * cached uid key
+     * @type {string | null}
+     */
+    this.uid = null;
 
-  requestState = {
-    queues: new Map(),
-    inflight: new Map(),
-    cooldownUntil: new Map(),
-    failureBudget: new Map(),
-  };
+    this.requestState = {
+      queues: new Map(),
+      inflight: new Map(),
+      cooldownUntil: new Map(),
+      failureBudget: new Map(),
+    };
 
-  // In-memory caches only. Never persist session-derived runtime data.
-  responseCache = new Map();
-  thumbnailCache = new Map();
-  keyCache = new Map();
-  galleryInfoCache = new Map();
-  imageSessionCache = new Map();
+    // In-memory caches only. Never persist session-derived runtime data.
+    this.responseCache = new Map();
+    this.thumbnailCache = new Map();
+    this.keyCache = new Map();
+    this.galleryInfoCache = new Map();
+    this.imageSessionCache = new Map();
+  }
 
   /**
    * @param url
@@ -139,10 +142,14 @@ class Ehentai extends ComicSource {
       if (lastEvent == newTime) {
         return;
       }
-      const res = await this.requestClient.get(EhentaiModules.buildEhNewsUrl(), {}, {
-        action: "Failed to load event news",
-        requestKey: "event-news",
-      });
+      const res = await this.requestClient.get(
+        EhentaiModules.buildEhNewsUrl(),
+        {},
+        {
+          action: "Failed to load event news",
+          requestKey: "event-news",
+        },
+      );
       if (res.status !== 200 || this.isAbuseResponseBody(res.body)) {
         return;
       }
@@ -179,7 +186,9 @@ class Ehentai extends ComicSource {
         return title === "E-Hentai Forums";
       },
       onLoginSuccess: async () => {
-        let cookies = await Network.getCookies(EhentaiModules.buildForumsCookieUrl());
+        let cookies = await Network.getCookies(
+          EhentaiModules.buildForumsCookieUrl(),
+        );
         cookies.forEach((cookie) => {
           cookie.domain = ".exhentai.org";
         });
@@ -328,10 +337,14 @@ class Ehentai extends ComicSource {
     let t = isLeaderBoard ? 1 : 0;
     let res;
     try {
-      res = await this.requestClient.get(url, {}, {
-        action: "Failed to load gallery list",
-        requestKey: `galleries:${url}`,
-      });
+      res = await this.requestClient.get(
+        url,
+        {},
+        {
+          action: "Failed to load gallery list",
+          requestKey: `galleries:${url}`,
+        },
+      );
     } catch (e) {
       if (this.isRedirectError(e)) {
         await this.onLoadFailed("request was redirected");

@@ -1,0 +1,16 @@
+{
+  "name": "venera-configs",
+  "version": "1.0.0",
+  "description": "Configuration files for venera",
+  "scripts": {
+    "build:ehentai": "node scripts/build-source.js ehentai",
+    "sync-index": "node scripts/sync-index.js",
+    "test": "node --test"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.23.0",
+    "@babel/plugin-transform-class-properties": "^7.28.6",
+    "@babel/preset-env": "^7.23.0",
+    "terser": "^5.29.0"
+  }
+}

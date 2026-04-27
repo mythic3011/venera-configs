@@ -1,5 +1,7 @@
 EhentaiModules.parsers.parseDispatchKey = function parseDispatchKey(document) {
-  let script = document.querySelectorAll("script").find((e) => e.text.includes("showkey"));
+  let script = document
+    .querySelectorAll("script")
+    .find((e) => e.text.includes("showkey"));
   if (script) {
     let reg = RegExp('showkey="(.*?)"', "g");
     let match = reg.exec(script.text);
@@ -8,18 +10,20 @@ EhentaiModules.parsers.parseDispatchKey = function parseDispatchKey(document) {
     }
   }
 
-  script = document.querySelectorAll("script").find((e) => e.text.includes("mpvkey"))?.text;
+  script = document
+    .querySelectorAll("script")
+    .find((e) => e.text.includes("mpvkey"))?.text;
   if (script) {
     let mpvkey = script
       .split(";")
       .find((e) => e.includes("mpvkey"))
-      .replaceAll(" ", "")
+      .replace(/ /g, "")
       .split("=")[1]
-      .replaceAll('"', "");
+      .replace(/"/g, "");
     let imageList = script
       .split(";")
       .find((e) => e.includes("imagelist"))
-      .replaceAll(" ", "")
+      .replace(/ /g, "")
       .split("=")[1];
     return {
       mpvkey,

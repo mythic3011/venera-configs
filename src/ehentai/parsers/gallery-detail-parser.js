@@ -1,6 +1,10 @@
-EhentaiModules.parsers.parseGalleryDetails = function parseGalleryDetails(document) {
+EhentaiModules.parsers.parseGalleryDetails = function parseGalleryDetails(
+  document,
+) {
   let tags = new Map();
-  for (let tr of document.querySelectorAll("div#taglist > table > tbody > tr")) {
+  for (let tr of document.querySelectorAll(
+    "div#taglist > table > tbody > tr",
+  )) {
     tags.set(
       tr.children[0].text.substring(0, tr.children[0].text.length - 1),
       tr.children[1].children.map(
@@ -28,15 +32,18 @@ EhentaiModules.parsers.parseGalleryDetails = function parseGalleryDetails(docume
     folder = (Number(position - 2) / 19).toString();
   }
 
-  let coverPath = document.querySelector("div#gleft > div#gd1 > div").attributes["style"];
+  let coverPath = document.querySelector("div#gleft > div#gd1 > div")
+    .attributes["style"];
   coverPath = RegExp(
     "https?://([-a-zA-Z0-9.]+(/\\S*)?\\.(?:jpg|jpeg|gif|png|webp))",
   ).exec(coverPath)[0];
 
   let uploader = document.getElementById("gdn")?.children[0]?.text;
-  let stars = Number(
-    document.getElementById("rating_label")?.text?.split(":")?.at(1)?.trim(),
-  );
+  let _ratingLabel = document.getElementById("rating_label");
+  let _labelText = _ratingLabel ? _ratingLabel.text : "";
+  let _parts = _labelText ? _labelText.split(":") : [];
+  let _star = _parts.length > 1 ? _parts[1].trim() : "0";
+  let stars = Number(_star);
 
   let category = document.querySelector("div.cs").text;
   tags.set("Category", [category]);
@@ -44,12 +51,18 @@ EhentaiModules.parsers.parseGalleryDetails = function parseGalleryDetails(docume
     tags.set("uploader", [uploader]);
   }
 
-  let time = document.querySelector("div#gdd > table > tbody > tr > td.gdt2").text;
+  let time = document.querySelector(
+    "div#gdd > table > tbody > tr > td.gdt2",
+  ).text;
 
-  let script = document.querySelectorAll("script").find((e) => e.text.includes("var token"));
+  let script = document
+    .querySelectorAll("script")
+    .find((e) => e.text.includes("var token"));
   let reg = RegExp("var\\s+(\\w+)\\s*=\\s*(.*?);", "g");
   let variables = new Map();
-  for (let match of script?.text?.matchAll(reg) ?? []) {
+  let scriptText = script && script.text ? script.text : "";
+  let match;
+  while ((match = reg.exec(scriptText)) !== null) {
     variables.set(match[1], match[2]);
   }
 
