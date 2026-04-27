@@ -45,55 +45,50 @@ function parseThumbnailPage(document, next) {
     return url;
   };
 
+  const collectImageUrls = (selector, extractor) => {
+    return document
+      .querySelectorAll(selector)
+      .map((node) => extractor(node))
+      .filter((url) => !!url);
+  };
+
   let images = document
     .querySelectorAll("div.gdtm > div")
     .map((e) => parseImageUrl(e))
     .filter((url) => !!url);
   images.push(
-    ...document
-      .querySelectorAll("div.gdtl > a > img")
-      .map((e) => safeAttr(e, "src", ""))
-      .filter((url) => !!url),
+    ...collectImageUrls("div.gdtl > a > img", (e) => safeAttr(e, "src", "")),
   );
 
   if (images.length === 0) {
-    for (let e of document
-      .querySelectorAll("div.gt100 > a > div")
-      .map((e) => (e.children.length === 0 ? e : e.children[0]))) {
-      let url = parseImageUrl(e);
-      if (url) {
-        images.push(url);
-      }
-    }
-    for (let e of document
-      .querySelectorAll("div.gt200 > a > div")
-      .map((e) => (e.children.length === 0 ? e : e.children[0]))) {
-      let url = parseImageUrl(e);
-      if (url) {
-        images.push(url);
-      }
+    const fallbackSelectors = ["div.gt100 > a > div", "div.gt200 > a > div"];
+    for (let selector of fallbackSelectors) {
+      images.push(
+        ...collectImageUrls(selector, (e) => {
+          let target = e.children.length === 0 ? e : e.children[0];
+          return parseImageUrl(target);
+        }),
+      );
     }
   }
 
-  let urls = document
-    .querySelectorAll("table.ptb > tbody > tr > td > a")
-    .map((e) => safeAttr(e, "href", ""))
-    .filter((url) => !!url);
-  let pageNumbers = urls.map((e) => {
+  let urls = collectImageUrls(
+    "table.ptb > tbody > tr > td > a",
+    (e) => safeAttr(e, "href", ""),
+  );
+  let maxPage = 0;
+  for (let e of urls) {
     let parts = e.split("=");
     let n = Number(parts.length > 1 ? parts[1] : "");
-    return isNaN(n) ? 0 : n;
-  });
-
-  let maxPage = pageNumbers.length > 0 ? Math.max(...pageNumbers) : 0;
+    if (!isNaN(n) && n > maxPage) {
+      maxPage = n;
+    }
+  }
   let current = next ? Number(next) : 0;
   current += 1;
   let nextToken = current > maxPage ? null : current.toString();
 
-  let imagePageUrls = document
-    .querySelectorAll("div#gdt a")
-    .map((e) => safeAttr(e, "href", ""))
-    .filter((url) => !!url);
+  let imagePageUrls = collectImageUrls("div#gdt a", (e) => safeAttr(e, "href", ""));
 
   return {
     thumbnails: images,

@@ -3,20 +3,30 @@ function parseDispatchKey(document) {
     return node && typeof node.text === "string" ? node.text : "";
   }
 
-  let script = document
-    .querySelectorAll("script")
-    .find((e) => safeText(e).includes("showkey"));
-  if (script) {
+  let scripts = document.querySelectorAll("script");
+  let showScript = null;
+  let mpvScriptNode = null;
+  for (let script of scripts) {
+    let text = safeText(script);
+    if (!showScript && text.includes("showkey")) {
+      showScript = script;
+    }
+    if (!mpvScriptNode && text.includes("mpvkey")) {
+      mpvScriptNode = script;
+    }
+    if (showScript && mpvScriptNode) {
+      break;
+    }
+  }
+
+  if (showScript) {
     let reg = RegExp('showkey="(.*?)"', "g");
-    let match = reg.exec(safeText(script));
+    let match = reg.exec(safeText(showScript));
     if (match) {
       return { showkey: match[1] };
     }
   }
 
-  let mpvScriptNode = document
-    .querySelectorAll("script")
-    .find((e) => safeText(e).includes("mpvkey"));
   let scriptText = safeText(mpvScriptNode);
   if (scriptText) {
     let mpvkey = "";

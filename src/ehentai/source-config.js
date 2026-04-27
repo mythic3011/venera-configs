@@ -11,6 +11,9 @@ function createEhentaiAccountFeature(source) {
           cookie.domain = ".exhentai.org";
         });
         Network.setCookies(buildExCookieUrl(), cookies);
+        try {
+          await source.captureAccountFromCookieJar("");
+        } catch (_) {}
       },
     },
 
@@ -23,25 +26,7 @@ function createEhentaiAccountFeature(source) {
         if (values[0].length === 0 || values[1].length === 0) {
           return false;
         }
-        let cookies = [];
-        for (let i = 0; i < values.length; i++) {
-          cookies.push(
-            new Cookie({
-              name: source.account.loginWithCookies.fields[i],
-              value: values[i],
-              domain: ".e-hentai.org",
-            }),
-          );
-          cookies.push(
-            new Cookie({
-              name: source.account.loginWithCookies.fields[i],
-              value: values[i],
-              domain: ".exhentai.org",
-            }),
-          );
-        }
-        Network.deleteCookies(buildEhCookieUrl());
-        Network.setCookies(buildEhCookieUrl(), cookies);
+        source.applyCookiesFromValues(values);
         let res = await source.requestClient.get(
           buildForumsHomeUrl(),
           {},
@@ -56,22 +41,25 @@ function createEhentaiAccountFeature(source) {
         if (res.status !== 200) {
           return false;
         }
-        let document = new HtmlDocument(res.body);
-        let name = document.querySelector("div#userlinks > p.home > b > a");
-        document.dispose();
-        return name != null;
+        let userName = null;
+        let valid = await source.withDocument(res.body, async (document) => {
+          let nameNode = document.querySelector("div#userlinks > p.home > b > a");
+          if (!nameNode) {
+            return false;
+          }
+          userName = nameNode.text;
+          return true;
+        });
+        if (!valid) {
+          return false;
+        }
+        source.upsertAccountProfile(values, userName || "");
+        return true;
       },
     },
 
     logout: () => {
-      Network.deleteCookies(buildEhCookieUrl());
-      Network.deleteCookies(buildForumsCookieUrl());
-      Network.deleteCookies(buildExCookieUrl());
-      source.responseCache.clear();
-      source.thumbnailCache.clear();
-      source.keyCache.clear();
-      source.galleryInfoCache.clear();
-      source.imageSessionCache.clear();
+      source.logoutAccountSession();
     },
 
     registerWebsite: null,

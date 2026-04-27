@@ -99,7 +99,6 @@ function createSource() {
       queues: new Map(),
       inflight: new Map(),
       cooldownUntil: new Map(),
-      failureBudget: new Map(),
     },
     isAbuseResponseBody(body) {
       const lower = String(body).toLowerCase();

@@ -3,6 +3,7 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const babel = require("@babel/core");
+const terser = require("terser");
 
 const repoRoot = path.resolve(__dirname, "..");
 const sourceName = process.argv[2];
@@ -76,11 +77,28 @@ const result = babel.transformSync(output, {
 
 (async () => {
   if (result.code) {
-    // Keep parser-friendly formatting:
-    // - preserve line structure so ComicSourceParser can find the class declaration
-    // - avoid one-line minified output that breaks first-line class detection
-    fs.writeFileSync(outputPath, result.code, "utf8");
-    console.log("Built and transpiled ehentai.js from src/ehentai");
+    // Parser-safe minify:
+    // - keep multi-line output so ComicSourceParser can find a `class ... extends ComicSource` line
+    // - still compress/mangle to reduce transfer and parse cost
+    const minified = await terser.minify(result.code, {
+      ecma: 2018,
+      compress: {
+        ecma: 2018,
+        passes: 2,
+      },
+      mangle: true,
+      output: {
+        ecma: 2018,
+        beautify: true,
+        comments: /^!/,
+      },
+    });
+    if (minified.error) {
+      throw minified.error;
+    }
+    const cleanCode = minified.code.replace(/[ \t]+$/gm, "");
+    fs.writeFileSync(outputPath, cleanCode, "utf8");
+    console.log("Built, transpiled, and parser-safe-minified ehentai.js from src/ehentai");
   } else {
     throw new Error("Failed to transpile output");
   }

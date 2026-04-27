@@ -15,20 +15,11 @@ class EhentaiRequestClient {
     return this.send("HEAD", url, headers, null, options);
   }
 
-  async withDocument(url, headers = {}, options = {}, parser) {
-    const response = await this.get(url, headers, options);
-    const document = new HtmlDocument(response.body);
-    try {
-      return await parser(document, response);
-    } finally {
-      document.dispose();
-    }
-  }
-
   async send(method, url, headers = {}, body = null, options = {}) {
+    const defaultRequestKey = `${method}:${url}`;
     const resolved = {
       action: options.action || `${method} ${url}`,
-      requestKey: options.requestKey || `${method}:${url}:${body ?? ""}`,
+      requestKey: options.requestKey || defaultRequestKey,
       domainKey: options.domainKey || domainKey(url),
       expectedStatus: options.expectedStatus ?? 200,
       maxRetries: options.maxRetries ?? (options.mutation ? 0 : 0),
@@ -141,11 +132,21 @@ class EhentaiRequestClient {
     if (!options.classifyBody) {
       return false;
     }
-    const body = String(response.body ?? "").trim();
-    if (body.length === 0) {
+    const body = String((response && response.body) || "");
+    if (!this._hasNonWhitespace(body)) {
       return true;
     }
     return this.source.isAbuseResponseBody(body);
+  }
+
+  _hasNonWhitespace(text) {
+    for (let i = 0; i < text.length; i++) {
+      let code = text.charCodeAt(i);
+      if (code !== 32 && code !== 9 && code !== 10 && code !== 13) {
+        return true;
+      }
+    }
+    return false;
   }
 
   _markCooldown(domainKey, cooldownMs) {

@@ -115,18 +115,15 @@ function parseGalleryList({
   for (let item of document.querySelectorAll("div.gl1t")) {
     try {
       let title = safeText(item.querySelector("a"), "Unknown");
-      let time = item
-        .querySelectorAll("div.gl5t > div > div")
-        .find((element) => !isNaN(Date.parse(element.text)));
+      let gl5Rows = item.querySelectorAll("div.gl5t > div > div");
+      let time = gl5Rows.find((element) => !isNaN(Date.parse(element.text)));
       time = safeText(time, "");
       let coverPath = safeAttr(item.querySelector("img"), "src", "");
       let stars = source.getStarsFromPosition(
         safeAttr(item.querySelector("div.gl5t > div > div.ir"), "style", ""),
       );
       let link = safeAttr(item.querySelector("a"), "href", "");
-      let pageElement = item
-        .querySelectorAll("div.gl5t > div > div")
-        .find((element) => element.text.includes("page"));
+      let pageElement = gl5Rows.find((element) => element.text.includes("page"));
       let pages = firstNumber(safeText(pageElement, ""), 0);
       galleries.push(
         new Comic({
@@ -144,11 +141,10 @@ function parseGalleryList({
   for (let item of document.querySelectorAll("table.itg.glte > tbody > tr")) {
     try {
       let title = safeText(item.querySelector("td.gl2e > div > a > div > div.glink"), "Unknown");
+      let gl3Rows = item.querySelectorAll("td.gl2e > div > div.gl3e > div");
       let time =
         safeText(
-          item
-            .querySelectorAll("td.gl2e > div > div.gl3e > div")
-            .find((element) => !isNaN(Date.parse(element.text))),
+          gl3Rows.find((element) => !isNaN(Date.parse(element.text))),
           "Unknown",
         );
       let uploader = safeText(item.querySelector("td.gl2e > div > div.gl3e > div > a"), "Unknown");
@@ -161,9 +157,7 @@ function parseGalleryList({
       tags = tags.filter((tag) => !!tag);
       let pages = firstNumber(
         safeText(
-          item
-            .querySelectorAll("td.gl2e > div > div.gl3e > div")
-            .find((element) => element.text.includes("page")),
+          gl3Rows.find((element) => element.text.includes("page")),
           "",
         ),
         0,
@@ -192,11 +186,10 @@ function parseGalleryList({
   for (let item of document.querySelectorAll("table.itg.gltm > tbody > tr")) {
     try {
       let title = safeText(item.querySelector("td.gl3m > a > div.glink"), "Unknown");
+      let gl2Rows = item.querySelectorAll("td.gl2m > div");
       let time =
         safeText(
-          item
-            .querySelectorAll("td.gl2m > div")
-            .find((element) => !isNaN(Date.parse(element.text))),
+          gl2Rows.find((element) => !isNaN(Date.parse(element.text))),
           "Unknown",
         );
       let uploader = safeText(item.querySelector("td.gl5m > div > a"), "Unknown");

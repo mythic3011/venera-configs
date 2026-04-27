@@ -56,6 +56,14 @@ node --test
 
 Do not hand-edit generated root files; commit generated outputs with source changes.
 
+## Source compatibility rules
+
+Venera runs comic sources through `flutter_qjs`, not Node or Chrome V8. Source files should avoid relying on runtime support for modern syntax:
+
+- Initialize fields inside `constructor()` with `this.name = ...`; do not use class field initializers.
+- Do not rely on optional chaining, nullish coalescing, `.at()`, `replaceAll()`, or `matchAll()` in root source files.
+- Keep generated files parser-friendly: the source class declaration must remain on its own line as `class <Source> extends ComicSource`.
+
 ## CI checks
 
 Pull requests run the same checks locally expected for contributors:

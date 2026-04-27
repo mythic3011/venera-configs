@@ -20,32 +20,29 @@
  * 2) Keep the declaration in the form:
  *    `class <YourSourceName> extends ComicSource`
  * 3) Do not prepend `_venera_.js` content to source files.
+ * 4) Initialize source fields in `constructor()` instead of class fields.
  */
 class NewComicSource extends ComicSource {
-    // Note: The fields which are marked as [Optional] should be removed if not used
+    constructor() {
+        super()
 
-    // name of the source
-    name = ""
+        // Note: The fields which are marked as [Optional] should be removed if not used
 
-    // unique id of the source
-    key = ""
+        // name of the source
+        this.name = ""
 
-    version = "1.0.0"
+        // unique id of the source
+        this.key = ""
 
-    minAppVersion = "1.6.0"
+        this.version = "1.0.0"
 
-    // update url
-    url = ""
+        this.minAppVersion = "1.6.0"
 
-    /**
-     * [Optional] init function
-     */
-    init() {
+        // update url
+        this.url = ""
 
-    }
-
-    // [Optional] account related
-    account = {
+        // [Optional] account related
+        this.account = {
         /**
          * [Optional] login with account and password, return any value to indicate success
          * @param account {string}
@@ -134,10 +131,10 @@ class NewComicSource extends ComicSource {
 
         // {string?} - register url
         registerWebsite: null
-    }
+        };
 
-    // explore page list
-    explore = [
+        // explore page list
+        this.explore = [
         {
             // title of the page.
             // title is used to identify the page, it should be unique
@@ -195,10 +192,10 @@ class NewComicSource extends ComicSource {
              */
             loadNext(next) {},
         }
-    ]
+        ];
 
-    // categories
-    category = {
+        // categories
+        this.category = {
         /// title of the category page, used to identify the page, it should be unique
         title: "",
         parts: [
@@ -241,10 +238,10 @@ class NewComicSource extends ComicSource {
         ],
         // enable ranking page
         enableRankingPage: false,
-    }
+        };
 
-    /// category comic loading related
-    categoryComics = {
+        /// category comic loading related
+        this.categoryComics = {
         /**
          * load comics of a category
          * @param category {string} - category name
@@ -354,10 +351,10 @@ class NewComicSource extends ComicSource {
                 */
             }
         }
-    }
+        };
 
-    /// search related
-    search = {
+        /// search related
+        this.search = {
         /**
          * load search result
          * @param keyword {string}
@@ -427,10 +424,10 @@ class NewComicSource extends ComicSource {
 
         // enable tags suggestions
         enableTagsSuggestions: false,
-    }
+        };
 
-    // favorite related
-    favorites = {
+        // favorite related
+        this.favorites = {
         // whether support multi folders
         multiFolder: false,
         /**
@@ -556,10 +553,10 @@ class NewComicSource extends ComicSource {
          * If the comic source only allows one comic in one folder, set this to true.
          */
         singleFolderForSingleComic: false,
-    }
+        };
 
-    /// single comic related
-    comic = {
+        /// single comic related
+        this.comic = {
         /**
          * load comic info
          * @param id {string}
@@ -762,18 +759,18 @@ class NewComicSource extends ComicSource {
         },
         // enable tags translate
         enableTagsTranslate: false,
-    }
+        };
 
 
-    /*
-    [Optional] settings related
-    Use this.loadSetting to load setting
-    ```
-    let setting1Value = this.loadSetting('setting1')
-    console.log(setting1Value)
-    ```
-     */
-    settings = {
+        /*
+        [Optional] settings related
+        Use this.loadSetting to load setting
+        ```
+        let setting1Value = this.loadSetting('setting1')
+        console.log(setting1Value)
+        ```
+         */
+        this.settings = {
         setting1: {
             // title
             title: "Setting1",
@@ -815,10 +812,10 @@ class NewComicSource extends ComicSource {
                 // do something
             }
         }
-    }
+        };
 
-    // [Optional] translations for the strings in this config
-    translation = {
+        // [Optional] translations for the strings in this config
+        this.translation = {
         'zh_CN': {
             'Setting1': '设置1',
             'Setting2': '设置2',
@@ -826,5 +823,13 @@ class NewComicSource extends ComicSource {
         },
         'zh_TW': {},
         'en': {}
+        };
+    }
+
+    /**
+     * [Optional] init function
+     */
+    init() {
+
     }
 }

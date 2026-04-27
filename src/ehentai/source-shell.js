@@ -1,3 +1,5 @@
+const ABUSE_RESPONSE_PATTERN = /your ip address has been banned|access denied|request denied|temporarily banned/i;
+
 class Ehentai extends ComicSource {
   // Note: The fields which are marked as [Optional] should be removed if not used
 
@@ -27,12 +29,16 @@ class Ehentai extends ComicSource {
      * @type {string | null}
      */
     this.uid = null;
+    this._accountFieldNames = ["ipb_member_id", "ipb_pass_hash", "igneous", "star"];
+    this._cachedDomain = null;
+    this._cachedBaseUrl = null;
+    this._cachedApiUrl = null;
+    this._accountStoreCache = null;
 
     this.requestState = {
       queues: new Map(),
       inflight: new Map(),
       cooldownUntil: new Map(),
-      failureBudget: new Map(),
     };
 
     // In-memory caches only. Never persist session-derived runtime data.
@@ -49,7 +55,7 @@ class Ehentai extends ComicSource {
     this.search = createSearchFeature(this);
     this.favorites = createFavoritesFeature(this);
     this.comic = createComicFeature(this);
-    this.settings = createSettings();
+    this.settings = createSettings(this);
     this.translation = i18n;
   }
 
@@ -96,17 +102,31 @@ class Ehentai extends ComicSource {
   }
 
   isAbuseResponseBody(body) {
-    let text = String(body ?? "").trim();
-    if (text.length === 0) {
+    let text = String((body && body.body) || body || "");
+    if (!this.hasNonWhitespace(text)) {
       return true;
     }
-    let lower = text.toLowerCase();
-    return (
-      lower.includes("your ip address has been banned") ||
-      lower.includes("access denied") ||
-      lower.includes("request denied") ||
-      lower.includes("temporarily banned")
-    );
+    return ABUSE_RESPONSE_PATTERN.test(text);
+  }
+
+  hasNonWhitespace(text) {
+    for (let i = 0; i < text.length; i++) {
+      let code = text.charCodeAt(i);
+      if (code !== 32 && code !== 9 && code !== 10 && code !== 13) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  firstNonWhitespaceChar(text) {
+    for (let i = 0; i < text.length; i++) {
+      let code = text.charCodeAt(i);
+      if (code !== 32 && code !== 9 && code !== 10 && code !== 13) {
+        return text[i];
+      }
+    }
+    return "";
   }
 
   formatRequestError(action, error) {
@@ -146,8 +166,8 @@ class Ehentai extends ComicSource {
   }
 
   requireNonEmptyBody(action, response) {
-    const body = String((response && response.body) || "").trim();
-    if (body.length === 0) {
+    const body = String((response && response.body) || "");
+    if (!this.hasNonWhitespace(body)) {
       throw this.formatResponseError(action, response || {});
     }
     return body;
@@ -155,7 +175,7 @@ class Ehentai extends ComicSource {
 
   requireHtmlBody(action, response) {
     const body = this.requireNonEmptyBody(action, response);
-    if (body[0] !== "<") {
+    if (this.firstNonWhitespaceChar(body) !== "<") {
       throw `${action} failed: invalid HTML response`;
     }
     return body;
@@ -255,27 +275,237 @@ class Ehentai extends ComicSource {
         return;
       }
       this.saveData("lastEventTime", newTime);
-      const document = new HtmlDocument(res.body);
-      const eventPane = document.getElementById("eventpane");
-      if (eventPane == null) {
-        return;
-      }
-      const dawnInfo = eventPane.querySelector("div > p:nth-child(2)");
-      if (dawnInfo == null) {
-        return;
-      }
-      UI.showMessage(dawnInfo.text);
+      await this.withDocument(res.body, async (document) => {
+        const eventPane = document.getElementById("eventpane");
+        if (eventPane == null) {
+          return;
+        }
+        const dawnInfo = eventPane.querySelector("div > p:nth-child(2)");
+        if (dawnInfo == null) {
+          return;
+        }
+        UI.showMessage(dawnInfo.text);
+      });
     } catch (error) {
       // Event checks are advisory; never let them break the main request path.
     }
   }
 
   get baseUrl() {
-    return buildBaseUrl(this.loadSetting("domain"));
+    const domain = this.loadSetting("domain");
+    if (domain !== this._cachedDomain || !this._cachedBaseUrl) {
+      this._cachedDomain = domain;
+      this._cachedBaseUrl = buildBaseUrl(domain);
+      this._cachedApiUrl = buildApiUrl(this._cachedBaseUrl);
+    }
+    return this._cachedBaseUrl;
   }
 
   get apiUrl() {
-    return buildApiUrl(this.baseUrl);
+    if (!this._cachedApiUrl) {
+      this._cachedApiUrl = buildApiUrl(this.baseUrl);
+    }
+    return this._cachedApiUrl;
+  }
+
+  get accountFieldNames() {
+    return this._accountFieldNames;
+  }
+
+  normalizeAccountValues(values) {
+    let normalized = [];
+    for (let i = 0; i < this.accountFieldNames.length; i++) {
+      normalized.push(String((values && values[i]) || ""));
+    }
+    return normalized;
+  }
+
+  createAccountCookies(values) {
+    let normalized = this.normalizeAccountValues(values);
+    let cookies = [];
+    for (let i = 0; i < this.accountFieldNames.length; i++) {
+      let name = this.accountFieldNames[i];
+      let value = normalized[i];
+      cookies.push(
+        new Cookie({
+          name,
+          value,
+          domain: ".e-hentai.org",
+        }),
+      );
+      cookies.push(
+        new Cookie({
+          name,
+          value,
+          domain: ".exhentai.org",
+        }),
+      );
+    }
+    return cookies;
+  }
+
+  applyCookiesFromValues(values) {
+    let cookies = this.createAccountCookies(values);
+    Network.deleteCookies(buildEhCookieUrl());
+    Network.deleteCookies(buildExCookieUrl());
+    Network.setCookies(buildEhCookieUrl(), cookies);
+    Network.setCookies(buildExCookieUrl(), cookies);
+  }
+
+  clearRuntimeCaches() {
+    this.responseCache.clear();
+    this.thumbnailCache.clear();
+    this.keyCache.clear();
+    this.galleryInfoCache.clear();
+    this.imageSessionCache.clear();
+    this.apikey = null;
+    this.uid = null;
+  }
+
+  clearSessionCookies() {
+    Network.deleteCookies(buildEhCookieUrl());
+    Network.deleteCookies(buildForumsCookieUrl());
+    Network.deleteCookies(buildExCookieUrl());
+  }
+
+  loadAccountStore() {
+    if (this._accountStoreCache) {
+      return this._accountStoreCache;
+    }
+    let raw = this.loadData("accountStore");
+    let parsed = null;
+    if (!raw) {
+      this._accountStoreCache = {
+        version: 1,
+        activeProfileId: null,
+        profiles: [],
+      };
+      return this._accountStoreCache;
+    }
+    if (typeof raw === "string") {
+      try {
+        parsed = JSON.parse(raw);
+      } catch (_) {
+        parsed = null;
+      }
+    } else if (typeof raw === "object") {
+      parsed = raw;
+    }
+    if (!parsed || !Array.isArray(parsed.profiles)) {
+      this._accountStoreCache = {
+        version: 1,
+        activeProfileId: null,
+        profiles: [],
+      };
+      return this._accountStoreCache;
+    }
+
+    let profiles = parsed.profiles
+      .map((profile, index) => {
+        let values = this.normalizeAccountValues(profile && profile.values);
+        return {
+          id: String((profile && profile.id) || `${Date.now()}_${index}`),
+          name: profile && profile.name ? String(profile.name) : "",
+          values,
+          createdAt: String((profile && profile.createdAt) || new Date().toISOString()),
+          lastUsedAt: String((profile && profile.lastUsedAt) || new Date().toISOString()),
+        };
+      })
+      .filter((profile) => profile.values[0] && profile.values[1]);
+
+    let activeProfileId =
+      parsed.activeProfileId &&
+      profiles.some((profile) => profile.id === parsed.activeProfileId)
+        ? String(parsed.activeProfileId)
+        : null;
+
+    this._accountStoreCache = {
+      version: 1,
+      activeProfileId,
+      profiles,
+    };
+    return this._accountStoreCache;
+  }
+
+  saveAccountStore(store) {
+    let normalized = {
+      version: 1,
+      activeProfileId: store.activeProfileId || null,
+      profiles: store.profiles || [],
+    };
+    this._accountStoreCache = normalized;
+    this.saveData("accountStore", JSON.stringify(normalized));
+  }
+
+  getAccountDisplayName(profile, index) {
+    let base = profile && profile.name ? profile.name : `${this.translate("account")} ${index + 1}`;
+    let memberId = profile && profile.values ? profile.values[0] : "";
+    return memberId ? `${base} (${memberId})` : base;
+  }
+
+  upsertAccountProfile(values, preferredName) {
+    let normalized = this.normalizeAccountValues(values);
+    if (!normalized[0] || !normalized[1]) {
+      return null;
+    }
+    let store = this.loadAccountStore();
+    let now = new Date().toISOString();
+    let existing = store.profiles.find((profile) => {
+      return profile.values[0] === normalized[0] && profile.values[1] === normalized[1];
+    });
+    if (existing) {
+      existing.values = normalized;
+      if (preferredName) {
+        existing.name = preferredName;
+      }
+      existing.lastUsedAt = now;
+      store.activeProfileId = existing.id;
+      this.saveAccountStore(store);
+      return existing.id;
+    }
+    let id = `${Date.now()}_${Math.floor(Math.random() * 100000)}`;
+    store.profiles.push({
+      id,
+      name: preferredName || "",
+      values: normalized,
+      createdAt: now,
+      lastUsedAt: now,
+    });
+    store.activeProfileId = id;
+    this.saveAccountStore(store);
+    return id;
+  }
+
+  async captureAccountFromCookieJar(preferredName) {
+    let cookies = await Network.getCookies(buildEhCookieUrl());
+    let values = [];
+    for (let key of this.accountFieldNames) {
+      let cookie = cookies.find((item) => item.name === key);
+      values.push(cookie ? String(cookie.value || "") : "");
+    }
+    return this.upsertAccountProfile(values, preferredName || "");
+  }
+
+  async activateAccountProfile(profileId) {
+    let store = this.loadAccountStore();
+    let profile = store.profiles.find((item) => item.id === profileId);
+    if (!profile) {
+      throw "Account profile not found";
+    }
+    this.applyCookiesFromValues(profile.values);
+    this.clearRuntimeCaches();
+    profile.lastUsedAt = new Date().toISOString();
+    store.activeProfileId = profile.id;
+    this.saveAccountStore(store);
+    return profile;
+  }
+
+  logoutAccountSession() {
+    this.clearSessionCookies();
+    this.clearRuntimeCaches();
+    let store = this.loadAccountStore();
+    store.activeProfileId = null;
+    this.saveAccountStore(store);
   }
 
   getStarsFromPosition(position) {
