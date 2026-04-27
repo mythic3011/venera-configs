@@ -40,9 +40,11 @@ https://cdn.jsdelivr.net/gh/venera-app/venera-configs@main/{fileName}
 
 `ehentai.js` is generated from `src/ehentai`. This generated file is automatically:
 
-1. Enhanced with Venera API definitions from `_venera_.js`
-2. Transpiled from modern ES syntax to ES2018 (for flutter_qjs compatibility)
-3. Minified using Terser (reduces file size by ~27% after including APIs)
+1. Transpiled from modern ES syntax to ES2018-compatible syntax (for flutter_qjs compatibility)
+2. Kept parser-friendly for Venera `ComicSourceParser`:
+   - first `class` line must be `class <Source> extends ComicSource`
+   - do not prepend `_venera_.js` runtime definitions
+   - do not one-line minify output
 
 To rebuild after editing source files:
 

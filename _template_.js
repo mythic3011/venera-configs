@@ -14,6 +14,13 @@
  * }
  */
 
+/**
+ * IMPORTANT for Venera parser compatibility:
+ * 1) Keep this source class as the first `class` declaration in the file.
+ * 2) Keep the declaration in the form:
+ *    `class <YourSourceName> extends ComicSource`
+ * 3) Do not prepend `_venera_.js` content to source files.
+ */
 class NewComicSource extends ComicSource {
     // Note: The fields which are marked as [Optional] should be removed if not used
 

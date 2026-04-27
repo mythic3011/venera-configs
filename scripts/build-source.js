@@ -3,7 +3,6 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const babel = require("@babel/core");
-const terser = require("terser");
 
 const repoRoot = path.resolve(__dirname, "..");
 const sourceName = process.argv[2];
@@ -19,8 +18,6 @@ const moduleOrder = [
   "src/ehentai/api-payloads.js",
   "src/ehentai/form-payloads.js",
   "src/ehentai/cache-keys.js",
-  "src/ehentai/request-client.js",
-  "src/ehentai/image-session.js",
   "src/ehentai/parsers/gallery-list-parser.js",
   "src/ehentai/parsers/gallery-detail-parser.js",
   "src/ehentai/parsers/thumbnail-parser.js",
@@ -38,6 +35,8 @@ const moduleOrder = [
   "src/ehentai/i18n.js",
   "src/ehentai/source-config.js",
   "src/ehentai/source-shell.js",
+  "src/ehentai/request-client.js",
+  "src/ehentai/image-session.js",
 ];
 
 const outputPath = path.join(repoRoot, "ehentai.js");
@@ -47,10 +46,6 @@ const banner = [
   "",
 ].join("\n");
 
-// Read _venera_.js for Venera API definitions
-const veneraPath = path.join(repoRoot, "_venera_.js");
-const veneraCode = fs.readFileSync(veneraPath, "utf8").trimEnd();
-
 const parts = moduleOrder.map((relativePath) => {
   const fullPath = path.join(repoRoot, relativePath);
   if (!fs.existsSync(fullPath)) {
@@ -59,7 +54,7 @@ const parts = moduleOrder.map((relativePath) => {
   return fs.readFileSync(fullPath, "utf8").trimEnd();
 });
 
-const output = `${banner}${veneraCode}\n\n${parts.join("\n\n")}\n`;
+const output = `${banner}${parts.join("\n\n")}\n`;
 
 // Transpile to ES2018-ish syntax for flutter_qjs compatibility. Venera runs
 // sources in an embedded JS engine, not Node or a modern browser.
@@ -81,26 +76,11 @@ const result = babel.transformSync(output, {
 
 (async () => {
   if (result.code) {
-    // Minify the transpiled code
-    const minified = await terser.minify(result.code, {
-      ecma: 2018,
-      compress: {
-        ecma: 2018,
-        passes: 2,
-      },
-      mangle: true,
-      output: {
-        ecma: 2018,
-        comments: /^!/,
-      },
-    });
-
-    if (minified.error) {
-      throw minified.error;
-    }
-
-    fs.writeFileSync(outputPath, minified.code, "utf8");
-    console.log("Built, transpiled, and minified ehentai.js from src/ehentai");
+    // Keep parser-friendly formatting:
+    // - preserve line structure so ComicSourceParser can find the class declaration
+    // - avoid one-line minified output that breaks first-line class detection
+    fs.writeFileSync(outputPath, result.code, "utf8");
+    console.log("Built and transpiled ehentai.js from src/ehentai");
   } else {
     throw new Error("Failed to transpile output");
   }

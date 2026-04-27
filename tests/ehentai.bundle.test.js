@@ -88,9 +88,12 @@ test("bundle avoids syntax unsupported by flutter_qjs", () => {
 
 test("Ehentai initializes feature properties inside constructor after core state", () => {
   const source = fs.readFileSync("./ehentai.js", "utf8");
-  const nameIndex = source.indexOf('this.name="ehentai"');
-  const cacheIndex = source.indexOf("this.imageSessionCache=");
-  const accountIndex = source.indexOf("this.account=");
+  const nameMatch = source.match(/this\.name\s*=\s*"ehentai"/);
+  const cacheMatch = source.match(/this\.imageSessionCache\s*=/);
+  const accountMatch = source.match(/this\.account\s*=/);
+  const nameIndex = nameMatch ? nameMatch.index : -1;
+  const cacheIndex = cacheMatch ? cacheMatch.index : -1;
+  const accountIndex = accountMatch ? accountMatch.index : -1;
 
   assert.notEqual(nameIndex, -1);
   assert.notEqual(cacheIndex, -1);

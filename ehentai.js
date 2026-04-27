@@ -1,1 +1,2302 @@
-"use strict";function setTimeout(e,t){sendMessage({method:"delay",time:t}).then(e)}let Convert={encodeUtf8:e=>sendMessage({method:"convert",type:"utf8",value:e,isEncode:!0}),decodeUtf8:e=>sendMessage({method:"convert",type:"utf8",value:e,isEncode:!1}),encodeGbk:e=>sendMessage({method:"convert",type:"gbk",value:e,isEncode:!0}),decodeGbk:e=>sendMessage({method:"convert",type:"gbk",value:e,isEncode:!1}),encodeBase64:e=>sendMessage({method:"convert",type:"base64",value:e,isEncode:!0}),decodeBase64:e=>sendMessage({method:"convert",type:"base64",value:e,isEncode:!1}),md5:e=>sendMessage({method:"convert",type:"md5",value:e,isEncode:!0}),sha1:e=>sendMessage({method:"convert",type:"sha1",value:e,isEncode:!0}),sha256:e=>sendMessage({method:"convert",type:"sha256",value:e,isEncode:!0}),sha512:e=>sendMessage({method:"convert",type:"sha512",value:e,isEncode:!0}),hmac:(e,t,r)=>sendMessage({method:"convert",type:"hmac",value:t,key:e,hash:r,isEncode:!0}),hmacString:(e,t,r)=>sendMessage({method:"convert",type:"hmac",value:t,key:e,hash:r,isEncode:!0,isString:!0}),decryptAesEcb:(e,t)=>sendMessage({method:"convert",type:"aes-ecb",value:e,key:t,isEncode:!1}),decryptAesCbc:(e,t,r)=>sendMessage({method:"convert",type:"aes-cbc",value:e,key:t,iv:r,isEncode:!1}),decryptAesCfb:(e,t,r)=>sendMessage({method:"convert",type:"aes-cfb",value:e,key:t,blockSize:r,isEncode:!1}),decryptAesOfb:(e,t,r)=>sendMessage({method:"convert",type:"aes-ofb",value:e,key:t,blockSize:r,isEncode:!1}),decryptRsa:(e,t)=>sendMessage({method:"convert",type:"rsa",value:e,key:t,isEncode:!1}),hexEncode:e=>{const t="0123456789abcdef",r=new Uint8Array(e);let i=new Uint8Array(2*r.length),n=0;for(let e=0;e<r.length;e++){let a=r[e];i[n++]=t.charCodeAt(a>>4&15),i[n++]=t.charCodeAt(15&a)}return String.fromCharCode(...i)}};function createUuid(){return sendMessage({method:"uuid"})}function randomInt(e,t){return sendMessage({method:"random",type:"int",min:e,max:t})}function randomDouble(e,t){return sendMessage({method:"random",type:"double",min:e,max:t})}class _Timer{constructor(e,t){this.delay=0,this.callback=()=>{},this.status=!1,this.delay=e,this.callback=t}run(){this.status=!0,this._interval()}_interval(){this.status&&(this.callback(),setTimeout(this._interval.bind(this),this.delay))}cancel(){this.status=!1}}function setInterval(e,t){let r=new _Timer(t,e);return r.run(),r}function Cookie({name:e,value:t,domain:r}){this.name=e,this.value=t,this.domain=r}let Network={async fetchBytes(e,t,r,i){let n=await sendMessage({method:"http",http_method:e,bytes:!0,url:t,headers:r,data:i});if(n.error)throw n.error;return n},async sendRequest(e,t,r,i){let n=await sendMessage({method:"http",http_method:e,url:t,headers:r,data:i});if(n.error)throw n.error;return n},async get(e,t){return this.sendRequest("GET",e,t)},async post(e,t,r){return this.sendRequest("POST",e,t,r)},async put(e,t,r){return this.sendRequest("PUT",e,t,r)},async patch(e,t,r){return this.sendRequest("PATCH",e,t,r)},async delete(e,t){return this.sendRequest("DELETE",e,t)},setCookies(e,t){sendMessage({method:"cookie",function:"set",url:e,cookies:t})},getCookies:e=>sendMessage({method:"cookie",function:"get",url:e}),deleteCookies(e){sendMessage({method:"cookie",function:"delete",url:e})}};async function fetch(e,t){let r="GET",i={},n=null;t&&(r=t.method||r,i=t.headers||i,n=t.body||n);let a=await Network.fetchBytes(r,e,i,n);return{ok:a.status>=200&&a.status<300,status:a.status,statusText:"",headers:a.headers,arrayBuffer:async()=>a.body,text:async()=>Convert.decodeUtf8(a.body),json:async()=>JSON.parse(Convert.decodeUtf8(a.body))}}class HtmlDocument{constructor(e){this.key=0,this.key=HtmlDocument._key,HtmlDocument._key++,sendMessage({method:"html",function:"parse",key:this.key,data:e})}querySelector(e){let t=sendMessage({method:"html",function:"querySelector",key:this.key,query:e});return null==t?null:new HtmlElement(t,this.key)}querySelectorAll(e){return sendMessage({method:"html",function:"querySelectorAll",key:this.key,query:e}).map(e=>new HtmlElement(e,this.key))}dispose(){sendMessage({method:"html",function:"dispose",key:this.key})}getElementById(e){let t=sendMessage({method:"html",function:"getElementById",key:this.key,id:e});return null==t?null:new HtmlElement(t,this.key)}}HtmlDocument._key=0;class HtmlElement{constructor(e,t){this.key=0,this.doc=0,this.key=e,this.doc=t}get text(){return sendMessage({method:"html",function:"getText",key:this.key,doc:this.doc})}get attributes(){return sendMessage({method:"html",function:"getAttributes",key:this.key,doc:this.doc})}querySelector(e){let t=sendMessage({method:"html",function:"dom_querySelector",key:this.key,query:e,doc:this.doc});return null==t?null:new HtmlElement(t,this.doc)}querySelectorAll(e){return sendMessage({method:"html",function:"dom_querySelectorAll",key:this.key,query:e,doc:this.doc}).map(e=>new HtmlElement(e,this.doc))}get children(){return sendMessage({method:"html",function:"getChildren",key:this.key,doc:this.doc}).map(e=>new HtmlElement(e,this.doc))}get nodes(){return sendMessage({method:"html",function:"getNodes",key:this.key,doc:this.doc}).map(e=>new HtmlNode(e,this.doc))}get innerHTML(){return sendMessage({method:"html",function:"getInnerHTML",key:this.key,doc:this.doc})}get parent(){let e=sendMessage({method:"html",function:"getParent",key:this.key,doc:this.doc});return null==e?null:new HtmlElement(e,this.doc)}get classNames(){return sendMessage({method:"html",function:"getClassNames",key:this.key,doc:this.doc})}get id(){return sendMessage({method:"html",function:"getId",key:this.key,doc:this.doc})}get localName(){return sendMessage({method:"html",function:"getLocalName",key:this.key,doc:this.doc})}get previousElementSibling(){let e=sendMessage({method:"html",function:"getPreviousSibling",key:this.key,doc:this.doc});return null==e?null:new HtmlElement(e,this.doc)}get nextElementSibling(){let e=sendMessage({method:"html",function:"getNextSibling",key:this.key,doc:this.doc});return null==e?null:new HtmlElement(e,this.doc)}}class HtmlNode{constructor(e,t){this.key=0,this.doc=0,this.key=e,this.doc=t}get text(){return sendMessage({method:"html",function:"node_text",key:this.key,doc:this.doc})}get type(){return sendMessage({method:"html",function:"node_type",key:this.key,doc:this.doc})}toElement(){let e=sendMessage({method:"html",function:"node_toElement",key:this.key,doc:this.doc});return null==e?null:new HtmlElement(e,this.doc)}}function log(e,t,r){sendMessage({method:"log",level:e,title:t,content:r})}let console={log:e=>{log("info","JS Console",e)},warn:e=>{log("warning","JS Console",e)},error:e=>{log("error","JS Console",e)}};function Comic({id:e,title:t,subtitle:r,subTitle:i,cover:n,tags:a,description:o,maxPage:l,language:s,favoriteId:u,stars:d}){this.id=e,this.title=t,this.subtitle=r,this.subTitle=i,this.cover=n,this.tags=a,this.description=o,this.maxPage=l,this.language=s,this.favoriteId=u,this.stars=d}function ComicDetails({title:e,subtitle:t,subTitle:r,cover:i,description:n,tags:a,chapters:o,isFavorite:l,subId:s,thumbnails:u,recommend:d,commentCount:c,likesCount:h,isLiked:g,uploader:m,updateTime:y,uploadTime:p,url:f,stars:b,maxPage:v,comments:k}){this.title=e,this.subtitle=null!=t?t:r,this.cover=i,this.description=n,this.tags=a,this.chapters=o,this.isFavorite=l,this.subId=s,this.thumbnails=u,this.recommend=d,this.commentCount=c,this.likesCount=h,this.isLiked=g,this.uploader=m,this.updateTime=y,this.uploadTime=p,this.url=f,this.stars=b,this.maxPage=v,this.comments=k}function Comment({userName:e,avatar:t,content:r,time:i,replyCount:n,id:a,isLiked:o,score:l,voteStatus:s}){this.userName=e,this.avatar=t,this.content=r,this.time=i,this.replyCount=n,this.id=a,this.isLiked=o,this.score=l,this.voteStatus=s}function ImageLoadingConfig({url:e,method:t,data:r,headers:i,onResponse:n,modifyImage:a,onLoadFailed:o}){this.url=e,this.method=t,this.data=r,this.headers=i,this.onResponse=n,this.modifyImage=a,this.onLoadFailed=o}class ComicSource{constructor(){this.name="",this.key="",this.version="",this.minAppVersion="",this.url="",this.translation={}}loadData(e){return sendMessage({method:"load_data",key:this.key,data_key:e})}loadSetting(e){return sendMessage({method:"load_setting",key:this.key,setting_key:e})}saveData(e,t){return sendMessage({method:"save_data",key:this.key,data_key:e,data:t})}deleteData(e){return sendMessage({method:"delete_data",key:this.key,data_key:e})}get isLogged(){return sendMessage({method:"isLogged",key:this.key})}translate(e){var t,r;let i=APP.locale;return null!=(t=null==(r=this.translation[i])?void 0:r[e])?t:e}init(){}}ComicSource.sources={};class Image{constructor(e){this.key=0,this.key=e}copyRange(e,t,r,i){let n=sendMessage({method:"image",function:"copyRange",key:this.key,x:e,y:t,width:r,height:i});return null==n?null:new Image(n)}copyAndRotate90(){let e=sendMessage({method:"image",function:"copyAndRotate90",key:this.key});return null==e?null:new Image(e)}fillImageAt(e,t,r){sendMessage({method:"image",function:"fillImageAt",key:this.key,x:e,y:t,image:r.key})}fillImageRangeAt(e,t,r,i,n,a,o){sendMessage({method:"image",function:"fillImageRangeAt",key:this.key,x:e,y:t,image:r.key,srcX:i,srcY:n,width:a,height:o})}get width(){return sendMessage({method:"image",function:"getWidth",key:this.key})}get height(){return sendMessage({method:"image",function:"getHeight",key:this.key})}static empty(e,t){let r=sendMessage({method:"image",function:"emptyImage",width:e,height:t});return new Image(r)}}let UI={showMessage:e=>{sendMessage({method:"UI",function:"showMessage",message:e})},showDialog:(e,t,r)=>{sendMessage({method:"UI",function:"showDialog",title:e,content:t,actions:r})},launchUrl:e=>{sendMessage({method:"UI",function:"launchUrl",url:e})},showLoading:e=>sendMessage({method:"UI",function:"showLoading",onCancel:e}),cancelLoading:e=>{sendMessage({method:"UI",function:"cancelLoading",id:e})},showInputDialog:(e,t,r)=>sendMessage({method:"UI",function:"showInputDialog",title:e,image:r,validator:t}),showSelectDialog:(e,t,r)=>sendMessage({method:"UI",function:"showSelectDialog",title:e,options:t,initialIndex:r})},APP={get version(){return appVersion},get locale(){return sendMessage({method:"getLocale"})},get platform(){return sendMessage({method:"getPlatform"})}};function setClipboard(e){return sendMessage({method:"setClipboard",text:e})}function getClipboard(){return sendMessage({method:"getClipboard"})}function compute(e,...t){return sendMessage({method:"compute",function:e,args:t})}const parsers={},features={};function hasValue(e){return null!=e&&""!==e}function buildQuery(e){return Object.entries(e).filter(([,e])=>hasValue(e)).map(([e,t])=>`${encodeURIComponent(e)}=${encodeURIComponent(String(t))}`).join("&")}function buildFormBody(e){return Object.entries(e).filter(([,e])=>null!=e).map(([e,t])=>`${encodeURIComponent(e)}=${encodeURIComponent(String(t))}`).join("&")}const URL_HOSTS={EH:"e-hentai.org",EX:"exhentai.org",FORUMS:"forums.e-hentai.org",API_EH:"api.e-hentai.org"};function buildBaseUrl(e){return`https://${e}`}function buildPathUrl(e,t){const r=String(t||"").replace(/^\/+/,"");return r?`${e}/${r}`:String(e)}function buildPathQueryUrl(e,t,r,i=!1){const n=buildPathUrl(e,t),a=buildQuery(r||{});return a?`${n}?${a}`:i?`${n}?`:n}function buildCdnSourceUrl(e){return buildPathUrl("https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main",e)}function buildApiUrl(e){return e.includes(URL_HOSTS.EX)?buildPathUrl(buildBaseUrl(URL_HOSTS.EX),"api.php"):buildPathUrl(buildBaseUrl(URL_HOSTS.API_EH),"api.php")}function buildEhNewsUrl(){return buildPathUrl(buildBaseUrl(URL_HOSTS.EH),"news.php")}function buildForumsLoginUrl(){return buildPathQueryUrl(buildBaseUrl(URL_HOSTS.FORUMS),"index.php",{act:"Login",CODE:"00"})}function buildForumsHomeUrl(){return`${buildPathUrl(buildBaseUrl(URL_HOSTS.FORUMS),"")}/`}function buildForumsIndexRefererUrl(){return buildPathQueryUrl(buildBaseUrl(URL_HOSTS.FORUMS),"index.php",{},!0)}function buildEhCookieUrl(){return buildBaseUrl(URL_HOSTS.EH)}function buildExCookieUrl(){return buildBaseUrl(URL_HOSTS.EX)}function buildForumsCookieUrl(){return buildBaseUrl(URL_HOSTS.FORUMS)}function buildPopularUrl(e){return buildPathUrl(e,"popular")}function buildWatchedUrl(e){return buildPathUrl(e,"watched")}function buildGalleryPageUrl(e,t){return hasValue(t)?buildPathQueryUrl(e,"",{p:t}):e}function parseGalleryUrl(e){const t=String(e||"").split("?")[0].split("#")[0].split("/");return{id:t[4],token:t[5]}}function buildFavoritesUrl(e,t){return hasValue(t)&&"-1"!==t?buildPathQueryUrl(e,"favorites.php",{favcat:t}):buildPathUrl(e,"favorites.php")}function buildSearchUrl(e,t,r,i){return buildPathQueryUrl(e,"",{f_search:t,f_cats:r?String(r):null,f_srdd:i||null})}function buildToplistUrl(e,t,r){return buildPathQueryUrl(e,"toplist.php",{tl:t,p:r})}function buildGalleryPopupUrl(e,t,r){return buildPathQueryUrl(e,"gallerypopups.php",{gid:t,t:r,act:"addfav"})}function buildArchiverUrl(e,t,r){return buildPathQueryUrl(e,"archiver.php",{gid:t,token:r})}function buildCommentsUrl(e){return buildPathQueryUrl(e,"",{hc:1})}function extractHost(e){const t=String(e||"").match(/^(?:https?:\/\/)?(?:www\.)?([^\/]+)/i);return t?t[1]:null}function buildArchiveResultUrl(e,t){const r=extractHost(e);return r&&t?`${buildBaseUrl(r)}${String(t)}`:null}function normalizeGalleryLink(e,t){const r=parseGalleryUrl(t);return hasValue(r.id)&&hasValue(r.token)?`${e}/g/${r.id}/${r.token}/`:null}function normalizeThumbnailHost(e){return String(e||"").includes("s.exhentai.org")?String(e).replace("s.exhentai.org","ehgt.org"):e}function imageKeyFromPageUrl(e){return String(e||"").split("/")[4]||""}function buildRateGalleryPayload({galleryId:e,token:t,rating:r,apikey:i,apiuid:n}){return{gid:e,token:t,method:"rategallery",rating:r,apikey:i,apiuid:n}}function buildVoteCommentPayload({galleryId:e,token:t,commentId:r,isUp:i,apikey:n,apiuid:a}){return{gid:e,token:t,method:"votecomment",comment_id:r,comment_vote:i?1:-1,apikey:n,apiuid:a}}function buildImageDispatchPayload({galleryId:e,imgKey:t,page:r,mpvkey:i,nl:n}){return{gid:e,imgkey:t,method:"imagedispatch",page:r,mpvkey:i,nl:n}}function buildShowPagePayload({galleryId:e,imgKey:t,page:r,showkey:i,nl:n}){return{gid:e,imgkey:t,method:"showpage",page:r,showkey:i,nl:n}}function buildAddFavoriteForm(e){return buildFormBody({favcat:e,favnote:"",apply:"Add to Favorites",update:1})}function buildDeleteFavoriteForm(){return buildFormBody({favcat:"favdel",favnote:"",apply:"Apply Changes",update:1})}function buildCommentForm(e){return buildFormBody({commenttext_new:e})}function buildArchiveDownloadForm(e){if("0"===e)return buildFormBody({dltype:"org",dlcheck:"Download Original Archive"});if("1"===e)return buildFormBody({dltype:"res",dlcheck:"Download Resample Archive"});throw new Error("Invalid archive type")}function buildHathDownloadForm(e){return buildFormBody({hathdl_xres:e})}function domainKey(e){try{return new URL(e).hostname}catch(e){return"default"}}function thumbnailCacheKey(e,t){return`${e}::${null!=t?t:"0"}`}class EhentaiRequestClient{constructor(e){this.source=e}get(e,t={},r={}){return this.send("GET",e,t,null,r)}post(e,t={},r=null,i={}){return this.send("POST",e,t,r,i)}head(e,t={},r={}){return this.send("HEAD",e,t,null,r)}async withDocument(e,t={},r={},i){const n=await this.get(e,t,r),a=new HtmlDocument(n.body);try{return await i(a,n)}finally{a.dispose()}}async send(e,t,r={},i=null,n={}){var a,o,l,s,u;const d={action:n.action||`${e} ${t}`,requestKey:n.requestKey||`${e}:${t}:${null!=i?i:""}`,domainKey:n.domainKey||domainKey(t),expectedStatus:null!=(a=n.expectedStatus)?a:200,maxRetries:null!=(o=n.maxRetries)?o:(n.mutation,0),cooldownMs:null!=(l=n.cooldownMs)?l:6e4,classifyBody:null==(s=n.classifyBody)||s,mutation:null!=(u=n.mutation)?u:"GET"!==e},c=this.source.requestState.cooldownUntil.get(d.domainKey);if(c&&c>Date.now())throw`${d.action} blocked: temporary cooldown in effect`;const h=d.requestKey,g=this._resolveHeaders(e,t,r,d);if(this.source.requestState.inflight.has(h))return this.source.requestState.inflight.get(h);const m=this._enqueueByDomain(d.domainKey,()=>this._sendWithRetry(e,t,g,i,d));this.source.requestState.inflight.set(h,m);try{return await m}finally{this.source.requestState.inflight.delete(h)}}_enqueueByDomain(e,t){const r=(this.source.requestState.queues.get(e)||Promise.resolve()).then(t,t),i=r.then(()=>{},()=>{});return this.source.requestState.queues.set(e,i),i.finally(()=>{this.source.requestState.queues.get(e)===i&&this.source.requestState.queues.delete(e)}),r}async _sendWithRetry(e,t,r,i,n){let a=0;const o=Math.max(0,n.maxRetries)+1;for(;a<o;){let l;a+=1;try{l=await this._dispatch(e,t,r,i)}catch(e){if(a>=o)throw this.source.formatRequestError(n.action,e);continue}if(this._shouldCooldown(l,n))throw this._markCooldown(n.domainKey,n.cooldownMs),this.source.formatResponseError(n.action,l);if(l.status===n.expectedStatus)return l;if(a>=o||n.mutation)throw this.source.formatResponseError(n.action,l)}throw`${n.action} failed after retries`}_resolveHeaders(e,t,r,i){return"function"==typeof this.source.buildRequestHeaders?this.source.buildRequestHeaders(e,t,r||{},i||{}):r||{}}async _dispatch(e,t,r,i){return"GET"===e?Network.get(t,r):"POST"===e?Network.post(t,r,i):Network.sendRequest(e,t,r,i)}_shouldCooldown(e,t){var r;if(403===e.status||429===e.status)return!0;if(!t.classifyBody)return!1;const i=String(null!=(r=e.body)?r:"").trim();return 0===i.length||this.source.isAbuseResponseBody(i)}_markCooldown(e,t){this.source.requestState.cooldownUntil.set(e,Date.now()+t)}}class ImageLoadingSessionManager{constructor(e){this.source=e}async ensureSession(e){const t=this.source.imageSessionCache.get(e);if(t)return t;const r=await this.source.comic.loadThumbnails(e,null),i={comicId:e,firstPage:r,key:await this.source.comic.getKey(r.urls[0]),attempts:new Map};return this.source.imageSessionCache.set(e,i),i}async getPageUrl(e,t){if(t<e.firstPage.urls.length)return e.firstPage.urls[t];const r=e.firstPage.thumbnails.length,i=Math.floor(t/r),n=t%r;return(await this.source.comic.loadThumbnails(e.comicId,i.toString())).urls[n]}async dispatchImage({comicId:e,page:t,nl:r}){const i=await this.ensureSession(e),n=this.source.parseUrl(e);if(i.key.mpvkey){const e=buildImageDispatchPayload({galleryId:n.id,imgKey:i.key.imageKeys[t],page:t+1,mpvkey:i.key.mpvkey,nl:r}),a=await this.source.requestClient.post(this.source.apiUrl,{"Content-Type":"application/json"},e,{action:"Failed to dispatch image",mutation:!0,maxRetries:0,classifyBody:!1}),o=JSON.parse(a.body);return{url:String(o.i),nl:String(o.s)}}const a=await this.getPageUrl(i,t),o=buildShowPagePayload({galleryId:n.id,imgKey:imageKeyFromPageUrl(a),page:t+1,showkey:i.key.showkey,nl:r}),l=await this.source.requestClient.post(this.source.apiUrl,{"Content-Type":"application/json"},o,{action:"Failed to dispatch image",mutation:!0,maxRetries:0,classifyBody:!1}),s=JSON.parse(l.body),u=s.i6,d=RegExp("nl\\('(.+?)'\\)").exec(u),c=d?d[1]:null;let h=s.i3;return h=h.substring(h.indexOf('src="')+5,h.indexOf('" style')),{url:h,nl:c}}createRetry({image:e,comicId:t,epId:r,nl:i,attempt:n}){return i?n>=2?null:async()=>this.source.imageSessions.load({image:e,comicId:t,epId:r,nl:i,attempt:n+1}):null}async load({image:e,comicId:t,epId:r,nl:i,attempt:n=0}){const a=Number(e),o=await this.dispatchImage({comicId:t,page:a,nl:i});return{url:o.url,headers:this.source.buildRequestHeaders("GET",o.url,{},{headerProfile:"thumbnail"}),onLoadFailed:this.createRetry({image:e,comicId:t,epId:r,nl:o.nl,attempt:n})}}}function parseGalleryList({document:e,source:t,url:r,isLeaderBoard:i}){function n(e,t){return e&&"string"==typeof e.text?e.text:t}function a(e,t,r){return e&&e.attributes&&void 0!==e.attributes[t]?e.attributes[t]:r}function o(e,t){let r=e?e.match(/\d+/):null;if(!r)return t;let i=Number(r[0]);return isNaN(i)?t:i}const l=i?1:0,s=[];for(let i of e.querySelectorAll("table.itg.gltc > tbody > tr"))try{let e=i.children.length>1+l?i.children[1+l]:null;if(!e)continue;let u=e.children.length>2?e.children[2]:null,d=n(u&&u.children.length>0?u.children[0]:null,""),c=t.getStarsFromPosition(a(u&&u.children.length>1?u.children[1]:null,"style","")),h=e;h&&h.children.length>1&&(h=h.children[1]),h&&h.children.length>0&&(h=h.children[0]),h&&h.children.length>0&&(h=h.children[0]);let g=a(h,"src","");g&&"d"===g[0]&&(g=a(h,"data-src",g));let m=i.children.length>2+l?i.children[2+l]:null,y=m&&m.children.length>0?m.children[0]:null,p=n(y&&y.children.length>0?y.children[0]:null,"Unknown"),f=a(y,"href",""),b="",v=0;try{if(r.includes("/favorites.php")){let t=e;t.children.length>1&&(t=t.children[1]),t.children.length>1&&(t=t.children[1]),t.children.length>1&&(t=t.children[1]),v=o(n(t&&t.children.length>1?t.children[1]:null,""),0)}else{let e=i.children.length>3+l?i.children[3+l]:null;v=o(n(e&&e.children.length>1?e.children[1]:null,""),0);let t=null;e&&e.children.length>0&&(t=e.children[0]),t&&t.children.length>0&&(t=t.children[0]),b=n(t,"")}}catch(e){}let k=[],w=null,S=y&&y.children.length>1?y.children[1]:null;for(let e of S?S.children:[]){let t=a(e,"title","");if(t){if(t.startsWith("language:")){let e=t.split(":")[1].trim();w="translated"===e?w:e;continue}k.push(t)}}s.push(new Comic({id:f,title:p,subTitle:b,cover:g,tags:k,description:d,stars:c,maxPage:v,language:w}))}catch(e){}for(let r of e.querySelectorAll("div.gl1t"))try{let e=n(r.querySelector("a"),"Unknown"),i=r.querySelectorAll("div.gl5t > div > div").find(e=>!isNaN(Date.parse(e.text)));i=n(i,"");let l=a(r.querySelector("img"),"src",""),u=t.getStarsFromPosition(a(r.querySelector("div.gl5t > div > div.ir"),"style","")),d=a(r.querySelector("a"),"href",""),c=o(n(r.querySelectorAll("div.gl5t > div > div").find(e=>e.text.includes("page")),""),0);s.push(new Comic({id:d,title:e,cover:l,description:i,stars:u,maxPage:c}))}catch(e){}for(let r of e.querySelectorAll("table.itg.glte > tbody > tr"))try{let e=n(r.querySelector("td.gl2e > div > a > div > div.glink"),"Unknown"),i=n(r.querySelectorAll("td.gl2e > div > div.gl3e > div").find(e=>!isNaN(Date.parse(e.text))),"Unknown"),l=n(r.querySelector("td.gl2e > div > div.gl3e > div > a"),"Unknown"),u=a(r.querySelector("td.gl1e > div > a > img"),"src",""),d=t.getStarsFromPosition(a(r.querySelector("td.gl2e > div > div.gl3e > div.ir"),"style","")),c=a(r.querySelector("td.gl1e > div > a"),"href",""),h=r.querySelectorAll("div.gt, div.gtl").map(e=>a(e,"title",""));h=h.filter(e=>!!e);let g=o(n(r.querySelectorAll("td.gl2e > div > div.gl3e > div").find(e=>e.text.includes("page")),""),0),m=null,y=h.find(e=>e.startsWith("language:")&&!e.includes("translated"));y&&y.includes(":")&&(m=y.split(":")[1].trim()),s.push(new Comic({id:c,title:e,subTitle:l,cover:u,tags:h,description:i,stars:d,maxPage:g,language:m}))}catch(e){}for(let r of e.querySelectorAll("table.itg.gltm > tbody > tr"))try{let e=n(r.querySelector("td.gl3m > a > div.glink"),"Unknown"),i=n(r.querySelectorAll("td.gl2m > div").find(e=>!isNaN(Date.parse(e.text))),"Unknown"),o=n(r.querySelector("td.gl5m > div > a"),"Unknown"),l=r.querySelector("td.gl2m > div > div > img"),u=a(l,"src","");u&&"d"===u[0]&&(u=a(l,"data-src",u));let d=t.getStarsFromPosition(a(r.querySelector("td.gl4m > div.ir"),"style","")),c=a(r.querySelector("td.gl3m > a"),"href","");s.push(new Comic({id:c,title:e,subTitle:o,cover:u,description:i,stars:d}))}catch(e){}return{comics:s,next:a(e.querySelector("a#dnext"),"href",void 0)}}function parseGalleryDetails(e){function t(e,t){return e&&"string"==typeof e.text?e.text:t}function r(e,t){if(!e)return null;let r=t.exec(e);return r?r[0]:null}let i=new Map;for(let r of e.querySelectorAll("div#taglist > table > tbody > tr")){let e=r.children.length>0?r.children[0]:null,n=r.children.length>1?r.children[1]:null,a=t(e,"");if(!a)continue;let o=[],l=n?n.children:[];for(let e of l)try{let t=e.children.length>0?e.children[0]:null,r=t&&t.attributes?t.attributes.onclick:null;if(!r)continue;let i=r.split(":");if(i.length<2)continue;let n=i[1].split("'")[0];n&&o.push(n)}catch(e){}i.set(a.substring(0,a.length-1),o)}let n="1";for(let t of e.querySelectorAll("td.gdt2"))if(t.text.includes("page")){let e=r(t.text,/\d+/);e&&(n=e)}let a=" Add to Favorites"!==t(e.querySelector("a#favoritelink"),""),o=null;if(a){let t=e.querySelector("div#fav"),r=null;if(t&&t.children.length>0&&t.children[0].attributes&&(r=t.children[0].attributes.style),r&&r.includes("background-position:0px -")){let e=r.split("background-position:0px -");if(e.length>1){let t=e[1].split("px;")[0],r=Number(t);isNaN(r)||(o=((r-2)/19).toString())}}}let l="",s=e.querySelector("div#gleft > div#gd1 > div"),u=s&&s.attributes?s.attributes.style:"",d=RegExp("https?://([-a-zA-Z0-9.]+(/\\S*)?\\.(?:jpg|jpeg|gif|png|webp))").exec(u||"");d&&(l=d[0]);let c=e.getElementById("gdn"),h=c&&c.children.length>0?c.children[0].text:void 0,g=e.getElementById("rating_label"),m=g?g.text:"",y=m?m.split(":"):[],p=y.length>1?y[1].trim():"0",f=Number(p),b=t(e.querySelector("div.cs"),"Unknown");i.set("Category",[b]),h&&i.set("uploader",[h]);let v,k=t(e.querySelector("div#gdd > table > tbody > tr > td.gdt2"),""),w=e.querySelectorAll("script").find(e=>e.text.includes("var token")),S=RegExp("var\\s+(\\w+)\\s*=\\s*(.*?);","g"),C=new Map,q=w&&w.text?w.text:"";for(;null!==(v=S.exec(q));)C.set(v[1],v[2]);let x=t(e.querySelector("h1#gn"),"Unknown"),U=t(e.querySelector("h1#gj"),null);return null!=U&&""===U.trim()&&(U=null),{title:x,subtitle:U,coverPath:l,tags:i,stars:f,maxPage:Number(n),isFavorited:a,folder:o,time:k,token:C.get("token"),apikey:C.get("apikey"),uid:C.get("apiuid")}}function parseThumbnailPage(e,t){function r(e,t,r){return e&&e.attributes&&void 0!==e.attributes[t]?e.attributes[t]:r}const i=e=>{let t=r(e,"style","");if(!t)return"";let i=0,n=0,a=t.match(/width:(\d+)px/),o=t.match(/height:(\d+)px/);a&&(i=Number(a[1])),o&&(n=Number(o[1]));let l=t.split("background:transparent url(");if(l.length<2)return"";let s=l[1],u=s.split(")")[0];if(!u)return"";let d="";if(s.includes("px")){let e=s.split(") -");if(e.length>1){let t=Number(e[1].split("px")[0]);isNaN(t)||(d+=`x=${t}-${t+i}`)}}return n&&(d+=`${d?"&":""}y=0-${n}`),d&&(u+=`@${d}`),u};let n=e.querySelectorAll("div.gdtm > div").map(e=>i(e)).filter(e=>!!e);if(n.push(...e.querySelectorAll("div.gdtl > a > img").map(e=>r(e,"src","")).filter(e=>!!e)),0===n.length){for(let t of e.querySelectorAll("div.gt100 > a > div").map(e=>0===e.children.length?e:e.children[0])){let e=i(t);e&&n.push(e)}for(let t of e.querySelectorAll("div.gt200 > a > div").map(e=>0===e.children.length?e:e.children[0])){let e=i(t);e&&n.push(e)}}let a=e.querySelectorAll("table.ptb > tbody > tr > td > a").map(e=>r(e,"href","")).filter(e=>!!e).map(e=>{let t=e.split("="),r=Number(t.length>1?t[1]:"");return isNaN(r)?0:r}),o=a.length>0?Math.max(...a):0,l=t?Number(t):0;l+=1;let s=l>o?null:l.toString();return{thumbnails:n,urls:e.querySelectorAll("div#gdt a").map(e=>r(e,"href","")).filter(e=>!!e),next:s}}function parseDispatchKey(e){function t(e){return e&&"string"==typeof e.text?e.text:""}let r=e.querySelectorAll("script").find(e=>t(e).includes("showkey"));if(r){let e=RegExp('showkey="(.*?)"',"g").exec(t(r));if(e)return{showkey:e[1]}}let i=e.querySelectorAll("script").find(e=>t(e).includes("mpvkey")),n=t(i);if(n){let e="",t=[],r=n.split(";"),i=r.find(e=>e.includes("mpvkey"));if(i){let t=i.replace(/ /g,"").split("=");t.length>1&&(e=t[1].replace(/"/g,""))}let a=r.find(e=>e.includes("imagelist"));if(a){let e=a.replace(/ /g,"").split("=");if(e.length>1)try{let r=JSON.parse(e[1]);t=Array.isArray(r)?r.map(e=>e&&void 0!==e.k?e.k:null).filter(e=>null!=e):[]}catch(e){t=[]}}if(e||t.length>0)return{mpvkey:e,imageKeys:t}}throw"Failed to get dispatch key"}function parseComments(e){function t(e,t){return e&&"string"==typeof e.text?e.text:t}function r(e,t){if(e&&e.attributes)return e.attributes[t]}let i=[];for(let n of e.querySelectorAll("div.c1")){let e=t(n.querySelector("div.c3 > a"),""),a=n.querySelector("div.c3"),o=a&&a.text?a.text:null,l=o?o.split("Posted on"):[],s=l.length>1?l[1]:"",u=s?s.split("by"):[],d=u.length>0?u[0]:"",c=d&&d.trim?d.trim():"unknown",h="",g=n.querySelector("div.c6");h="undefined"!=typeof appVersion?g&&"string"==typeof g.innerHTML?g.innerHTML:"":t(g,"");let m=Number(t(n.querySelector("div.c5 > span"),""));isNaN(m)&&(m=null);let y="0",p=r(n.previousElementSibling,"name"),f=p?p.match(/\d+/):null;f&&(y=f[0]);let b=r(n.querySelector(`a#comment_vote_up_${y}`),"style"),v=r(n.querySelector(`a#comment_vote_down_${y}`),"style"),k="string"==typeof b&&b.length>0,w="string"==typeof v&&v.length>0;i.push(new Comment({id:y,content:h,time:c,userName:e,score:m,voteStatus:k?1:w?-1:0}))}return{comments:i,maxPage:1}}function parseArchiveOptions(e,t){function r(e,t){return e&&"string"==typeof e.text?e.text:t}let i=e.querySelector("div#db"),n=t.includes("exhentai")?1:3,a=[],o=e.querySelector("table");if(o){let e=o.querySelectorAll("td");for(let t of e){let e=t.querySelector("a");if(e){let i=e.attributes?e.attributes.onclick:null,n=i?i.match(/do_hathdl\('([^']+)'\)/):null;if(n){let i=n[1],o=r(e,"Unknown"),l=t.querySelectorAll("p"),s=l.length>1?r(l[1],"Unknown"):"Unknown",u=l.length>2?r(l[2],"Unknown"):"Unknown";a.push({id:`h@h_${i}`,title:`H@H ${o}`,description:`Size: ${s}, Cost: ${u}`})}}}}let l=null;if(i&&i.children.length>n&&i.children[n].children.length>0&&(l=i.children[n].children[0]),l){let e=r(l.querySelector("div > strong"),"Unknown"),t=r(l.querySelector("p > strong"),"Unknown");a.push({id:"0",title:"Original",description:`Cost: ${e}, Size: ${t}`})}let s=null;if(i&&i.children.length>n&&i.children[n].children.length>1&&(s=i.children[n].children[1]),s){let e=r(s.querySelector("div > strong"),"Unknown"),t=r(s.querySelector("p > strong"),"Unknown");a.push({id:"1",title:"Resample",description:`Cost: ${e}, Size: ${t}`})}return a}function parseArchiveError(e){let t=e.querySelector("p.br");return t&&"string"==typeof t.text?t.text:null}function parseFirstLink(e){let t=e.querySelector("a");return t&&t.attributes&&t.attributes.href?t.attributes.href:null}function createAccountFeature(e,t){return t}function createExploreFeature(e,t){return t}function createSearchFeature(e){return{loadNext:async(t,r,i)=>{let n=[];try{n=JSON.parse(r[0])}catch(e){throw"Failed to parse search options"}let a=r[1],o=r[2],l=1023;Array.isArray(n)||(n=[n]);for(let e of n)l-=1<<Number(e);o&&!t.includes("language:")&&(t+=` language:${o}`);let s=buildSearchUrl(e.baseUrl,t,l,a);return e.getGalleries(null!=i?i:s,!1)},optionList:[{type:"multi-select",options:["0-Misc","1-Doujinshi","2-Manga","3-Artist CG","4-Game CG","5-Image Set","6-Cosplay","7-Asian Porn","8-Non-H","9-Western"],label:"Category",default:["0","1","2","3","4","5","6","7","8","9"]},{type:"dropdown",options:["-<none>","0-0","1-1","2-2","3-3","4-4","5-5"],label:"Min Stars"},{type:"dropdown",options:["-<none>","chinese-Chinese","english-English","japanese-Japanese"],label:"Language"}],enableTagsSuggestions:!0}}function createFavoritesFeature(e){return{multiFolder:!0,singleFolderForSingleComic:!0,addOrDelFavorite:async(t,r,i,n)=>{let a=e.parseUrl(t),o=a.id,l=a.token;const s=buildGalleryPopupUrl(e.baseUrl,o,l);if(i){let i=await e.requestClient.post(s,{},buildAddFavoriteForm(r),{action:"Failed to add favorite",requestKey:`favorite:add:${t}:${r}`,mutation:!0,maxRetries:0,headerProfile:"form-urlencoded"});return e.requireStatus("Failed to add favorite",i),e.requireHtmlBody("Failed to add favorite",i),"ok"}{let r=await e.requestClient.post(s,{},buildDeleteFavoriteForm(),{action:"Failed to delete favorite",requestKey:`favorite:del:${t}`,mutation:!0,maxRetries:0,headerProfile:"form-urlencoded"});return e.requireStatus("Failed to delete favorite",r),e.requireHtmlBody("Failed to delete favorite",r),"ok"}},loadFolders:async t=>{try{await e.checkEHEvent()}catch(e){}let r=await e.requestClient.get(buildFavoritesUrl(e.baseUrl,"-1"),{},{action:"Failed to load favorite folders",requestKey:"favorites:folders"});e.requireStatus("Failed to load favorite folders",r),e.requireHtmlBody("Failed to load favorite folders",r);let i=await e.withDocument(r.body,async e=>{let t=new Map;t.set("-1","All");let r=0;for(let o of e.querySelectorAll("div.fp")){var i,n,a;if("Show All Favorites"===o.text)continue;let e=null!=(i=null==(n=o.children[2])?void 0:n.text)?i:`Favorite ${t.size}`,l=null==(a=o.children[0])?void 0:a.text;l&&(e+=` (${l})`,r+=+l),t.set((t.size-1).toString(),e)}return t.set("-1",`All (${r})`),t}),n=[];if(t){let r=await e.comic.loadInfo(t);r.isFavorite&&n.push(r.folder)}return{folders:i,favorited:n}},loadNext:async(t,r)=>{let i=buildFavoritesUrl(e.baseUrl,r);return e.getGalleries(null!=t?t:i,!1)}}}function createComicFeature(e){return{loadInfo:async t=>{if(e.galleryInfoCache.has(t))return e.galleryInfoCache.get(t);try{await e.checkEHEvent()}catch(e){}let r=await e.requestClient.get(t,{},{action:"Failed to load gallery details",requestKey:`gallery:${t}`,headerProfile:"gallery-view"});e.requireStatus("Failed to load gallery details",r),e.requireHtmlBody("Failed to load gallery details",r);let i=await e.withDocument(r.body,async r=>{if(e.isLogged&&e.loadSetting("hvevent")){const t=r.getElementById("eventpane");if(null!=t){var i;const r=null==(i=t.querySelector("div > a"))?void 0:i.attributes.href;null!=r&&UI.showDialog("HentaiVerse",e.translate("hentaiverse"),[{text:e.translate("cancel"),callback:()=>{}},{text:e.translate("fight"),callback:()=>{UI.launchUrl(r)}}])}}const n=parseGalleryDetails(r);let a=e.comic.parseComments(r),o=new ComicDetails({id:t,title:n.title,subTitle:n.subtitle,cover:n.coverPath,tags:n.tags,stars:n.stars,maxPage:n.maxPage,isFavorite:n.isFavorited,uploadTime:n.time,url:t,comments:a.comments});return o.folder=n.folder,o.token=n.token,e.apikey=n.apikey,e.apikey&&'"'===e.apikey[0]&&(e.apikey=e.apikey.substring(1,e.apikey.length-1)),e.uid=n.uid,o});return e.galleryInfoCache.set(t,i),i},loadThumbnails:async(t,r)=>{const i=thumbnailCacheKey(t,r);if(e.thumbnailCache.has(i))return e.thumbnailCache.get(i);let n=buildGalleryPageUrl(t,r),a=await e.requestClient.get(n,{"cache-time":"long","prevent-parallel":"true"},{action:"Failed to load thumbnails",requestKey:`thumbnails:${i}`,headerProfile:"gallery-view"});e.requireStatus("Failed to load thumbnails",a),e.requireHtmlBody("Failed to load thumbnails",a);const o=await e.withDocument(a.body,async e=>parseThumbnailPage(e,r));return e.thumbnailCache.set(i,o),o},starRating:async(t,r)=>{const i=e.parseUrl(t);let n=await e.requestClient.post(e.apiUrl,{},buildRateGalleryPayload({galleryId:i.id,token:i.token,rating:r,apikey:e.apikey,apiuid:e.uid}),{action:"Failed to submit rating",requestKey:`rate:${t}:${r}`,mutation:!0,maxRetries:0,classifyBody:!1,headerProfile:"json-api"});return e.requireStatus("Failed to submit rating",n),"ok"},getKey:async t=>{if(e.keyCache.has(t))return e.keyCache.get(t);let r=await e.requestClient.get(t,{"cache-time":"long","prevent-parallel":"true"},{action:"Failed to load dispatch key",requestKey:`key:${t}`});e.requireStatus("Failed to load dispatch key",r),e.requireHtmlBody("Failed to load dispatch key",r);const i=await e.withDocument(r.body,async e=>parseDispatchKey(e));return e.keyCache.set(t,i),i},loadEp:async(t,r)=>{let i=await e.comic.loadInfo(t);return{images:Array.from({length:i.maxPage},(e,t)=>t.toString())}},onImageLoad:async(t,r,i,n)=>e.imageSessions.load({image:t,comicId:r,epId:i,nl:n,attempt:0}),onThumbnailLoad:t=>({url:t=normalizeThumbnailHost(t),headers:e.buildRequestHeaders("GET",t,{},{headerProfile:"thumbnail"})}),parseComments:e=>parseComments(e),loadComments:async(t,r,i,n)=>{let a=await e.requestClient.get(buildCommentsUrl(t),{},{action:"Failed to load comments",requestKey:`comments:${t}`,headerProfile:"gallery-view"});return e.requireStatus("Failed to load comments",a),e.requireHtmlBody("Failed to load comments",a),e.withDocument(a.body,async t=>e.comic.parseComments(t))},sendComment:async(t,r,i,n)=>{let a=await e.requestClient.post(t,{},buildCommentForm(i),{action:"Failed to submit comment",requestKey:`comment:${t}`,mutation:!0,maxRetries:0,headerProfile:"form-urlencoded",refererUrl:t});if(a.status>=400)throw e.formatResponseError("Failed to submit comment",a);return e.requireHtmlBody("Failed to submit comment",a),await e.withDocument(a.body,async e=>{const t=e.querySelector("p.br");if(t)throw t.text}),"ok"},voteComment:async(t,r,i,n,a)=>{if(null==e.apikey||null==e.uid)throw"Login required";const o=e.parseUrl(t);let l=await e.requestClient.post(e.apiUrl,{},buildVoteCommentPayload({galleryId:o.id,token:o.token,commentId:i,isUp:n,apikey:e.apikey,apiuid:e.uid}),{action:"Failed to vote comment",requestKey:`vote:${t}:${i}:${n?"up":"down"}`,mutation:!0,maxRetries:0,classifyBody:!1,headerProfile:"json-api"});e.requireStatus("Failed to vote comment",l);let s=e.parseJsonResponse("Failed to vote comment",l);if(s.error)throw s.error;return s.comment_score},archive:{getArchives:async t=>{await e.comic.loadInfo(t);let r=e.parseUrl(t),i=r.id,n=r.token;const a=buildArchiverUrl(e.baseUrl,i,n);let o=await e.requestClient.get(a,{},{action:"Failed to load archive options",requestKey:`archive:options:${t}`});return e.requireStatus("Failed to load archive options",o),e.requireHtmlBody("Failed to load archive options",o),e.withDocument(o.body,async t=>parseArchiveOptions(t,e.baseUrl))},getDownloadUrl:async(t,r)=>{let i=e.parseUrl(t),n=i.id,a=i.token;const o=buildArchiverUrl(e.baseUrl,n,a);if(r.startsWith("h@h_")){let i=r.substring(4),n=await e.requestClient.post(o,{},buildHathDownloadForm(i),{action:"Failed to send H@H download command",requestKey:`archive:hath:${t}:${i}`,mutation:!0,maxRetries:0,headerProfile:"form-urlencoded"});return e.requireStatus("Failed to send H@H download command",n),e.requireHtmlBody("Failed to send H@H download command",n),await e.withDocument(n.body,async e=>{let t=e.querySelector("p.br");if(t){let e=t.text;throw e.includes("H@H client")?"You need an H@H client associated with your account to use this feature":e.includes("offline")?"Your H@H client appears to be offline. Please start it and try again":e.includes("resolution")?"This gallery cannot be downloaded at the selected resolution":e}}),""}let l=await e.requestClient.post(o,{},buildArchiveDownloadForm(r),{action:"Failed to create archive download",requestKey:`archive:create:${t}:${r}`,mutation:!0,maxRetries:0,headerProfile:"form-urlencoded"});e.requireStatus("Failed to create archive download",l),e.requireHtmlBody("Failed to create archive download",l);let s=await e.withDocument(l.body,async e=>{var t;return null==(t=e.querySelector("a"))?void 0:t.attributes.href});if(!s)throw"Failed to get download link";let u=await e.requestClient.get(s,{},{action:"Failed to load archive download page",requestKey:`archive:page:${s}`,networkClient:"dart-io"});e.requireStatus("Failed to load archive download page",u),e.requireHtmlBody("Failed to load archive download page",u);let d=buildArchiveResultUrl(s,await e.withDocument(u.body,async e=>{var t;return null==(t=e.querySelector("a"))?void 0:t.attributes.href}));if(!d)throw"Failed to build final download URL";if(410===(await e.requestClient.head(d,{},{action:"Failed to validate archive link",requestKey:`archive:head:${d}`,classifyBody:!1,networkClient:"dart-io"})).status)throw"IP quota exhausted.";return d}},onClickTag:(e,t)=>"Category"==e?{page:"search",attributes:{keyword:"",options:[["misc","doujinshi","manga","artist cg","game cg","image set","cosplay","asian porn","non-h","western"].indexOf(t.toLowerCase()).toString(),"",""]}}:(t.includes(" ")&&(t=`"${t}"`),{action:"search",keyword:`${e}:${t}`,param:null}),link:{domains:["e-hentai.org","exhentai.org"],linkToId:t=>normalizeGalleryLink(e.baseUrl,t)},enableTagsTranslate:!0}}function createCommentsFeature(e,t){return t}function createArchiveFeature(e,t){return t}function createSettings(){return Object.freeze({domain:{title:"domain",type:"select",options:[{value:"e-hentai.org"},{value:"exhentai.org"}],default:"e-hentai.org"},ehevent:{title:"ehevent",type:"switch",default:!1},hvevent:{title:"hvevent",type:"switch",default:!1}})}const i18n={zh_CN:{domain:"域名",ehevent:"触发黎明事件",hvevent:"提示HV遭遇战",hentaiverse:"你遇到了怪物！",fight:"战斗",cancel:"取消",language:"语言",artist:"画师",male:"男性",female:"女性",mixed:"混合",other:"其它",parody:"原作",character:"角色",group:"团队",cosplayer:"Coser",reclass:"重新分类",uploader:"上传者",Languages:"语言",Artists:"画师",Characters:"角色",Groups:"团队",Tags:"标签",Parodies:"原作",Categories:"分类",Category:"分类","Min Stars":"最少星星",Language:"语言","H@H Original":"H@H 原版","H@H 800x":"H@H 800x","H@H 1280x":"H@H 1280x","H@H 1920x":"H@H 1920x","H@H 2560x":"H@H 2560x",Original:"原版",Resample:"重采样"},zh_TW:{domain:"域名",ehevent:"觸發黎明事件",hvevent:"提示HV遭遇戰",hentaiverse:"你遇到了怪物！",fight:"戰鬥",cancel:"取消",language:"語言",artist:"畫師",male:"男性",female:"女性",mixed:"混合",other:"其他",parody:"原作",character:"角色",group:"團隊",cosplayer:"Coser",reclass:"重新分類",uploader:"上傳者",Languages:"語言",Artists:"畫師",Characters:"角色",Groups:"團隊",Tags:"標籤",Parodies:"原作",Categories:"分類",Category:"分類","Min Stars":"最少星星",Language:"語言","H@H Original":"H@H 原版","H@H 800x":"H@H 800x","H@H 1280x":"H@H 1280x","H@H 1920x":"H@H 1920x","H@H 2560x":"H@H 2560x",Original:"原版",Resample:"重採樣"},en_US:{domain:"Domain",ehevent:"Trigger Dawn Event",hvevent:"HV Encounter Alert",hentaiverse:"You have encountered a monster!",fight:"Fight",cancel:"Cancel",language:"Language",artist:"Artist",male:"Male",female:"Female",mixed:"Mixed",other:"Other",parody:"Parody",character:"Character",group:"Group",cosplayer:"Cosplayer",reclass:"Reclass",uploader:"Uploader",Languages:"Languages",Artists:"Artists",Characters:"Characters",Groups:"Groups",Tags:"Tags",Parodies:"Parodies",Categories:"Categories",Category:"Category","Min Stars":"Min Stars",Language:"Language","H@H Original":"H@H Original","H@H 800x":"H@H 800x","H@H 1280x":"H@H 1280x","H@H 1920x":"H@H 1920x","H@H 2560x":"H@H 2560x",Original:"Original",Resample:"Resample"}};function createEhentaiAccountFeature(e){return createAccountFeature(e,{loginWithWebview:{url:buildForumsLoginUrl(),checkStatus:(e,t)=>"E-Hentai Forums"===t,onLoginSuccess:async()=>{let e=await Network.getCookies(buildForumsCookieUrl());e.forEach(e=>{e.domain=".exhentai.org"}),Network.setCookies(buildExCookieUrl(),e)}},loginWithCookies:{fields:["ipb_member_id","ipb_pass_hash","igneous","star"],validate:async t=>{if(4!==t.length)return!1;if(0===t[0].length||0===t[1].length)return!1;let r=[];for(let i=0;i<t.length;i++)r.push(new Cookie({name:e.account.loginWithCookies.fields[i],value:t[i],domain:".e-hentai.org"})),r.push(new Cookie({name:e.account.loginWithCookies.fields[i],value:t[i],domain:".exhentai.org"}));Network.deleteCookies(buildEhCookieUrl()),Network.setCookies(buildEhCookieUrl(),r);let i=await e.requestClient.get(buildForumsHomeUrl(),{},{action:"Failed to validate forum cookies",requestKey:"forums:cookie-validate",classifyBody:!1,headerProfile:"forums-browser",refererUrl:buildForumsIndexRefererUrl()});if(200!==i.status)return!1;let n=new HtmlDocument(i.body),a=n.querySelector("div#userlinks > p.home > b > a");return n.dispose(),null!=a}},logout:()=>{Network.deleteCookies(buildEhCookieUrl()),Network.deleteCookies(buildForumsCookieUrl()),Network.deleteCookies(buildExCookieUrl()),e.responseCache.clear(),e.thumbnailCache.clear(),e.keyCache.clear(),e.galleryInfoCache.clear(),e.imageSessionCache.clear()},registerWebsite:null})}function createEhentaiExploreFeature(e){return createExploreFeature(e,[{title:"eh latest",type:"multiPageComicList",loadNext:t=>{let r=null!=t?t:e.baseUrl;return e.getGalleries(r,!1)}},{title:"eh popular",type:"multiPageComicList",loadNext:t=>{let r=null!=t?t:buildPopularUrl(e.baseUrl);return e.getGalleries(r,!1)}},{title:"eh watched",type:"multiPageComicList",loadNext:async t=>{if(!e.isLogged)return UI.showMessage("Need login first"),{comics:[],next:null};let r=null!=t?t:buildWatchedUrl(e.baseUrl);return e.getGalleries(r,!1)}}])}function createEhentaiCategory(){return{title:"ehentai",parts:[],enableRankingPage:!0}}function createEhentaiCategoryComics(e){return{ranking:{options:["15-yesterday","13-month","12-year","11-all"],load:async(t,r)=>{let i=(await e.getGalleries(buildToplistUrl(buildBaseUrl("e-hentai.org"),t,r-1),!0)).comics;return"exhentai.org"===e.loadSetting("domain")&&i.forEach(e=>{e.id=e.id.replace("e-hentai","exhentai")}),{comics:i,maxPage:200}}}}}class Ehentai extends ComicSource{constructor(){super(),this.name="ehentai",this.key="ehentai",this.version="1.2.0",this.minAppVersion="1.5.3",this.url=buildCdnSourceUrl("ehentai.js"),this.apikey=null,this.uid=null,this.requestState={queues:new Map,inflight:new Map,cooldownUntil:new Map,failureBudget:new Map},this.responseCache=new Map,this.thumbnailCache=new Map,this.keyCache=new Map,this.galleryInfoCache=new Map,this.imageSessionCache=new Map,this.account=createEhentaiAccountFeature(this),this.explore=createEhentaiExploreFeature(this),this.category=createEhentaiCategory(),this.categoryComics=createEhentaiCategoryComics(this),this.search=createSearchFeature(this),this.favorites=createFavoritesFeature(this),this.comic=createComicFeature(this),this.settings=createSettings(),this.translation=i18n}parseUrl(e){return parseGalleryUrl(e)}get requestClient(){return this._requestClient||(this._requestClient=new EhentaiRequestClient(this)),this._requestClient}get imageSessions(){return this._imageSessions||(this._imageSessions=new ImageLoadingSessionManager(this)),this._imageSessions}getErrorMessage(e){return null==e?"Unknown error":"string"==typeof e?e:e instanceof Error&&e.message||"string"==typeof e.message&&e.message.length>0?e.message:String(e)}isRedirectError(e){return this.getErrorMessage(e).toLowerCase().includes("redirect")}isAbuseResponseBody(e){let t=String(null!=e?e:"").trim();if(0===t.length)return!0;let r=t.toLowerCase();return r.includes("your ip address has been banned")||r.includes("access denied")||r.includes("request denied")||r.includes("temporarily banned")}formatRequestError(e,t){let r=this.getErrorMessage(t);return this.isRedirectError(r)?`${e} failed: request was redirected by the server`:r.toLowerCase().includes("timeout")||r.toLowerCase().includes("network")||r.toLowerCase().includes("socket")?`${e} failed: network error (${r})`:`${e} failed: ${r}`}formatResponseError(e,t){var r;let i=null==t?void 0:t.status,n=String(null!=(r=null==t?void 0:t.body)?r:"").trim();return 403===i||429===i?`${e} failed: server returned ${i}`:0===n.length?`${e} failed: empty response from server`:this.isAbuseResponseBody(n)?`${e} failed: access was denied by the server`:`${e} failed: invalid status code ${i}`}requireStatus(e,t,r=200){if(!t||t.status!==r)throw this.formatResponseError(e,t||{})}requireNonEmptyBody(e,t){const r=String(t&&t.body||"").trim();if(0===r.length)throw this.formatResponseError(e,t||{});return r}requireHtmlBody(e,t){const r=this.requireNonEmptyBody(e,t);if("<"!==r[0])throw`${e} failed: invalid HTML response`;return r}parseJsonResponse(e,t){this.requireNonEmptyBody(e,t);try{return JSON.parse(t.body)}catch(t){throw`${e} failed: invalid JSON response`}}async withDocument(e,t){const r=new HtmlDocument(e);try{return await t(r)}finally{r.dispose()}}buildRequestHeaders(e,t,r,i){const n={...r||{}};return"json-api"===i.headerProfile&&(n["Content-Type"]||(n["Content-Type"]="application/json")),"form-urlencoded"===i.headerProfile&&(n["Content-Type"]||(n["Content-Type"]="application/x-www-form-urlencoded")),"gallery-view"===i.headerProfile&&(n.cookie||(n.cookie="nw=1")),"thumbnail"===i.headerProfile&&(n.referer||(n.referer=this.baseUrl)),"forums-browser"===i.headerProfile&&(n.accept||(n.accept="text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"),n["accept-encoding"]||(n["accept-encoding"]="gzip, deflate, br"),n["accept-language"]||(n["accept-language"]="zh-CN,zh;q=0.9,en-US;q=0.8,en;q=0.7")),i.refererUrl&&!n.referer&&(n.referer=i.refererUrl),"dart-io"!==i.networkClient||n.http_client||(n.http_client="dart:io"),n}async checkEHEvent(){if(this.isLogged&&this.loadSetting("ehevent"))try{const e=this.loadData("lastEventTime"),t=(new Date).toISOString().split("T")[0];if(e==t)return;const r=await this.requestClient.get(buildEhNewsUrl(),{},{action:"Failed to load event news",requestKey:"event-news"});if(200!==r.status||this.isAbuseResponseBody(r.body))return;this.saveData("lastEventTime",t);const i=new HtmlDocument(r.body).getElementById("eventpane");if(null==i)return;const n=i.querySelector("div > p:nth-child(2)");if(null==n)return;UI.showMessage(n.text)}catch(e){}}get baseUrl(){return buildBaseUrl(this.loadSetting("domain"))}get apiUrl(){return buildApiUrl(this.baseUrl)}getStarsFromPosition(e){let t=0;for(;";"!==e[t]&&(t++,t!==e.length););switch(e.substring(0,t)){case"background-position:0px -1px":return 5;case"background-position:0px -21px":return 4.5;case"background-position:-16px -1px":return 4;case"background-position:-16px -21px":return 3.5;case"background-position:-32px -1px":return 3;case"background-position:-32px -21px":return 2.5;case"background-position:-48px -1px":return 2;case"background-position:-48px -21px":return 1.5;case"background-position:-64px -1px":return 1;case"background-position:-64px -21px":return.5}return.5}async onLoadFailed(e=null){let t;try{t=await Network.getCookies(buildEhCookieUrl())}catch(e){throw this.formatRequestError("Failed to recover session cookies",e)}throw t.forEach(e=>{e.domain=".exhentai.org"}),t=t.filter(e=>"igneous"!==e.name),Network.deleteCookies(buildExCookieUrl()),Network.setCookies(buildExCookieUrl(),t),`You may not have permission to access this page${e?` (${e})`:""}. Please check your network or try to login again.`}async getGalleries(e,t){try{await this.checkEHEvent()}catch(e){}let r;try{r=await this.requestClient.get(e,{},{action:"Failed to load gallery list",requestKey:`galleries:${e}`})}catch(e){throw this.isRedirectError(e)&&await this.onLoadFailed("request was redirected"),this.formatRequestError("Failed to load gallery list",e)}if(200!==r.status)throw this.formatResponseError("Failed to load gallery list",r);if(0===r.body.trim().length&&await this.onLoadFailed("empty response from gallery list"),"<"!==r.body[0]){if(this.isAbuseResponseBody(r.body))throw"Your IP address has been banned";throw"Failed to load gallery list"}let i=new HtmlDocument(r.body);try{return parseGalleryList({document:i,source:this,url:e,isLeaderBoard:t})}finally{i.dispose()}}}
+"use strict";
+
+// Generated from src/ehentai. Do not edit this file directly.
+// Run: node scripts/build-source.js ehentai
+// Source entry for generated root ehentai.js.
+// Keep runtime output standalone: no imports or exports in generated artifact.
+const parsers = {};
+const features = {};
+function hasValue(value) {
+  return value !== null && value !== undefined && value !== "";
+}
+function buildQuery(params) {
+  return Object.entries(params).filter(([, value]) => hasValue(value)).map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`).join("&");
+}
+function buildFormBody(params) {
+  return Object.entries(params).filter(([, value]) => value !== null && value !== undefined).map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`).join("&");
+}
+const URL_HOSTS = {
+  EH: "e-hentai.org",
+  EX: "exhentai.org",
+  FORUMS: "forums.e-hentai.org",
+  API_EH: "api.e-hentai.org"
+};
+function buildBaseUrl(domain) {
+  return `https://${domain}`;
+}
+function buildPathUrl(baseUrl, path) {
+  const normalizedPath = String(path || "").replace(/^\/+/, "");
+  if (!normalizedPath) {
+    return String(baseUrl);
+  }
+  return `${baseUrl}/${normalizedPath}`;
+}
+function buildPathQueryUrl(baseUrl, path, params, keepTrailingQuestion = false) {
+  const base = buildPathUrl(baseUrl, path);
+  const query = buildQuery(params || {});
+  if (!query) {
+    return keepTrailingQuestion ? `${base}?` : base;
+  }
+  return `${base}?${query}`;
+}
+function buildCdnSourceUrl(fileName) {
+  return buildPathUrl("https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main", fileName);
+}
+function buildApiUrl(baseUrl) {
+  if (baseUrl.includes(URL_HOSTS.EX)) {
+    return buildPathUrl(buildBaseUrl(URL_HOSTS.EX), "api.php");
+  }
+  return buildPathUrl(buildBaseUrl(URL_HOSTS.API_EH), "api.php");
+}
+function buildEhNewsUrl() {
+  return buildPathUrl(buildBaseUrl(URL_HOSTS.EH), "news.php");
+}
+function buildForumsLoginUrl() {
+  return buildPathQueryUrl(buildBaseUrl(URL_HOSTS.FORUMS), "index.php", {
+    act: "Login",
+    CODE: "00"
+  });
+}
+function buildForumsHomeUrl() {
+  return `${buildPathUrl(buildBaseUrl(URL_HOSTS.FORUMS), "")}/`;
+}
+function buildForumsIndexRefererUrl() {
+  return buildPathQueryUrl(buildBaseUrl(URL_HOSTS.FORUMS), "index.php", {}, true);
+}
+function buildEhCookieUrl() {
+  return buildBaseUrl(URL_HOSTS.EH);
+}
+function buildExCookieUrl() {
+  return buildBaseUrl(URL_HOSTS.EX);
+}
+function buildForumsCookieUrl() {
+  return buildBaseUrl(URL_HOSTS.FORUMS);
+}
+function buildPopularUrl(baseUrl) {
+  return buildPathUrl(baseUrl, "popular");
+}
+function buildWatchedUrl(baseUrl) {
+  return buildPathUrl(baseUrl, "watched");
+}
+function buildGalleryPageUrl(comicId, pageToken) {
+  if (!hasValue(pageToken)) {
+    return comicId;
+  }
+  return buildPathQueryUrl(comicId, "", {
+    p: pageToken
+  });
+}
+function parseGalleryUrl(url) {
+  const clean = String(url || "").split("?")[0].split("#")[0];
+  const segments = clean.split("/");
+  return {
+    id: segments[4],
+    token: segments[5]
+  };
+}
+function buildFavoritesUrl(baseUrl, folderId) {
+  if (!hasValue(folderId) || folderId === "-1") {
+    return buildPathUrl(baseUrl, "favorites.php");
+  }
+  return buildPathQueryUrl(baseUrl, "favorites.php", {
+    favcat: folderId
+  });
+}
+function buildSearchUrl(baseUrl, keyword, fcats, stars) {
+  const query = {
+    f_search: keyword,
+    f_cats: fcats ? String(fcats) : null,
+    f_srdd: stars || null
+  };
+  return buildPathQueryUrl(baseUrl, "", query);
+}
+function buildToplistUrl(baseUrl, option, page) {
+  return buildPathQueryUrl(baseUrl, "toplist.php", {
+    tl: option,
+    p: page
+  });
+}
+function buildGalleryPopupUrl(baseUrl, galleryId, token) {
+  return buildPathQueryUrl(baseUrl, "gallerypopups.php", {
+    gid: galleryId,
+    t: token,
+    act: "addfav"
+  });
+}
+function buildArchiverUrl(baseUrl, gid, token) {
+  return buildPathQueryUrl(baseUrl, "archiver.php", {
+    gid,
+    token
+  });
+}
+function buildCommentsUrl(comicId) {
+  return buildPathQueryUrl(comicId, "", {
+    hc: 1
+  });
+}
+function extractHost(url) {
+  const regex = /^(?:https?:\/\/)?(?:www\.)?([^\/]+)/i;
+  const match = String(url || "").match(regex);
+  return match ? match[1] : null;
+}
+function buildArchiveResultUrl(downloadPageUrl, hrefPath) {
+  const host = extractHost(downloadPageUrl);
+  if (!host || !hrefPath) {
+    return null;
+  }
+  return `${buildBaseUrl(host)}${String(hrefPath)}`;
+}
+function normalizeGalleryLink(baseUrl, url) {
+  const parsed = parseGalleryUrl(url);
+  if (!hasValue(parsed.id) || !hasValue(parsed.token)) {
+    return null;
+  }
+  return `${baseUrl}/g/${parsed.id}/${parsed.token}/`;
+}
+function normalizeThumbnailHost(url) {
+  if (String(url || "").includes("s.exhentai.org")) {
+    return String(url).replace("s.exhentai.org", "ehgt.org");
+  }
+  return url;
+}
+function imageKeyFromPageUrl(url) {
+  return String(url || "").split("/")[4] || "";
+}
+function buildRateGalleryPayload({
+  galleryId,
+  token,
+  rating,
+  apikey,
+  apiuid
+}) {
+  return {
+    gid: galleryId,
+    token,
+    method: "rategallery",
+    rating,
+    apikey,
+    apiuid
+  };
+}
+function buildVoteCommentPayload({
+  galleryId,
+  token,
+  commentId,
+  isUp,
+  apikey,
+  apiuid
+}) {
+  return {
+    gid: galleryId,
+    token,
+    method: "votecomment",
+    comment_id: commentId,
+    comment_vote: isUp ? 1 : -1,
+    apikey,
+    apiuid
+  };
+}
+function buildImageDispatchPayload({
+  galleryId,
+  imgKey,
+  page,
+  mpvkey,
+  nl
+}) {
+  return {
+    gid: galleryId,
+    imgkey: imgKey,
+    method: "imagedispatch",
+    page,
+    mpvkey,
+    nl
+  };
+}
+function buildShowPagePayload({
+  galleryId,
+  imgKey,
+  page,
+  showkey,
+  nl
+}) {
+  return {
+    gid: galleryId,
+    imgkey: imgKey,
+    method: "showpage",
+    page,
+    showkey,
+    nl
+  };
+}
+function buildAddFavoriteForm(folderId) {
+  return buildFormBody({
+    favcat: folderId,
+    favnote: "",
+    apply: "Add to Favorites",
+    update: 1
+  });
+}
+function buildDeleteFavoriteForm() {
+  return buildFormBody({
+    favcat: "favdel",
+    favnote: "",
+    apply: "Apply Changes",
+    update: 1
+  });
+}
+function buildCommentForm(content) {
+  return buildFormBody({
+    commenttext_new: content
+  });
+}
+function buildArchiveDownloadForm(aid) {
+  if (aid === "0") {
+    return buildFormBody({
+      dltype: "org",
+      dlcheck: "Download Original Archive"
+    });
+  }
+  if (aid === "1") {
+    return buildFormBody({
+      dltype: "res",
+      dlcheck: "Download Resample Archive"
+    });
+  }
+  throw new Error("Invalid archive type");
+}
+function buildHathDownloadForm(resolution) {
+  return buildFormBody({
+    hathdl_xres: resolution
+  });
+}
+function domainKey(url) {
+  try {
+    return new URL(url).hostname;
+  } catch (_) {
+    return "default";
+  }
+}
+function thumbnailCacheKey(comicId, pageToken) {
+  return `${comicId}::${pageToken != null ? pageToken : "0"}`;
+}
+function parseGalleryList({
+  document,
+  source,
+  url,
+  isLeaderBoard
+}) {
+  function safeText(node, fallback) {
+    if (node && typeof node.text === "string") {
+      return node.text;
+    }
+    return fallback;
+  }
+  function safeAttr(node, key, fallback) {
+    if (node && node.attributes && typeof node.attributes[key] !== "undefined") {
+      return node.attributes[key];
+    }
+    return fallback;
+  }
+  function firstNumber(text, fallback) {
+    let match = text ? text.match(/\d+/) : null;
+    if (!match) {
+      return fallback;
+    }
+    let value = Number(match[0]);
+    return isNaN(value) ? fallback : value;
+  }
+  const t = isLeaderBoard ? 1 : 0;
+  const galleries = [];
+  for (let item of document.querySelectorAll("table.itg.gltc > tbody > tr")) {
+    try {
+      let infoCell = item.children.length > 1 + t ? item.children[1 + t] : null;
+      if (!infoCell) {
+        continue;
+      }
+      let metaContainer = infoCell.children.length > 2 ? infoCell.children[2] : null;
+      let time = safeText(metaContainer && metaContainer.children.length > 0 ? metaContainer.children[0] : null, "");
+      let stars = source.getStarsFromPosition(safeAttr(metaContainer && metaContainer.children.length > 1 ? metaContainer.children[1] : null, "style", ""));
+      let coverNode = infoCell;
+      if (coverNode && coverNode.children.length > 1) {
+        coverNode = coverNode.children[1];
+      }
+      if (coverNode && coverNode.children.length > 0) {
+        coverNode = coverNode.children[0];
+      }
+      if (coverNode && coverNode.children.length > 0) {
+        coverNode = coverNode.children[0];
+      }
+      let cover = safeAttr(coverNode, "src", "");
+      if (cover && cover[0] === "d") {
+        cover = safeAttr(coverNode, "data-src", cover);
+      }
+      let detailsCell = item.children.length > 2 + t ? item.children[2 + t] : null;
+      let detailsRoot = detailsCell && detailsCell.children.length > 0 ? detailsCell.children[0] : null;
+      let title = safeText(detailsRoot && detailsRoot.children.length > 0 ? detailsRoot.children[0] : null, "Unknown");
+      let link = safeAttr(detailsRoot, "href", "");
+      let uploader = "";
+      let pages = 0;
+      try {
+        if (url.includes("/favorites.php")) {
+          let favNode = infoCell;
+          if (favNode.children.length > 1) favNode = favNode.children[1];
+          if (favNode.children.length > 1) favNode = favNode.children[1];
+          if (favNode.children.length > 1) favNode = favNode.children[1];
+          pages = firstNumber(safeText(favNode && favNode.children.length > 1 ? favNode.children[1] : null, ""), 0);
+        } else {
+          let uploaderCell = item.children.length > 3 + t ? item.children[3 + t] : null;
+          pages = firstNumber(safeText(uploaderCell && uploaderCell.children.length > 1 ? uploaderCell.children[1] : null, ""), 0);
+          let uploaderAnchor = null;
+          if (uploaderCell && uploaderCell.children.length > 0) {
+            uploaderAnchor = uploaderCell.children[0];
+          }
+          if (uploaderAnchor && uploaderAnchor.children.length > 0) {
+            uploaderAnchor = uploaderAnchor.children[0];
+          }
+          uploader = safeText(uploaderAnchor, "");
+        }
+      } catch (_) {}
+      let tags = [];
+      let language = null;
+      let tagContainer = detailsRoot && detailsRoot.children.length > 1 ? detailsRoot.children[1] : null;
+      for (let node of tagContainer ? tagContainer.children : []) {
+        let tag = safeAttr(node, "title", "");
+        if (!tag) {
+          continue;
+        }
+        if (tag.startsWith("language:")) {
+          let l = tag.split(":")[1].trim();
+          language = l === "translated" ? language : l;
+          continue;
+        }
+        tags.push(tag);
+      }
+      galleries.push(new Comic({
+        id: link,
+        title,
+        subTitle: uploader,
+        cover,
+        tags,
+        description: time,
+        stars,
+        maxPage: pages,
+        language
+      }));
+    } catch (_) {}
+  }
+  for (let item of document.querySelectorAll("div.gl1t")) {
+    try {
+      let title = safeText(item.querySelector("a"), "Unknown");
+      let time = item.querySelectorAll("div.gl5t > div > div").find(element => !isNaN(Date.parse(element.text)));
+      time = safeText(time, "");
+      let coverPath = safeAttr(item.querySelector("img"), "src", "");
+      let stars = source.getStarsFromPosition(safeAttr(item.querySelector("div.gl5t > div > div.ir"), "style", ""));
+      let link = safeAttr(item.querySelector("a"), "href", "");
+      let pageElement = item.querySelectorAll("div.gl5t > div > div").find(element => element.text.includes("page"));
+      let pages = firstNumber(safeText(pageElement, ""), 0);
+      galleries.push(new Comic({
+        id: link,
+        title,
+        cover: coverPath,
+        description: time,
+        stars,
+        maxPage: pages
+      }));
+    } catch (_) {}
+  }
+  for (let item of document.querySelectorAll("table.itg.glte > tbody > tr")) {
+    try {
+      let title = safeText(item.querySelector("td.gl2e > div > a > div > div.glink"), "Unknown");
+      let time = safeText(item.querySelectorAll("td.gl2e > div > div.gl3e > div").find(element => !isNaN(Date.parse(element.text))), "Unknown");
+      let uploader = safeText(item.querySelector("td.gl2e > div > div.gl3e > div > a"), "Unknown");
+      let coverPath = safeAttr(item.querySelector("td.gl1e > div > a > img"), "src", "");
+      let stars = source.getStarsFromPosition(safeAttr(item.querySelector("td.gl2e > div > div.gl3e > div.ir"), "style", ""));
+      let link = safeAttr(item.querySelector("td.gl1e > div > a"), "href", "");
+      let tags = item.querySelectorAll("div.gt, div.gtl").map(e => safeAttr(e, "title", ""));
+      tags = tags.filter(tag => !!tag);
+      let pages = firstNumber(safeText(item.querySelectorAll("td.gl2e > div > div.gl3e > div").find(element => element.text.includes("page")), ""), 0);
+      let language = null;
+      let languageTag = tags.find(e => e.startsWith("language:") && !e.includes("translated"));
+      if (languageTag && languageTag.includes(":")) {
+        language = languageTag.split(":")[1].trim();
+      }
+      galleries.push(new Comic({
+        id: link,
+        title,
+        subTitle: uploader,
+        cover: coverPath,
+        tags,
+        description: time,
+        stars,
+        maxPage: pages,
+        language
+      }));
+    } catch (_) {}
+  }
+  for (let item of document.querySelectorAll("table.itg.gltm > tbody > tr")) {
+    try {
+      let title = safeText(item.querySelector("td.gl3m > a > div.glink"), "Unknown");
+      let time = safeText(item.querySelectorAll("td.gl2m > div").find(element => !isNaN(Date.parse(element.text))), "Unknown");
+      let uploader = safeText(item.querySelector("td.gl5m > div > a"), "Unknown");
+      let coverNode = item.querySelector("td.gl2m > div > div > img");
+      let coverPath = safeAttr(coverNode, "src", "");
+      if (coverPath && coverPath[0] === "d") {
+        coverPath = safeAttr(coverNode, "data-src", coverPath);
+      }
+      let stars = source.getStarsFromPosition(safeAttr(item.querySelector("td.gl4m > div.ir"), "style", ""));
+      let link = safeAttr(item.querySelector("td.gl3m > a"), "href", "");
+      galleries.push(new Comic({
+        id: link,
+        title,
+        subTitle: uploader,
+        cover: coverPath,
+        description: time,
+        stars
+      }));
+    } catch (_) {}
+  }
+  const next = safeAttr(document.querySelector("a#dnext"), "href", undefined);
+  return {
+    comics: galleries,
+    next
+  };
+}
+function parseGalleryDetails(document) {
+  function safeText(node, fallback) {
+    if (node && typeof node.text === "string") {
+      return node.text;
+    }
+    return fallback;
+  }
+  function firstMatch(text, regExp) {
+    if (!text) {
+      return null;
+    }
+    let match = regExp.exec(text);
+    return match ? match[0] : null;
+  }
+  let tags = new Map();
+  for (let tr of document.querySelectorAll("div#taglist > table > tbody > tr")) {
+    let keyNode = tr.children.length > 0 ? tr.children[0] : null;
+    let valuesNode = tr.children.length > 1 ? tr.children[1] : null;
+    let keyText = safeText(keyNode, "");
+    if (!keyText) {
+      continue;
+    }
+    let values = [];
+    let children = valuesNode ? valuesNode.children : [];
+    for (let e of children) {
+      try {
+        let target = e.children.length > 0 ? e.children[0] : null;
+        let onclick = target && target.attributes ? target.attributes["onclick"] : null;
+        if (!onclick) {
+          continue;
+        }
+        let parts = onclick.split(":");
+        if (parts.length < 2) {
+          continue;
+        }
+        let value = parts[1].split("'")[0];
+        if (value) {
+          values.push(value);
+        }
+      } catch (_) {}
+    }
+    tags.set(keyText.substring(0, keyText.length - 1), values);
+  }
+  let maxPage = "1";
+  for (let element of document.querySelectorAll("td.gdt2")) {
+    if (element.text.includes("page")) {
+      let matched = firstMatch(element.text, /\d+/);
+      if (matched) {
+        maxPage = matched;
+      }
+    }
+  }
+  let isFavorited = safeText(document.querySelector("a#favoritelink"), "") !== " Add to Favorites";
+  let folder = null;
+  if (isFavorited) {
+    let favNode = document.querySelector("div#fav");
+    let style = null;
+    if (favNode && favNode.children.length > 0 && favNode.children[0].attributes) {
+      style = favNode.children[0].attributes["style"];
+    }
+    if (style && style.includes("background-position:0px -")) {
+      let parts = style.split("background-position:0px -");
+      if (parts.length > 1) {
+        let positionText = parts[1].split("px;")[0];
+        let position = Number(positionText);
+        if (!isNaN(position)) {
+          folder = ((position - 2) / 19).toString();
+        }
+      }
+    }
+  }
+  let coverPath = "";
+  let coverNode = document.querySelector("div#gleft > div#gd1 > div");
+  let coverStyle = coverNode && coverNode.attributes ? coverNode.attributes["style"] : "";
+  let coverMatch = RegExp("https?://([-a-zA-Z0-9.]+(/\\S*)?\\.(?:jpg|jpeg|gif|png|webp))").exec(coverStyle || "");
+  if (coverMatch) {
+    coverPath = coverMatch[0];
+  }
+  let uploaderNode = document.getElementById("gdn");
+  let uploader = uploaderNode && uploaderNode.children.length > 0 ? uploaderNode.children[0].text : undefined;
+  let _ratingLabel = document.getElementById("rating_label");
+  let _labelText = _ratingLabel ? _ratingLabel.text : "";
+  let _parts = _labelText ? _labelText.split(":") : [];
+  let _star = _parts.length > 1 ? _parts[1].trim() : "0";
+  let stars = Number(_star);
+  let category = safeText(document.querySelector("div.cs"), "Unknown");
+  tags.set("Category", [category]);
+  if (uploader) {
+    tags.set("uploader", [uploader]);
+  }
+  let time = safeText(document.querySelector("div#gdd > table > tbody > tr > td.gdt2"), "");
+  let script = document.querySelectorAll("script").find(e => e.text.includes("var token"));
+  let reg = RegExp("var\\s+(\\w+)\\s*=\\s*(.*?);", "g");
+  let variables = new Map();
+  let scriptText = script && script.text ? script.text : "";
+  let match;
+  while ((match = reg.exec(scriptText)) !== null) {
+    variables.set(match[1], match[2]);
+  }
+  let title = safeText(document.querySelector("h1#gn"), "Unknown");
+  let subtitle = safeText(document.querySelector("h1#gj"), null);
+  if (subtitle != null && subtitle.trim() === "") {
+    subtitle = null;
+  }
+  return {
+    title,
+    subtitle,
+    coverPath,
+    tags,
+    stars,
+    maxPage: Number(maxPage),
+    isFavorited,
+    folder,
+    time,
+    token: variables.get("token"),
+    apikey: variables.get("apikey"),
+    uid: variables.get("apiuid")
+  };
+}
+function parseThumbnailPage(document, next) {
+  function safeAttr(node, key, fallback) {
+    if (node && node.attributes && typeof node.attributes[key] !== "undefined") {
+      return node.attributes[key];
+    }
+    return fallback;
+  }
+  const parseImageUrl = e => {
+    let style = safeAttr(e, "style", "");
+    if (!style) {
+      return "";
+    }
+    let width = 0;
+    let height = 0;
+    let widthMatch = style.match(/width:(\d+)px/);
+    let heightMatch = style.match(/height:(\d+)px/);
+    if (widthMatch) {
+      width = Number(widthMatch[1]);
+    }
+    if (heightMatch) {
+      height = Number(heightMatch[1]);
+    }
+    let styleParts = style.split("background:transparent url(");
+    if (styleParts.length < 2) {
+      return "";
+    }
+    let r = styleParts[1];
+    let url = r.split(")")[0];
+    if (!url) {
+      return "";
+    }
+    let range = "";
+    if (r.includes("px")) {
+      let positionParts = r.split(") -");
+      if (positionParts.length > 1) {
+        let position = Number(positionParts[1].split("px")[0]);
+        if (!isNaN(position)) {
+          range += `x=${position}-${position + width}`;
+        }
+      }
+    }
+    if (height) range += `${range ? "&" : ""}y=0-${height}`;
+    if (range) url += `@${range}`;
+    return url;
+  };
+  let images = document.querySelectorAll("div.gdtm > div").map(e => parseImageUrl(e)).filter(url => !!url);
+  images.push(...document.querySelectorAll("div.gdtl > a > img").map(e => safeAttr(e, "src", "")).filter(url => !!url));
+  if (images.length === 0) {
+    for (let e of document.querySelectorAll("div.gt100 > a > div").map(e => e.children.length === 0 ? e : e.children[0])) {
+      let url = parseImageUrl(e);
+      if (url) {
+        images.push(url);
+      }
+    }
+    for (let e of document.querySelectorAll("div.gt200 > a > div").map(e => e.children.length === 0 ? e : e.children[0])) {
+      let url = parseImageUrl(e);
+      if (url) {
+        images.push(url);
+      }
+    }
+  }
+  let urls = document.querySelectorAll("table.ptb > tbody > tr > td > a").map(e => safeAttr(e, "href", "")).filter(url => !!url);
+  let pageNumbers = urls.map(e => {
+    let parts = e.split("=");
+    let n = Number(parts.length > 1 ? parts[1] : "");
+    return isNaN(n) ? 0 : n;
+  });
+  let maxPage = pageNumbers.length > 0 ? Math.max(...pageNumbers) : 0;
+  let current = next ? Number(next) : 0;
+  current += 1;
+  let nextToken = current > maxPage ? null : current.toString();
+  let imagePageUrls = document.querySelectorAll("div#gdt a").map(e => safeAttr(e, "href", "")).filter(url => !!url);
+  return {
+    thumbnails: images,
+    urls: imagePageUrls,
+    next: nextToken
+  };
+}
+function parseDispatchKey(document) {
+  function safeText(node) {
+    return node && typeof node.text === "string" ? node.text : "";
+  }
+  let script = document.querySelectorAll("script").find(e => safeText(e).includes("showkey"));
+  if (script) {
+    let reg = RegExp('showkey="(.*?)"', "g");
+    let match = reg.exec(safeText(script));
+    if (match) {
+      return {
+        showkey: match[1]
+      };
+    }
+  }
+  let mpvScriptNode = document.querySelectorAll("script").find(e => safeText(e).includes("mpvkey"));
+  let scriptText = safeText(mpvScriptNode);
+  if (scriptText) {
+    let mpvkey = "";
+    let imageKeys = [];
+    let statements = scriptText.split(";");
+    let mpvStatement = statements.find(e => e.includes("mpvkey"));
+    if (mpvStatement) {
+      let cleaned = mpvStatement.replace(/ /g, "");
+      let parts = cleaned.split("=");
+      if (parts.length > 1) {
+        mpvkey = parts[1].replace(/"/g, "");
+      }
+    }
+    let imageStatement = statements.find(e => e.includes("imagelist"));
+    if (imageStatement) {
+      let cleaned = imageStatement.replace(/ /g, "");
+      let parts = cleaned.split("=");
+      if (parts.length > 1) {
+        try {
+          let parsed = JSON.parse(parts[1]);
+          imageKeys = Array.isArray(parsed) ? parsed.map(e => e && typeof e.k !== "undefined" ? e.k : null).filter(k => k != null) : [];
+        } catch (_) {
+          imageKeys = [];
+        }
+      }
+    }
+    if (mpvkey || imageKeys.length > 0) {
+      return {
+        mpvkey,
+        imageKeys
+      };
+    }
+  }
+  throw "Failed to get dispatch key";
+}
+function parseComments(document) {
+  function safeText(node, fallback) {
+    if (node && typeof node.text === "string") {
+      return node.text;
+    }
+    return fallback;
+  }
+  function safeAttr(node, key) {
+    if (node && node.attributes) {
+      return node.attributes[key];
+    }
+    return undefined;
+  }
+  let comments = [];
+  for (let c of document.querySelectorAll("div.c1")) {
+    let name = safeText(c.querySelector("div.c3 > a"), "");
+    let _c3 = c.querySelector("div.c3");
+    let _text = _c3 && _c3.text ? _c3.text : null;
+    let _posted = _text ? _text.split("Posted on") : [];
+    let _afterPosted = _posted.length > 1 ? _posted[1] : "";
+    let _byParts = _afterPosted ? _afterPosted.split("by") : [];
+    let _afterBy = _byParts.length > 0 ? _byParts[0] : "";
+    let time = _afterBy && _afterBy.trim ? _afterBy.trim() : "unknown";
+    let content = "";
+    let contentNode = c.querySelector("div.c6");
+    if (typeof appVersion !== "undefined") {
+      content = contentNode && typeof contentNode.innerHTML === "string" ? contentNode.innerHTML : "";
+    } else {
+      content = safeText(contentNode, "");
+    }
+    let score = Number(safeText(c.querySelector("div.c5 > span"), ""));
+    if (isNaN(score)) {
+      score = null;
+    }
+    let id = "0";
+    let previousName = safeAttr(c.previousElementSibling, "name");
+    let idMatch = previousName ? previousName.match(/\d+/) : null;
+    if (idMatch) {
+      id = idMatch[0];
+    }
+    let upStyle = safeAttr(c.querySelector(`a#comment_vote_up_${id}`), "style");
+    let downStyle = safeAttr(c.querySelector(`a#comment_vote_down_${id}`), "style");
+    let isUp = typeof upStyle === "string" && upStyle.length > 0;
+    let isDown = typeof downStyle === "string" && downStyle.length > 0;
+    comments.push(new Comment({
+      id,
+      content,
+      time,
+      userName: name,
+      score,
+      voteStatus: isUp ? 1 : isDown ? -1 : 0
+    }));
+  }
+  return {
+    comments,
+    maxPage: 1
+  };
+}
+function parseArchiveOptions(document, baseUrl) {
+  function safeText(node, fallback) {
+    if (node && typeof node.text === "string") {
+      return node.text;
+    }
+    return fallback;
+  }
+  let body = document.querySelector("div#db");
+  let index = baseUrl.includes("exhentai") ? 1 : 3;
+  let archives = [];
+  let hathTable = document.querySelector("table");
+  if (hathTable) {
+    let hathCells = hathTable.querySelectorAll("td");
+    for (let cell of hathCells) {
+      let link = cell.querySelector("a");
+      if (link) {
+        let onclick = link.attributes ? link.attributes["onclick"] : null;
+        let resolutionMatch = onclick ? onclick.match(/do_hathdl\('([^']+)'\)/) : null;
+        if (resolutionMatch) {
+          let resolution = resolutionMatch[1];
+          let linkText = safeText(link, "Unknown");
+          let paragraphs = cell.querySelectorAll("p");
+          let size = paragraphs.length > 1 ? safeText(paragraphs[1], "Unknown") : "Unknown";
+          let cost = paragraphs.length > 2 ? safeText(paragraphs[2], "Unknown") : "Unknown";
+          archives.push({
+            id: `h@h_${resolution}`,
+            title: `H@H ${linkText}`,
+            description: `Size: ${size}, Cost: ${cost}`
+          });
+        }
+      }
+    }
+  }
+  let origin = null;
+  if (body && body.children.length > index && body.children[index].children.length > 0) {
+    origin = body.children[index].children[0];
+  }
+  if (origin) {
+    let originCost = safeText(origin.querySelector("div > strong"), "Unknown");
+    let originSize = safeText(origin.querySelector("p > strong"), "Unknown");
+    archives.push({
+      id: "0",
+      title: "Original",
+      description: `Cost: ${originCost}, Size: ${originSize}`
+    });
+  }
+  let resample = null;
+  if (body && body.children.length > index && body.children[index].children.length > 1) {
+    resample = body.children[index].children[1];
+  }
+  if (resample) {
+    let resampleCost = safeText(resample.querySelector("div > strong"), "Unknown");
+    let resampleSize = safeText(resample.querySelector("p > strong"), "Unknown");
+    archives.push({
+      id: "1",
+      title: "Resample",
+      description: `Cost: ${resampleCost}, Size: ${resampleSize}`
+    });
+  }
+  return archives;
+}
+function parseArchiveError(document) {
+  let node = document.querySelector("p.br");
+  return node && typeof node.text === "string" ? node.text : null;
+}
+function parseFirstLink(document) {
+  let node = document.querySelector("a");
+  if (node && node.attributes && node.attributes["href"]) {
+    return node.attributes["href"];
+  }
+  return null;
+}
+function createAccountFeature(source, feature) {
+  return feature;
+}
+function createExploreFeature(source, feature) {
+  return feature;
+}
+function createSearchFeature(source) {
+  return {
+    /**
+     * load search result with next page token
+     * @param keyword {string}
+     * @param options {(string)[]} - options from optionList
+     * @param next {string | null}
+     * @returns {Promise<{comics: Comic[], maxPage: number}>}
+     */
+    loadNext: async (keyword, options, next) => {
+      let category = [];
+      try {
+        category = JSON.parse(options[0]);
+      } catch (_) {
+        throw "Failed to parse search options";
+      }
+      let stars = options[1];
+      let language = options[2];
+      let fcats = 1023;
+      if (!Array.isArray(category)) {
+        category = [category];
+      }
+      for (let c of category) {
+        fcats -= 1 << Number(c);
+      }
+      if (language && !keyword.includes("language:")) {
+        keyword += ` language:${language}`;
+      }
+      let url = buildSearchUrl(source.baseUrl, keyword, fcats, stars);
+      return source.getGalleries(next != null ? next : url, false);
+    },
+    // provide options for search
+    optionList: [{
+      // type: select, multi-select, dropdown
+      type: "multi-select",
+      // For a single option, use `-` to separate the value and text, left for value, right for text
+      options: ["0-Misc", "1-Doujinshi", "2-Manga", "3-Artist CG", "4-Game CG", "5-Image Set", "6-Cosplay", "7-Asian Porn", "8-Non-H", "9-Western"],
+      // option label
+      label: "Category",
+      // default selected options
+      default: ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
+    }, {
+      // type: select, multi-select, dropdown
+      // For select, there is only one selected value
+      // For multi-select, there are multiple selected values or none. The `load` function will receive a json string which is an array of selected values
+      // For dropdown, there is one selected value at most. If no selected value, the `load` function will receive a null
+      type: "dropdown",
+      // For a single option, use `-` to separate the value and text, left for value, right for text
+      options: ["-<none>", "0-0", "1-1", "2-2", "3-3", "4-4", "5-5"],
+      // option label
+      label: "Min Stars"
+    }, {
+      // type: select, multi-select, dropdown
+      type: "dropdown",
+      // For a single option, use `-` to separate the value and text, left for value, right for text
+      options: ["-<none>", "chinese-Chinese", "english-English", "japanese-Japanese"],
+      // option label
+      label: "Language"
+    }],
+    // enable tags suggestions
+    enableTagsSuggestions: true
+  };
+}
+function createFavoritesFeature(source) {
+  return {
+    // whether support multi folders
+    multiFolder: true,
+    singleFolderForSingleComic: true,
+    /**
+     * add or delete favorite.
+     * throw `Login expired` to indicate login expired, App will automatically re-login and re-add/delete favorite
+     * @param comicId {string}
+     * @param folderId {string}
+     * @param isAdding {boolean} - true for add, false for delete
+     * @param favoriteId {string?} - [Comic.favoriteId]
+     * @returns {Promise<any>} - return any value to indicate success
+     */
+    addOrDelFavorite: async (comicId, folderId, isAdding, favoriteId) => {
+      let parsed = source.parseUrl(comicId);
+      let id = parsed.id;
+      let token = parsed.token;
+      const url = buildGalleryPopupUrl(source.baseUrl, id, token);
+      if (isAdding) {
+        let res = await source.requestClient.post(url, {}, buildAddFavoriteForm(folderId), {
+          action: "Failed to add favorite",
+          requestKey: `favorite:add:${comicId}:${folderId}`,
+          mutation: true,
+          maxRetries: 0,
+          headerProfile: "form-urlencoded"
+        });
+        source.requireStatus("Failed to add favorite", res);
+        source.requireHtmlBody("Failed to add favorite", res);
+        return "ok";
+      } else {
+        let res = await source.requestClient.post(url, {}, buildDeleteFavoriteForm(), {
+          action: "Failed to delete favorite",
+          requestKey: `favorite:del:${comicId}`,
+          mutation: true,
+          maxRetries: 0,
+          headerProfile: "form-urlencoded"
+        });
+        source.requireStatus("Failed to delete favorite", res);
+        source.requireHtmlBody("Failed to delete favorite", res);
+        return "ok";
+      }
+    },
+    /**
+     * load favorite folders.
+     * throw `Login expired` to indicate login expired, App will automatically re-login retry.
+     * if comicId is not null, return favorite folders which contains the comic.
+     * @param comicId {string?}
+     * @returns {Promise<{folders: {[p: string]: string}, favorited: string[]}>} - `folders` is a map of folder id to folder name, `favorited` is a list of folder id which contains the comic
+     */
+    loadFolders: async comicId => {
+      try {
+        await source.checkEHEvent();
+      } catch (_) {}
+      let res = await source.requestClient.get(buildFavoritesUrl(source.baseUrl, "-1"), {}, {
+        action: "Failed to load favorite folders",
+        requestKey: "favorites:folders"
+      });
+      source.requireStatus("Failed to load favorite folders", res);
+      source.requireHtmlBody("Failed to load favorite folders", res);
+      let folders = await source.withDocument(res.body, async document => {
+        let map = new Map();
+        map.set("-1", "All");
+        let sum = 0;
+        for (let item of document.querySelectorAll("div.fp")) {
+          var _item$children$2$text, _item$children$, _item$children$2;
+          if (item.text === "Show All Favorites") continue;
+          let name = (_item$children$2$text = (_item$children$ = item.children[2]) == null ? void 0 : _item$children$.text) != null ? _item$children$2$text : `Favorite ${map.size}`;
+          let length = (_item$children$2 = item.children[0]) == null ? void 0 : _item$children$2.text;
+          if (length) {
+            name += ` (${length})`;
+            sum += +length;
+          }
+          map.set((map.size - 1).toString(), name);
+        }
+        map.set("-1", `All (${sum})`);
+        return map;
+      });
+      let favorited = [];
+      if (comicId) {
+        let comic = await source.comic.loadInfo(comicId);
+        if (comic.isFavorite) {
+          favorited.push(comic.folder);
+        }
+      }
+      return {
+        folders: folders,
+        favorited: favorited
+      };
+    },
+    loadNext: async (next, folder) => {
+      let url = buildFavoritesUrl(source.baseUrl, folder);
+      return source.getGalleries(next != null ? next : url, false);
+    }
+  };
+}
+function createComicFeature(source) {
+  return {
+    /**
+     * load comic info
+     * @param id {string}
+     * @returns {Promise<ComicDetails>}
+     */
+    loadInfo: async id => {
+      if (source.galleryInfoCache.has(id)) {
+        return source.galleryInfoCache.get(id);
+      }
+      try {
+        await source.checkEHEvent();
+      } catch (_) {}
+      let res = await source.requestClient.get(id, {}, {
+        action: "Failed to load gallery details",
+        requestKey: `gallery:${id}`,
+        headerProfile: "gallery-view"
+      });
+      source.requireStatus("Failed to load gallery details", res);
+      source.requireHtmlBody("Failed to load gallery details", res);
+      let comic = await source.withDocument(res.body, async document => {
+        if (source.isLogged && source.loadSetting("hvevent")) {
+          const eventPane = document.getElementById("eventpane");
+          if (eventPane != null) {
+            var _eventPane$querySelec;
+            const hvUrl = (_eventPane$querySelec = eventPane.querySelector("div > a")) == null ? void 0 : _eventPane$querySelec.attributes["href"];
+            if (hvUrl != null) {
+              UI.showDialog("HentaiVerse", source.translate("hentaiverse"), [{
+                text: source.translate("cancel"),
+                callback: () => {}
+              }, {
+                text: source.translate("fight"),
+                callback: () => {
+                  UI.launchUrl(hvUrl);
+                }
+              }]);
+            }
+          }
+        }
+        const parsed = parseGalleryDetails(document);
+        let comments = source.comic.parseComments(document);
+        let details = new ComicDetails({
+          id: id,
+          title: parsed.title,
+          subTitle: parsed.subtitle,
+          cover: parsed.coverPath,
+          tags: parsed.tags,
+          stars: parsed.stars,
+          maxPage: parsed.maxPage,
+          isFavorite: parsed.isFavorited,
+          uploadTime: parsed.time,
+          url: id,
+          comments: comments.comments
+        });
+        details.folder = parsed.folder;
+        details.token = parsed.token;
+        source.apikey = parsed.apikey;
+        if (source.apikey && source.apikey[0] === '"') {
+          source.apikey = source.apikey.substring(1, source.apikey.length - 1);
+        }
+        source.uid = parsed.uid;
+        return details;
+      });
+      source.galleryInfoCache.set(id, comic);
+      return comic;
+    },
+    /**
+     * [Optional] load thumbnails of a comic
+     * @param id {string}
+     * @param next {string?} - next page token, null for first page
+     * @returns {Promise<{thumbnails: string[], next: string?, urls: string[]}>} - `next` is next page token, null for no more
+     */
+    loadThumbnails: async (id, next) => {
+      const cacheKey = thumbnailCacheKey(id, next);
+      if (source.thumbnailCache.has(cacheKey)) {
+        return source.thumbnailCache.get(cacheKey);
+      }
+      let url = buildGalleryPageUrl(id, next);
+      let res = await source.requestClient.get(url, {
+        "cache-time": "long",
+        "prevent-parallel": "true"
+      }, {
+        action: "Failed to load thumbnails",
+        requestKey: `thumbnails:${cacheKey}`,
+        headerProfile: "gallery-view"
+      });
+      source.requireStatus("Failed to load thumbnails", res);
+      source.requireHtmlBody("Failed to load thumbnails", res);
+      const parsed = await source.withDocument(res.body, async document => {
+        return parseThumbnailPage(document, next);
+      });
+      source.thumbnailCache.set(cacheKey, parsed);
+      return parsed;
+    },
+    /**
+     * rate a comic
+     * @param id
+     * @param rating {number} - [0-10] app use 5 stars, 1 rating = 0.5 stars,
+     * @returns {Promise<any>}
+     */
+    starRating: async (id, rating) => {
+      const parsed = source.parseUrl(id);
+      let res = await source.requestClient.post(source.apiUrl, {}, buildRateGalleryPayload({
+        galleryId: parsed.id,
+        token: parsed.token,
+        rating: rating,
+        apikey: source.apikey,
+        apiuid: source.uid
+      }), {
+        action: "Failed to submit rating",
+        requestKey: `rate:${id}:${rating}`,
+        mutation: true,
+        maxRetries: 0,
+        classifyBody: false,
+        headerProfile: "json-api"
+      });
+      source.requireStatus("Failed to submit rating", res);
+      return "ok";
+    },
+    getKey: async url => {
+      if (source.keyCache.has(url)) {
+        return source.keyCache.get(url);
+      }
+      let res = await source.requestClient.get(url, {
+        "cache-time": "long",
+        "prevent-parallel": "true"
+      }, {
+        action: "Failed to load dispatch key",
+        requestKey: `key:${url}`
+      });
+      source.requireStatus("Failed to load dispatch key", res);
+      source.requireHtmlBody("Failed to load dispatch key", res);
+      const parsed = await source.withDocument(res.body, async document => {
+        return parseDispatchKey(document);
+      });
+      source.keyCache.set(url, parsed);
+      return parsed;
+    },
+    /**
+     * load images of a chapter
+     * @param comicId {string}
+     * @param epId {string?}
+     * @returns {Promise<{images: string[]}>}
+     */
+    loadEp: async (comicId, epId) => {
+      let comic = await source.comic.loadInfo(comicId);
+      return {
+        images: Array.from({
+          length: comic.maxPage
+        }, (_, i) => i.toString())
+      };
+    },
+    /**
+     * [Optional] provide configs for an image loading
+     * @param image
+     * @param comicId
+     * @param epId
+     * @param nl
+     * @returns {{}}
+     */
+    onImageLoad: async (image, comicId, epId, nl) => {
+      return source.imageSessions.load({
+        image,
+        comicId,
+        epId,
+        nl,
+        attempt: 0
+      });
+    },
+    /**
+     * [Optional] provide configs for a thumbnail loading
+     * @param url {string}
+     * @returns {{}}
+     */
+    onThumbnailLoad: url => {
+      url = normalizeThumbnailHost(url);
+      return {
+        url: url,
+        headers: source.buildRequestHeaders("GET", url, {}, {
+          headerProfile: "thumbnail"
+        })
+      };
+    },
+    parseComments: document => {
+      return parseComments(document);
+    },
+    /**
+     * [Optional] load comments
+     * @param comicId {string}
+     * @param subId {string?} - ComicDetails.subId
+     * @param page {number}
+     * @param replyTo {string?} - commentId to reply, not null when reply to a comment
+     * @returns {Promise<{comments: Comment[], maxPage: number?}>}
+     */
+    loadComments: async (comicId, subId, page, replyTo) => {
+      let res = await source.requestClient.get(buildCommentsUrl(comicId), {}, {
+        action: "Failed to load comments",
+        requestKey: `comments:${comicId}`,
+        headerProfile: "gallery-view"
+      });
+      source.requireStatus("Failed to load comments", res);
+      source.requireHtmlBody("Failed to load comments", res);
+      return source.withDocument(res.body, async document => {
+        return source.comic.parseComments(document);
+      });
+    },
+    /**
+     * [Optional] send a comment, return any value to indicate success
+     * @param comicId {string}
+     * @param subId {string?} - ComicDetails.subId
+     * @param content {string}
+     * @param replyTo {string?} - commentId to reply, not null when reply to a comment
+     * @returns {Promise<any>}
+     */
+    sendComment: async (comicId, subId, content, replyTo) => {
+      let res = await source.requestClient.post(comicId, {}, buildCommentForm(content), {
+        action: "Failed to submit comment",
+        requestKey: `comment:${comicId}`,
+        mutation: true,
+        maxRetries: 0,
+        headerProfile: "form-urlencoded",
+        refererUrl: comicId
+      });
+      if (res.status >= 400) {
+        throw source.formatResponseError("Failed to submit comment", res);
+      }
+      source.requireHtmlBody("Failed to submit comment", res);
+      await source.withDocument(res.body, async document => {
+        const errorNode = document.querySelector("p.br");
+        if (errorNode) {
+          throw errorNode.text;
+        }
+      });
+      return "ok";
+    },
+    /**
+     * [Optional] vote a comment
+     * @param id {string} - comicId
+     * @param subId {string?} - ComicDetails.subId
+     * @param commentId {string} - commentId
+     * @param isUp {boolean} - true for up, false for down
+     * @param isCancel {boolean} - true for cancel, false for vote
+     * @returns {Promise<number>} - new score
+     */
+    voteComment: async (id, subId, commentId, isUp, isCancel) => {
+      if (source.apikey == null || source.uid == null) {
+        throw "Login required";
+      }
+      const parsed = source.parseUrl(id);
+      let res = await source.requestClient.post(source.apiUrl, {}, buildVoteCommentPayload({
+        galleryId: parsed.id,
+        token: parsed.token,
+        commentId,
+        isUp,
+        apikey: source.apikey,
+        apiuid: source.uid
+      }), {
+        action: "Failed to vote comment",
+        requestKey: `vote:${id}:${commentId}:${isUp ? "up" : "down"}`,
+        mutation: true,
+        maxRetries: 0,
+        classifyBody: false,
+        headerProfile: "json-api"
+      });
+      source.requireStatus("Failed to vote comment", res);
+      let json = source.parseJsonResponse("Failed to vote comment", res);
+      if (json.error) {
+        throw json.error;
+      }
+      return json.comment_score;
+    },
+    archive: {
+      getArchives: async cid => {
+        await source.comic.loadInfo(cid);
+        let urlParseResult = source.parseUrl(cid);
+        let gid = urlParseResult.id;
+        let token = urlParseResult.token;
+        const archiveUrl = buildArchiverUrl(source.baseUrl, gid, token);
+        let res = await source.requestClient.get(archiveUrl, {}, {
+          action: "Failed to load archive options",
+          requestKey: `archive:options:${cid}`
+        });
+        source.requireStatus("Failed to load archive options", res);
+        source.requireHtmlBody("Failed to load archive options", res);
+        return source.withDocument(res.body, async document => {
+          return parseArchiveOptions(document, source.baseUrl);
+        });
+      },
+      getDownloadUrl: async (cid, aid) => {
+        let urlParseResult = source.parseUrl(cid);
+        let gid = urlParseResult.id;
+        let token = urlParseResult.token;
+        const archiveUrl = buildArchiverUrl(source.baseUrl, gid, token);
+
+        // Handle H@H Download options
+        if (aid.startsWith("h@h_")) {
+          let resolution = aid.substring(4); // Remove 'h@h_' prefix
+
+          // For H@H downloads, send the command directly to archiver.php
+          let hathRes = await source.requestClient.post(archiveUrl, {}, buildHathDownloadForm(resolution), {
+            action: "Failed to send H@H download command",
+            requestKey: `archive:hath:${cid}:${resolution}`,
+            mutation: true,
+            maxRetries: 0,
+            headerProfile: "form-urlencoded"
+          });
+          source.requireStatus("Failed to send H@H download command", hathRes);
+          source.requireHtmlBody("Failed to send H@H download command", hathRes);
+          await source.withDocument(hathRes.body, async hathDocument => {
+            let errorElement = hathDocument.querySelector("p.br");
+            if (errorElement) {
+              let errorMessage = errorElement.text;
+              if (errorMessage.includes("H@H client")) {
+                throw "You need an H@H client associated with your account to use this feature";
+              } else if (errorMessage.includes("offline")) {
+                throw "Your H@H client appears to be offline. Please start it and try again";
+              } else if (errorMessage.includes("resolution")) {
+                throw "This gallery cannot be downloaded at the selected resolution";
+              } else {
+                throw errorMessage;
+              }
+            }
+          });
+          let resolutionText = resolution === "org" ? "Original" : resolution === "800" ? "800x" : resolution === "1280" ? "1280x" : resolution === "1920" ? "1920x" : resolution === "2560" ? "2560x" : resolution;
+
+          // For H@H downloads, return a special value to indicate remote download
+          // This should close the window without creating a local download task
+          // let message = successMessage && successMessage.includes("successfully")
+          //     ? `H@H download command sent successfully (${resolutionText}). Check your H@H client.`
+          //     : `H@H download command sent (${resolutionText}). Check your H@H client.`;
+
+          // // Show success message to user
+          // UI.showMessage(message);
+
+          // Return empty string to avoid type error and prevent download task creation
+          return "";
+        }
+
+        // Handle regular downloads (Original and Resample)
+        let res = await source.requestClient.post(archiveUrl, {}, buildArchiveDownloadForm(aid), {
+          action: "Failed to create archive download",
+          requestKey: `archive:create:${cid}:${aid}`,
+          mutation: true,
+          maxRetries: 0,
+          headerProfile: "form-urlencoded"
+        });
+        source.requireStatus("Failed to create archive download", res);
+        source.requireHtmlBody("Failed to create archive download", res);
+        let link = await source.withDocument(res.body, async document => {
+          var _document$querySelect;
+          return (_document$querySelect = document.querySelector("a")) == null ? void 0 : _document$querySelect.attributes["href"];
+        });
+        if (!link) {
+          throw "Failed to get download link";
+        }
+        let res2 = await source.requestClient.get(link, {}, {
+          action: "Failed to load archive download page",
+          requestKey: `archive:page:${link}`,
+          networkClient: "dart-io" // The server is uncomfortable with the default client
+        });
+        source.requireStatus("Failed to load archive download page", res2);
+        source.requireHtmlBody("Failed to load archive download page", res2);
+        let link2 = await source.withDocument(res2.body, async document => {
+          var _document$querySelect2;
+          return (_document$querySelect2 = document.querySelector("a")) == null ? void 0 : _document$querySelect2.attributes["href"];
+        });
+        let resultLink = buildArchiveResultUrl(link, link2);
+        if (!resultLink) {
+          throw "Failed to build final download URL";
+        }
+        let test = await source.requestClient.head(resultLink, {}, {
+          action: "Failed to validate archive link",
+          requestKey: `archive:head:${resultLink}`,
+          classifyBody: false,
+          networkClient: "dart-io"
+        });
+        if (test.status === 410) {
+          throw "IP quota exhausted.";
+        }
+        return resultLink;
+      }
+    },
+    /**
+     * [Optional] Handle tag click event
+     * @param namespace {string}
+     * @param tag {string}
+     * @returns {{action: string, keyword: string, param: string?}}
+     */
+    onClickTag: (namespace, tag) => {
+      if (namespace == "Category") {
+        const categories = ["misc", "doujinshi", "manga", "artist cg", "game cg", "image set", "cosplay", "asian porn", "non-h", "western"];
+        return {
+          page: "search",
+          attributes: {
+            keyword: "",
+            options: [categories.indexOf(tag.toLowerCase()).toString(), "", ""]
+          }
+        };
+      }
+      if (tag.includes(" ")) {
+        tag = `"${tag}"`;
+      }
+      return {
+        // 'search' or 'category'
+        action: "search",
+        keyword: `${namespace}:${tag}`,
+        // {string?} only for category action
+        param: null
+      };
+    },
+    /**
+     * [Optional] Handle links
+     */
+    link: {
+      /**
+       * set accepted domains
+       */
+      domains: ["e-hentai.org", "exhentai.org"],
+      /**
+       * parse url to comic id
+       * @param url {string}
+       * @returns {string | null}
+       */
+      linkToId: url => {
+        return normalizeGalleryLink(source.baseUrl, url);
+      }
+    },
+    enableTagsTranslate: true
+  };
+}
+function createCommentsFeature(source, feature) {
+  return feature;
+}
+function createArchiveFeature(source, feature) {
+  return feature;
+}
+function createSettings() {
+  return Object.freeze({
+    domain: {
+      title: "domain",
+      type: "select",
+      options: [{
+        value: "e-hentai.org"
+      }, {
+        value: "exhentai.org"
+      }],
+      default: "e-hentai.org"
+    },
+    ehevent: {
+      title: "ehevent",
+      type: "switch",
+      default: false
+    },
+    hvevent: {
+      title: "hvevent",
+      type: "switch",
+      default: false
+    }
+  });
+}
+const i18n = {
+  zh_CN: {
+    domain: "域名",
+    ehevent: "触发黎明事件",
+    hvevent: "提示HV遭遇战",
+    hentaiverse: "你遇到了怪物！",
+    fight: "战斗",
+    cancel: "取消",
+    language: "语言",
+    artist: "画师",
+    male: "男性",
+    female: "女性",
+    mixed: "混合",
+    other: "其它",
+    parody: "原作",
+    character: "角色",
+    group: "团队",
+    cosplayer: "Coser",
+    reclass: "重新分类",
+    uploader: "上传者",
+    Languages: "语言",
+    Artists: "画师",
+    Characters: "角色",
+    Groups: "团队",
+    Tags: "标签",
+    Parodies: "原作",
+    Categories: "分类",
+    Category: "分类",
+    "Min Stars": "最少星星",
+    Language: "语言",
+    "H@H Original": "H@H 原版",
+    "H@H 800x": "H@H 800x",
+    "H@H 1280x": "H@H 1280x",
+    "H@H 1920x": "H@H 1920x",
+    "H@H 2560x": "H@H 2560x",
+    Original: "原版",
+    Resample: "重采样"
+  },
+  zh_TW: {
+    domain: "域名",
+    ehevent: "觸發黎明事件",
+    hvevent: "提示HV遭遇戰",
+    hentaiverse: "你遇到了怪物！",
+    fight: "戰鬥",
+    cancel: "取消",
+    language: "語言",
+    artist: "畫師",
+    male: "男性",
+    female: "女性",
+    mixed: "混合",
+    other: "其他",
+    parody: "原作",
+    character: "角色",
+    group: "團隊",
+    cosplayer: "Coser",
+    reclass: "重新分類",
+    uploader: "上傳者",
+    Languages: "語言",
+    Artists: "畫師",
+    Characters: "角色",
+    Groups: "團隊",
+    Tags: "標籤",
+    Parodies: "原作",
+    Categories: "分類",
+    Category: "分類",
+    "Min Stars": "最少星星",
+    Language: "語言",
+    "H@H Original": "H@H 原版",
+    "H@H 800x": "H@H 800x",
+    "H@H 1280x": "H@H 1280x",
+    "H@H 1920x": "H@H 1920x",
+    "H@H 2560x": "H@H 2560x",
+    Original: "原版",
+    Resample: "重採樣"
+  },
+  en_US: {
+    domain: "Domain",
+    ehevent: "Trigger Dawn Event",
+    hvevent: "HV Encounter Alert",
+    hentaiverse: "You have encountered a monster!",
+    fight: "Fight",
+    cancel: "Cancel",
+    language: "Language",
+    artist: "Artist",
+    male: "Male",
+    female: "Female",
+    mixed: "Mixed",
+    other: "Other",
+    parody: "Parody",
+    character: "Character",
+    group: "Group",
+    cosplayer: "Cosplayer",
+    reclass: "Reclass",
+    uploader: "Uploader",
+    Languages: "Languages",
+    Artists: "Artists",
+    Characters: "Characters",
+    Groups: "Groups",
+    Tags: "Tags",
+    Parodies: "Parodies",
+    Categories: "Categories",
+    Category: "Category",
+    "Min Stars": "Min Stars",
+    Language: "Language",
+    "H@H Original": "H@H Original",
+    "H@H 800x": "H@H 800x",
+    "H@H 1280x": "H@H 1280x",
+    "H@H 1920x": "H@H 1920x",
+    "H@H 2560x": "H@H 2560x",
+    Original: "Original",
+    Resample: "Resample"
+  }
+};
+function createEhentaiAccountFeature(source) {
+  return createAccountFeature(source, {
+    loginWithWebview: {
+      url: buildForumsLoginUrl(),
+      checkStatus: (url, title) => {
+        return title === "E-Hentai Forums";
+      },
+      onLoginSuccess: async () => {
+        let cookies = await Network.getCookies(buildForumsCookieUrl());
+        cookies.forEach(cookie => {
+          cookie.domain = ".exhentai.org";
+        });
+        Network.setCookies(buildExCookieUrl(), cookies);
+      }
+    },
+    loginWithCookies: {
+      fields: ["ipb_member_id", "ipb_pass_hash", "igneous", "star"],
+      validate: async values => {
+        if (values.length !== 4) {
+          return false;
+        }
+        if (values[0].length === 0 || values[1].length === 0) {
+          return false;
+        }
+        let cookies = [];
+        for (let i = 0; i < values.length; i++) {
+          cookies.push(new Cookie({
+            name: source.account.loginWithCookies.fields[i],
+            value: values[i],
+            domain: ".e-hentai.org"
+          }));
+          cookies.push(new Cookie({
+            name: source.account.loginWithCookies.fields[i],
+            value: values[i],
+            domain: ".exhentai.org"
+          }));
+        }
+        Network.deleteCookies(buildEhCookieUrl());
+        Network.setCookies(buildEhCookieUrl(), cookies);
+        let res = await source.requestClient.get(buildForumsHomeUrl(), {}, {
+          action: "Failed to validate forum cookies",
+          requestKey: "forums:cookie-validate",
+          classifyBody: false,
+          headerProfile: "forums-browser",
+          refererUrl: buildForumsIndexRefererUrl()
+        });
+        if (res.status !== 200) {
+          return false;
+        }
+        let document = new HtmlDocument(res.body);
+        let name = document.querySelector("div#userlinks > p.home > b > a");
+        document.dispose();
+        return name != null;
+      }
+    },
+    logout: () => {
+      Network.deleteCookies(buildEhCookieUrl());
+      Network.deleteCookies(buildForumsCookieUrl());
+      Network.deleteCookies(buildExCookieUrl());
+      source.responseCache.clear();
+      source.thumbnailCache.clear();
+      source.keyCache.clear();
+      source.galleryInfoCache.clear();
+      source.imageSessionCache.clear();
+    },
+    registerWebsite: null
+  });
+}
+function createEhentaiExploreFeature(source) {
+  return createExploreFeature(source, [{
+    title: "eh latest",
+    type: "multiPageComicList",
+    loadNext: next => {
+      let target = next != null ? next : source.baseUrl;
+      return source.getGalleries(target, false);
+    }
+  }, {
+    title: "eh popular",
+    type: "multiPageComicList",
+    loadNext: next => {
+      let target = next != null ? next : buildPopularUrl(source.baseUrl);
+      return source.getGalleries(target, false);
+    }
+  }, {
+    title: "eh watched",
+    type: "multiPageComicList",
+    loadNext: async next => {
+      if (!source.isLogged) {
+        UI.showMessage("Need login first");
+        return {
+          comics: [],
+          next: null
+        };
+      }
+      let target = next != null ? next : buildWatchedUrl(source.baseUrl);
+      return source.getGalleries(target, false);
+    }
+  }]);
+}
+function createEhentaiCategory() {
+  return {
+    title: "ehentai",
+    parts: [],
+    enableRankingPage: true
+  };
+}
+function createEhentaiCategoryComics(source) {
+  return {
+    ranking: {
+      options: ["15-yesterday", "13-month", "12-year", "11-all"],
+      load: async (option, page) => {
+        let res = await source.getGalleries(buildToplistUrl(buildBaseUrl("e-hentai.org"), option, page - 1), true);
+        let comics = res.comics;
+        if (source.loadSetting("domain") === "exhentai.org") {
+          comics.forEach(comic => {
+            comic.id = comic.id.replace("e-hentai", "exhentai");
+          });
+        }
+        return {
+          comics: comics,
+          maxPage: 200
+        };
+      }
+    }
+  };
+}
+class Ehentai extends ComicSource {
+  // Note: The fields which are marked as [Optional] should be removed if not used
+
+  constructor() {
+    super();
+    // name of the source
+    this.name = "ehentai";
+
+    // unique id of the source
+    this.key = "ehentai";
+    this.version = "1.2.0";
+    this.minAppVersion = "1.5.3";
+
+    // update url
+    this.url = buildCdnSourceUrl("ehentai.js");
+
+    /**
+     * cached api key
+     * @type {string | null}
+     */
+    this.apikey = null;
+
+    /**
+     * cached uid key
+     * @type {string | null}
+     */
+    this.uid = null;
+    this.requestState = {
+      queues: new Map(),
+      inflight: new Map(),
+      cooldownUntil: new Map(),
+      failureBudget: new Map()
+    };
+
+    // In-memory caches only. Never persist session-derived runtime data.
+    this.responseCache = new Map();
+    this.thumbnailCache = new Map();
+    this.keyCache = new Map();
+    this.galleryInfoCache = new Map();
+    this.imageSessionCache = new Map();
+    this.account = createEhentaiAccountFeature(this);
+    this.explore = createEhentaiExploreFeature(this);
+    this.category = createEhentaiCategory();
+    this.categoryComics = createEhentaiCategoryComics(this);
+    this.search = createSearchFeature(this);
+    this.favorites = createFavoritesFeature(this);
+    this.comic = createComicFeature(this);
+    this.settings = createSettings();
+    this.translation = i18n;
+  }
+
+  /**
+   * @param url
+   * @returns {{id: string, token: string}}
+   */
+  parseUrl(url) {
+    return parseGalleryUrl(url);
+  }
+  get requestClient() {
+    if (!this._requestClient) {
+      this._requestClient = new EhentaiRequestClient(this);
+    }
+    return this._requestClient;
+  }
+  get imageSessions() {
+    if (!this._imageSessions) {
+      this._imageSessions = new ImageLoadingSessionManager(this);
+    }
+    return this._imageSessions;
+  }
+  getErrorMessage(error) {
+    if (error == null) {
+      return "Unknown error";
+    }
+    if (typeof error === "string") {
+      return error;
+    }
+    if (error instanceof Error && error.message) {
+      return error.message;
+    }
+    if (typeof error.message === "string" && error.message.length > 0) {
+      return error.message;
+    }
+    return String(error);
+  }
+  isRedirectError(error) {
+    return this.getErrorMessage(error).toLowerCase().includes("redirect");
+  }
+  isAbuseResponseBody(body) {
+    let text = String(body != null ? body : "").trim();
+    if (text.length === 0) {
+      return true;
+    }
+    let lower = text.toLowerCase();
+    return lower.includes("your ip address has been banned") || lower.includes("access denied") || lower.includes("request denied") || lower.includes("temporarily banned");
+  }
+  formatRequestError(action, error) {
+    let message = this.getErrorMessage(error);
+    if (this.isRedirectError(message)) {
+      return `${action} failed: request was redirected by the server`;
+    }
+    if (message.toLowerCase().includes("timeout") || message.toLowerCase().includes("network") || message.toLowerCase().includes("socket")) {
+      return `${action} failed: network error (${message})`;
+    }
+    return `${action} failed: ${message}`;
+  }
+  formatResponseError(action, response) {
+    var _response$body;
+    let status = response == null ? void 0 : response.status;
+    let body = String((_response$body = response == null ? void 0 : response.body) != null ? _response$body : "").trim();
+    if (status === 403 || status === 429) {
+      return `${action} failed: server returned ${status}`;
+    }
+    if (body.length === 0) {
+      return `${action} failed: empty response from server`;
+    }
+    if (this.isAbuseResponseBody(body)) {
+      return `${action} failed: access was denied by the server`;
+    }
+    return `${action} failed: invalid status code ${status}`;
+  }
+  requireStatus(action, response, expectedStatus = 200) {
+    if (!response || response.status !== expectedStatus) {
+      throw this.formatResponseError(action, response || {});
+    }
+  }
+  requireNonEmptyBody(action, response) {
+    const body = String(response && response.body || "").trim();
+    if (body.length === 0) {
+      throw this.formatResponseError(action, response || {});
+    }
+    return body;
+  }
+  requireHtmlBody(action, response) {
+    const body = this.requireNonEmptyBody(action, response);
+    if (body[0] !== "<") {
+      throw `${action} failed: invalid HTML response`;
+    }
+    return body;
+  }
+  parseJsonResponse(action, response) {
+    this.requireNonEmptyBody(action, response);
+    try {
+      return JSON.parse(response.body);
+    } catch (_) {
+      throw `${action} failed: invalid JSON response`;
+    }
+  }
+  async withDocument(html, parser) {
+    const document = new HtmlDocument(html);
+    try {
+      return await parser(document);
+    } finally {
+      document.dispose();
+    }
+  }
+  buildRequestHeaders(method, url, headers, options) {
+    const merged = {
+      ...(headers || {})
+    };
+    if (options.headerProfile === "json-api") {
+      if (!merged["Content-Type"]) {
+        merged["Content-Type"] = "application/json";
+      }
+    }
+    if (options.headerProfile === "form-urlencoded") {
+      if (!merged["Content-Type"]) {
+        merged["Content-Type"] = "application/x-www-form-urlencoded";
+      }
+    }
+    if (options.headerProfile === "gallery-view") {
+      if (!merged.cookie) {
+        merged.cookie = "nw=1";
+      }
+    }
+    if (options.headerProfile === "thumbnail") {
+      if (!merged.referer) {
+        merged.referer = this.baseUrl;
+      }
+    }
+    if (options.headerProfile === "forums-browser") {
+      if (!merged.accept) {
+        merged.accept = "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7";
+      }
+      if (!merged["accept-encoding"]) {
+        merged["accept-encoding"] = "gzip, deflate, br";
+      }
+      if (!merged["accept-language"]) {
+        merged["accept-language"] = "zh-CN,zh;q=0.9,en-US;q=0.8,en;q=0.7";
+      }
+    }
+    if (options.refererUrl && !merged.referer) {
+      merged.referer = options.refererUrl;
+    }
+    if (options.networkClient === "dart-io" && !merged.http_client) {
+      merged.http_client = "dart:io";
+    }
+    return merged;
+  }
+  async checkEHEvent() {
+    if (!this.isLogged) {
+      return;
+    }
+    if (!this.loadSetting("ehevent")) {
+      return;
+    }
+    try {
+      const lastEvent = this.loadData("lastEventTime");
+      const newTime = new Date().toISOString().split("T")[0];
+      if (lastEvent == newTime) {
+        return;
+      }
+      const res = await this.requestClient.get(buildEhNewsUrl(), {}, {
+        action: "Failed to load event news",
+        requestKey: "event-news"
+      });
+      if (res.status !== 200 || this.isAbuseResponseBody(res.body)) {
+        return;
+      }
+      this.saveData("lastEventTime", newTime);
+      const document = new HtmlDocument(res.body);
+      const eventPane = document.getElementById("eventpane");
+      if (eventPane == null) {
+        return;
+      }
+      const dawnInfo = eventPane.querySelector("div > p:nth-child(2)");
+      if (dawnInfo == null) {
+        return;
+      }
+      UI.showMessage(dawnInfo.text);
+    } catch (error) {
+      // Event checks are advisory; never let them break the main request path.
+    }
+  }
+  get baseUrl() {
+    return buildBaseUrl(this.loadSetting("domain"));
+  }
+  get apiUrl() {
+    return buildApiUrl(this.baseUrl);
+  }
+  getStarsFromPosition(position) {
+    let i = 0;
+    while (position[i] !== ";") {
+      i++;
+      if (i === position.length) {
+        break;
+      }
+    }
+    switch (position.substring(0, i)) {
+      case "background-position:0px -1px":
+        return 5;
+      case "background-position:0px -21px":
+        return 4.5;
+      case "background-position:-16px -1px":
+        return 4;
+      case "background-position:-16px -21px":
+        return 3.5;
+      case "background-position:-32px -1px":
+        return 3;
+      case "background-position:-32px -21px":
+        return 2.5;
+      case "background-position:-48px -1px":
+        return 2;
+      case "background-position:-48px -21px":
+        return 1.5;
+      case "background-position:-64px -1px":
+        return 1;
+      case "background-position:-64px -21px":
+        return 0.5;
+    }
+    return 0.5;
+  }
+  async onLoadFailed(reason = null) {
+    let cookies;
+    try {
+      cookies = await Network.getCookies(buildEhCookieUrl());
+    } catch (error) {
+      throw this.formatRequestError("Failed to recover session cookies", error);
+    }
+    cookies.forEach(c => {
+      c.domain = ".exhentai.org";
+    });
+    cookies = cookies.filter(item => item.name !== "igneous");
+    Network.deleteCookies(buildExCookieUrl());
+    Network.setCookies(buildExCookieUrl(), cookies);
+    let suffix = reason ? ` (${reason})` : "";
+    throw `You may not have permission to access this page${suffix}. Please check your network or try to login again.`;
+  }
+
+  /**
+   *
+   * @param url {string}
+   * @param isLeaderBoard {boolean}
+   * @returns {Promise<{comics: Comic[], next: string?}>}
+   */
+  async getGalleries(url, isLeaderBoard) {
+    try {
+      await this.checkEHEvent();
+    } catch (_) {}
+    let t = isLeaderBoard ? 1 : 0;
+    let res;
+    try {
+      res = await this.requestClient.get(url, {}, {
+        action: "Failed to load gallery list",
+        requestKey: `galleries:${url}`
+      });
+    } catch (e) {
+      if (this.isRedirectError(e)) {
+        await this.onLoadFailed("request was redirected");
+      }
+      throw this.formatRequestError("Failed to load gallery list", e);
+    }
+    if (res.status !== 200) {
+      throw this.formatResponseError("Failed to load gallery list", res);
+    }
+    if (res.body.trim().length === 0) {
+      await this.onLoadFailed("empty response from gallery list");
+    }
+    if (res.body[0] !== "<") {
+      if (this.isAbuseResponseBody(res.body)) {
+        throw "Your IP address has been banned";
+      }
+      throw "Failed to load gallery list";
+    }
+    let document = new HtmlDocument(res.body);
+    try {
+      return parseGalleryList({
+        document,
+        source: this,
+        url,
+        isLeaderBoard
+      });
+    } finally {
+      document.dispose();
+    }
+  }
+}
+class EhentaiRequestClient {
+  constructor(source) {
+    this.source = source;
+  }
+  get(url, headers = {}, options = {}) {
+    return this.send("GET", url, headers, null, options);
+  }
+  post(url, headers = {}, body = null, options = {}) {
+    return this.send("POST", url, headers, body, options);
+  }
+  head(url, headers = {}, options = {}) {
+    return this.send("HEAD", url, headers, null, options);
+  }
+  async withDocument(url, headers = {}, options = {}, parser) {
+    const response = await this.get(url, headers, options);
+    const document = new HtmlDocument(response.body);
+    try {
+      return await parser(document, response);
+    } finally {
+      document.dispose();
+    }
+  }
+  async send(method, url, headers = {}, body = null, options = {}) {
+    var _options$expectedStat, _options$maxRetries, _options$cooldownMs, _options$classifyBody, _options$mutation;
+    const resolved = {
+      action: options.action || `${method} ${url}`,
+      requestKey: options.requestKey || `${method}:${url}:${body != null ? body : ""}`,
+      domainKey: options.domainKey || domainKey(url),
+      expectedStatus: (_options$expectedStat = options.expectedStatus) != null ? _options$expectedStat : 200,
+      maxRetries: (_options$maxRetries = options.maxRetries) != null ? _options$maxRetries : options.mutation ? 0 : 0,
+      cooldownMs: (_options$cooldownMs = options.cooldownMs) != null ? _options$cooldownMs : 60000,
+      classifyBody: (_options$classifyBody = options.classifyBody) != null ? _options$classifyBody : true,
+      mutation: (_options$mutation = options.mutation) != null ? _options$mutation : method !== "GET"
+    };
+    const cooldownUntil = this.source.requestState.cooldownUntil.get(resolved.domainKey);
+    if (cooldownUntil && cooldownUntil > Date.now()) {
+      throw `${resolved.action} blocked: temporary cooldown in effect`;
+    }
+    const inflightKey = resolved.requestKey;
+    const finalHeaders = this._resolveHeaders(method, url, headers, resolved);
+    if (this.source.requestState.inflight.has(inflightKey)) {
+      return this.source.requestState.inflight.get(inflightKey);
+    }
+    const run = this._enqueueByDomain(resolved.domainKey, () => this._sendWithRetry(method, url, finalHeaders, body, resolved));
+    this.source.requestState.inflight.set(inflightKey, run);
+    try {
+      return await run;
+    } finally {
+      this.source.requestState.inflight.delete(inflightKey);
+    }
+  }
+  _enqueueByDomain(domainKey, task) {
+    const tail = this.source.requestState.queues.get(domainKey) || Promise.resolve();
+    const run = tail.then(task, task);
+    const queueNext = run.then(() => undefined, () => undefined);
+    this.source.requestState.queues.set(domainKey, queueNext);
+    queueNext.finally(() => {
+      if (this.source.requestState.queues.get(domainKey) === queueNext) {
+        this.source.requestState.queues.delete(domainKey);
+      }
+    });
+    return run;
+  }
+  async _sendWithRetry(method, url, headers, body, options) {
+    let attempt = 0;
+    const maxAttempts = Math.max(0, options.maxRetries) + 1;
+    while (attempt < maxAttempts) {
+      attempt += 1;
+      let response;
+      try {
+        response = await this._dispatch(method, url, headers, body);
+      } catch (error) {
+        if (attempt >= maxAttempts) {
+          throw this.source.formatRequestError(options.action, error);
+        }
+        continue;
+      }
+      if (this._shouldCooldown(response, options)) {
+        this._markCooldown(options.domainKey, options.cooldownMs);
+        throw this.source.formatResponseError(options.action, response);
+      }
+      if (response.status !== options.expectedStatus) {
+        if (attempt >= maxAttempts || options.mutation) {
+          throw this.source.formatResponseError(options.action, response);
+        }
+        continue;
+      }
+      return response;
+    }
+    throw `${options.action} failed after retries`;
+  }
+  _resolveHeaders(method, url, headers, options) {
+    if (typeof this.source.buildRequestHeaders === "function") {
+      return this.source.buildRequestHeaders(method, url, headers || {}, options || {});
+    }
+    return headers || {};
+  }
+  async _dispatch(method, url, headers, body) {
+    if (method === "GET") {
+      return Network.get(url, headers);
+    }
+    if (method === "POST") {
+      return Network.post(url, headers, body);
+    }
+    return Network.sendRequest(method, url, headers, body);
+  }
+  _shouldCooldown(response, options) {
+    var _response$body2;
+    if (response.status === 403 || response.status === 429) {
+      return true;
+    }
+    if (!options.classifyBody) {
+      return false;
+    }
+    const body = String((_response$body2 = response.body) != null ? _response$body2 : "").trim();
+    if (body.length === 0) {
+      return true;
+    }
+    return this.source.isAbuseResponseBody(body);
+  }
+  _markCooldown(domainKey, cooldownMs) {
+    this.source.requestState.cooldownUntil.set(domainKey, Date.now() + cooldownMs);
+  }
+}
+class ImageLoadingSessionManager {
+  constructor(source) {
+    this.source = source;
+  }
+  async ensureSession(comicId) {
+    const cached = this.source.imageSessionCache.get(comicId);
+    if (cached) {
+      return cached;
+    }
+    const firstPage = await this.source.comic.loadThumbnails(comicId, null);
+    const key = await this.source.comic.getKey(firstPage.urls[0]);
+    const session = {
+      comicId,
+      firstPage,
+      key,
+      attempts: new Map()
+    };
+    this.source.imageSessionCache.set(comicId, session);
+    return session;
+  }
+  async getPageUrl(session, page) {
+    if (page < session.firstPage.urls.length) {
+      return session.firstPage.urls[page];
+    }
+    const onePageLength = session.firstPage.thumbnails.length;
+    const shouldLoadPage = Math.floor(page / onePageLength);
+    const index = page % onePageLength;
+    const thumbnails = await this.source.comic.loadThumbnails(session.comicId, shouldLoadPage.toString());
+    return thumbnails.urls[index];
+  }
+  async dispatchImage({
+    comicId,
+    page,
+    nl
+  }) {
+    const session = await this.ensureSession(comicId);
+    const parsed = this.source.parseUrl(comicId);
+    if (session.key.mpvkey) {
+      const payload = buildImageDispatchPayload({
+        galleryId: parsed.id,
+        imgKey: session.key.imageKeys[page],
+        page: page + 1,
+        mpvkey: session.key.mpvkey,
+        nl
+      });
+      const response = await this.source.requestClient.post(this.source.apiUrl, {
+        "Content-Type": "application/json"
+      }, payload, {
+        action: "Failed to dispatch image",
+        mutation: true,
+        maxRetries: 0,
+        classifyBody: false
+      });
+      const json = JSON.parse(response.body);
+      return {
+        url: String(json.i),
+        nl: String(json.s)
+      };
+    }
+    const pageUrl = await this.getPageUrl(session, page);
+    const payload = buildShowPagePayload({
+      galleryId: parsed.id,
+      imgKey: imageKeyFromPageUrl(pageUrl),
+      page: page + 1,
+      showkey: session.key.showkey,
+      nl
+    });
+    const response = await this.source.requestClient.post(this.source.apiUrl, {
+      "Content-Type": "application/json"
+    }, payload, {
+      action: "Failed to dispatch image",
+      mutation: true,
+      maxRetries: 0,
+      classifyBody: false
+    });
+    const json = JSON.parse(response.body);
+    const i6 = json.i6;
+    const match = RegExp("nl\\('(.+?)'\\)").exec(i6);
+    const nextNl = match ? match[1] : null;
+    let image = json.i3;
+    image = image.substring(image.indexOf('src="') + 5, image.indexOf('" style'));
+    return {
+      url: image,
+      nl: nextNl
+    };
+  }
+  createRetry({
+    image,
+    comicId,
+    epId,
+    nl,
+    attempt
+  }) {
+    if (!nl) {
+      return null;
+    }
+    const maxRetry = 2;
+    if (attempt >= maxRetry) {
+      return null;
+    }
+    return async () => this.source.imageSessions.load({
+      image,
+      comicId,
+      epId,
+      nl,
+      attempt: attempt + 1
+    });
+  }
+  async load({
+    image,
+    comicId,
+    epId,
+    nl,
+    attempt = 0
+  }) {
+    const page = Number(image);
+    const res = await this.dispatchImage({
+      comicId,
+      page,
+      nl
+    });
+    return {
+      url: res.url,
+      headers: this.source.buildRequestHeaders("GET", res.url, {}, {
+        headerProfile: "thumbnail"
+      }),
+      onLoadFailed: this.createRetry({
+        image,
+        comicId,
+        epId,
+        nl: res.nl,
+        attempt
+      })
+    };
+  }
+}
