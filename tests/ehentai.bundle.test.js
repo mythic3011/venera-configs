@@ -71,6 +71,34 @@ function loadCtor() {
   return context.__Ehentai__;
 }
 
+test("bundle avoids syntax unsupported by flutter_qjs", () => {
+  const source = fs.readFileSync("./ehentai.js", "utf8");
+  const forbidden = [
+    [/\?\./, "optional chaining"],
+    [/\?\?/, "nullish coalescing"],
+    [/\.at\(/, "Array/String .at()"],
+    [/\.replaceAll\(/, "String.replaceAll()"],
+    [/\.matchAll\(/, "String.matchAll()"],
+  ];
+
+  for (const [pattern, label] of forbidden) {
+    assert.equal(pattern.test(source), false, `${label} leaked into bundle`);
+  }
+});
+
+test("Ehentai initializes feature properties inside constructor after core state", () => {
+  const source = fs.readFileSync("./ehentai.js", "utf8");
+  const nameIndex = source.indexOf('this.name="ehentai"');
+  const cacheIndex = source.indexOf("this.imageSessionCache=");
+  const accountIndex = source.indexOf("this.account=");
+
+  assert.notEqual(nameIndex, -1);
+  assert.notEqual(cacheIndex, -1);
+  assert.notEqual(accountIndex, -1);
+  assert.ok(nameIndex < accountIndex);
+  assert.ok(cacheIndex < accountIndex);
+});
+
 test("bundle stays standalone and exposes Ehentai metadata", () => {
   const Ctor = loadCtor();
   const source = new Ctor();

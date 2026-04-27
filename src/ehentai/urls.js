@@ -1,139 +1,138 @@
-EhentaiModules.URL_HOSTS = {
+const URL_HOSTS = {
   EH: "e-hentai.org",
   EX: "exhentai.org",
   FORUMS: "forums.e-hentai.org",
   API_EH: "api.e-hentai.org",
 };
 
-EhentaiModules.buildBaseUrl = function buildBaseUrl(domain) {
+function buildBaseUrl(domain) {
   return `https://${domain}`;
-};
+}
 
-EhentaiModules.buildPathUrl = function buildPathUrl(baseUrl, path) {
+function buildPathUrl(baseUrl, path) {
   const normalizedPath = String(path || "").replace(/^\/+/, "");
   if (!normalizedPath) {
     return String(baseUrl);
   }
   return `${baseUrl}/${normalizedPath}`;
-};
+}
 
-EhentaiModules.buildPathQueryUrl = function buildPathQueryUrl(
+function buildPathQueryUrl(
   baseUrl,
   path,
   params,
   keepTrailingQuestion = false,
 ) {
-  const base = EhentaiModules.buildPathUrl(baseUrl, path);
-  const query = EhentaiModules.buildQuery(params || {});
+  const base = buildPathUrl(baseUrl, path);
+  const query = buildQuery(params || {});
   if (!query) {
     return keepTrailingQuestion ? `${base}?` : base;
   }
   return `${base}?${query}`;
-};
+}
 
-EhentaiModules.buildCdnSourceUrl = function buildCdnSourceUrl(fileName) {
-  return EhentaiModules.buildPathUrl(
+function buildCdnSourceUrl(fileName) {
+  return buildPathUrl(
     "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main",
     fileName,
   );
-};
+}
 
-EhentaiModules.buildApiUrl = function buildApiUrl(baseUrl) {
-  if (baseUrl.includes(EhentaiModules.URL_HOSTS.EX)) {
-    return EhentaiModules.buildPathUrl(
-      EhentaiModules.buildBaseUrl(EhentaiModules.URL_HOSTS.EX),
+function buildApiUrl(baseUrl) {
+  if (baseUrl.includes(URL_HOSTS.EX)) {
+    return buildPathUrl(
+      buildBaseUrl(URL_HOSTS.EX),
       "api.php",
     );
   }
-  return EhentaiModules.buildPathUrl(
-    EhentaiModules.buildBaseUrl(EhentaiModules.URL_HOSTS.API_EH),
+  return buildPathUrl(
+    buildBaseUrl(URL_HOSTS.API_EH),
     "api.php",
   );
-};
+}
 
-EhentaiModules.buildEhNewsUrl = function buildEhNewsUrl() {
-  return EhentaiModules.buildPathUrl(
-    EhentaiModules.buildBaseUrl(EhentaiModules.URL_HOSTS.EH),
+function buildEhNewsUrl() {
+  return buildPathUrl(
+    buildBaseUrl(URL_HOSTS.EH),
     "news.php",
   );
-};
+}
 
-EhentaiModules.buildForumsLoginUrl = function buildForumsLoginUrl() {
-  return EhentaiModules.buildPathQueryUrl(
-    EhentaiModules.buildBaseUrl(EhentaiModules.URL_HOSTS.FORUMS),
+function buildForumsLoginUrl() {
+  return buildPathQueryUrl(
+    buildBaseUrl(URL_HOSTS.FORUMS),
     "index.php",
     { act: "Login", CODE: "00" },
   );
-};
+}
 
-EhentaiModules.buildForumsHomeUrl = function buildForumsHomeUrl() {
-  return `${EhentaiModules.buildPathUrl(
-    EhentaiModules.buildBaseUrl(EhentaiModules.URL_HOSTS.FORUMS),
+function buildForumsHomeUrl() {
+  return `${buildPathUrl(
+    buildBaseUrl(URL_HOSTS.FORUMS),
     "",
   )}/`;
-};
+}
 
-EhentaiModules.buildForumsIndexRefererUrl =
-  function buildForumsIndexRefererUrl() {
-    return EhentaiModules.buildPathQueryUrl(
-      EhentaiModules.buildBaseUrl(EhentaiModules.URL_HOSTS.FORUMS),
-      "index.php",
-      {},
-      true,
-    );
-  };
+function buildForumsIndexRefererUrl() {
+  return buildPathQueryUrl(
+    buildBaseUrl(URL_HOSTS.FORUMS),
+    "index.php",
+    {},
+    true,
+  );
+}
 
-EhentaiModules.buildEhCookieUrl = function buildEhCookieUrl() {
-  return EhentaiModules.buildBaseUrl(EhentaiModules.URL_HOSTS.EH);
-};
+function buildEhCookieUrl() {
+  return buildBaseUrl(URL_HOSTS.EH);
+}
 
-EhentaiModules.buildExCookieUrl = function buildExCookieUrl() {
-  return EhentaiModules.buildBaseUrl(EhentaiModules.URL_HOSTS.EX);
-};
+function buildExCookieUrl() {
+  return buildBaseUrl(URL_HOSTS.EX);
+}
 
-EhentaiModules.buildForumsCookieUrl = function buildForumsCookieUrl() {
-  return EhentaiModules.buildBaseUrl(EhentaiModules.URL_HOSTS.FORUMS);
-};
+function buildForumsCookieUrl() {
+  return buildBaseUrl(URL_HOSTS.FORUMS);
+}
 
-EhentaiModules.buildPopularUrl = function buildPopularUrl(baseUrl) {
-  return EhentaiModules.buildPathUrl(baseUrl, "popular");
-};
+function buildPopularUrl(baseUrl) {
+  return buildPathUrl(baseUrl, "popular");
+}
 
-EhentaiModules.buildWatchedUrl = function buildWatchedUrl(baseUrl) {
-  return EhentaiModules.buildPathUrl(baseUrl, "watched");
-};
+function buildWatchedUrl(baseUrl) {
+  return buildPathUrl(baseUrl, "watched");
+}
 
-EhentaiModules.buildGalleryPageUrl = function buildGalleryPageUrl(
+function buildGalleryPageUrl(
   comicId,
   pageToken,
 ) {
-  if (!EhentaiModules.hasValue(pageToken)) {
+  if (!hasValue(pageToken)) {
     return comicId;
   }
-  return EhentaiModules.buildPathQueryUrl(comicId, "", { p: pageToken });
-};
+  return buildPathQueryUrl(comicId, "", { p: pageToken });
+}
 
-EhentaiModules.parseGalleryUrl = function parseGalleryUrl(url) {
+function parseGalleryUrl(url) {
   const clean = String(url || "")
     .split("?")[0]
     .split("#")[0];
   const segments = clean.split("/");
   return { id: segments[4], token: segments[5] };
-};
+}
 
-EhentaiModules.buildFavoritesUrl = function buildFavoritesUrl(
+function buildFavoritesUrl(
   baseUrl,
   folderId,
 ) {
-  if (!EhentaiModules.hasValue(folderId) || folderId === "-1") {
-    return EhentaiModules.buildPathUrl(baseUrl, "favorites.php");
+  if (!hasValue(folderId) || folderId === "-1") {
+    return buildPathUrl(baseUrl, "favorites.php");
   }
-  return EhentaiModules.buildPathQueryUrl(baseUrl, "favorites.php", {
+  return buildPathQueryUrl(baseUrl, "favorites.php", {
     favcat: folderId,
   });
-};
+}
 
-EhentaiModules.buildSearchUrl = function buildSearchUrl(
+function buildSearchUrl(
   baseUrl,
   keyword,
   fcats,
@@ -144,85 +143,85 @@ EhentaiModules.buildSearchUrl = function buildSearchUrl(
     f_cats: fcats ? String(fcats) : null,
     f_srdd: stars || null,
   };
-  return EhentaiModules.buildPathQueryUrl(baseUrl, "", query);
-};
+  return buildPathQueryUrl(baseUrl, "", query);
+}
 
-EhentaiModules.buildToplistUrl = function buildToplistUrl(
+function buildToplistUrl(
   baseUrl,
   option,
   page,
 ) {
-  return EhentaiModules.buildPathQueryUrl(baseUrl, "toplist.php", {
+  return buildPathQueryUrl(baseUrl, "toplist.php", {
     tl: option,
     p: page,
   });
-};
+}
 
-EhentaiModules.buildGalleryPopupUrl = function buildGalleryPopupUrl(
+function buildGalleryPopupUrl(
   baseUrl,
   galleryId,
   token,
 ) {
-  return EhentaiModules.buildPathQueryUrl(baseUrl, "gallerypopups.php", {
+  return buildPathQueryUrl(baseUrl, "gallerypopups.php", {
     gid: galleryId,
     t: token,
     act: "addfav",
   });
-};
+}
 
-EhentaiModules.buildArchiverUrl = function buildArchiverUrl(
+function buildArchiverUrl(
   baseUrl,
   gid,
   token,
 ) {
-  return EhentaiModules.buildPathQueryUrl(baseUrl, "archiver.php", {
+  return buildPathQueryUrl(baseUrl, "archiver.php", {
     gid,
     token,
   });
-};
+}
 
-EhentaiModules.buildCommentsUrl = function buildCommentsUrl(comicId) {
-  return EhentaiModules.buildPathQueryUrl(comicId, "", { hc: 1 });
-};
+function buildCommentsUrl(comicId) {
+  return buildPathQueryUrl(comicId, "", { hc: 1 });
+}
 
-EhentaiModules.extractHost = function extractHost(url) {
+function extractHost(url) {
   const regex = /^(?:https?:\/\/)?(?:www\.)?([^\/]+)/i;
   const match = String(url || "").match(regex);
   return match ? match[1] : null;
-};
+}
 
-EhentaiModules.buildArchiveResultUrl = function buildArchiveResultUrl(
+function buildArchiveResultUrl(
   downloadPageUrl,
   hrefPath,
 ) {
-  const host = EhentaiModules.extractHost(downloadPageUrl);
+  const host = extractHost(downloadPageUrl);
   if (!host || !hrefPath) {
     return null;
   }
-  return `${EhentaiModules.buildBaseUrl(host)}${String(hrefPath)}`;
-};
+  return `${buildBaseUrl(host)}${String(hrefPath)}`;
+}
 
-EhentaiModules.normalizeGalleryLink = function normalizeGalleryLink(
+function normalizeGalleryLink(
   baseUrl,
   url,
 ) {
-  const parsed = EhentaiModules.parseGalleryUrl(url);
+  const parsed = parseGalleryUrl(url);
   if (
-    !EhentaiModules.hasValue(parsed.id) ||
-    !EhentaiModules.hasValue(parsed.token)
+    !hasValue(parsed.id) ||
+    !hasValue(parsed.token)
   ) {
     return null;
   }
   return `${baseUrl}/g/${parsed.id}/${parsed.token}/`;
-};
+}
 
-EhentaiModules.normalizeThumbnailHost = function normalizeThumbnailHost(url) {
+function normalizeThumbnailHost(url) {
   if (String(url || "").includes("s.exhentai.org")) {
     return String(url).replace("s.exhentai.org", "ehgt.org");
   }
   return url;
-};
+}
 
-EhentaiModules.imageKeyFromPageUrl = function imageKeyFromPageUrl(url) {
+function imageKeyFromPageUrl(url) {
   return String(url || "").split("/")[4] || "";
-};
+}

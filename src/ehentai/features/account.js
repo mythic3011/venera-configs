@@ -1,3 +1,3 @@
-EhentaiModules.features.createAccountFeature = function createAccountFeature(source, feature) {
+function createAccountFeature(source, feature) {
   return feature;
-};
+}

@@ -36,6 +36,7 @@ const moduleOrder = [
   "src/ehentai/features/archive.js",
   "src/ehentai/settings.js",
   "src/ehentai/i18n.js",
+  "src/ehentai/source-config.js",
   "src/ehentai/source-shell.js",
 ];
 
@@ -60,23 +61,19 @@ const parts = moduleOrder.map((relativePath) => {
 
 const output = `${banner}${veneraCode}\n\n${parts.join("\n\n")}\n`;
 
-// Transpile to ES2018 for flutter_qjs compatibility
+// Transpile to ES2018-ish syntax for flutter_qjs compatibility. Venera runs
+// sources in an embedded JS engine, not Node or a modern browser.
 const result = babel.transformSync(output, {
   filename: outputPath,
   presets: [
     [
       "@babel/preset-env",
       {
-        targets: "> 0.25%, not dead",
-        useBuiltIns: false,
-      },
-    ],
-  ],
-  plugins: [
-    [
-      "@babel/plugin-transform-class-properties",
-      {
+        targets: {
+          chrome: "63",
+        },
         loose: true,
+        useBuiltIns: false,
       },
     ],
   ],
@@ -86,11 +83,14 @@ const result = babel.transformSync(output, {
   if (result.code) {
     // Minify the transpiled code
     const minified = await terser.minify(result.code, {
+      ecma: 2018,
       compress: {
+        ecma: 2018,
         passes: 2,
       },
       mangle: true,
       output: {
+        ecma: 2018,
         comments: /^!/,
       },
     });

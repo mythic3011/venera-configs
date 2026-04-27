@@ -1,10 +1,8 @@
 // Source entry for generated root ehentai.js.
 // Keep runtime output standalone: no imports or exports in generated artifact.
-const EhentaiModules = {
-  parsers: {},
-  features: {},
-};
+const parsers = {};
+const features = {};
 
-EhentaiModules.hasValue = function hasValue(value) {
+function hasValue(value) {
   return value !== null && value !== undefined && value !== "";
-};
+}

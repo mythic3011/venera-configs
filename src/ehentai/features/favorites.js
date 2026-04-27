@@ -1,4 +1,4 @@
-EhentaiModules.features.createFavoritesFeature = function createFavoritesFeature(source) {
+function createFavoritesFeature(source) {
   return {
     // whether support multi folders
     multiFolder: true,
@@ -16,50 +16,38 @@ EhentaiModules.features.createFavoritesFeature = function createFavoritesFeature
       let parsed = source.parseUrl(comicId);
       let id = parsed.id;
       let token = parsed.token;
-      const url = EhentaiModules.buildGalleryPopupUrl(source.baseUrl, id, token);
+      const url = buildGalleryPopupUrl(source.baseUrl, id, token);
       if (isAdding) {
         let res = await source.requestClient.post(
           url,
-          {
-            "Content-Type": "application/x-www-form-urlencoded",
-          },
-          EhentaiModules.buildAddFavoriteForm(folderId),
+          {},
+          buildAddFavoriteForm(folderId),
           {
             action: "Failed to add favorite",
             requestKey: `favorite:add:${comicId}:${folderId}`,
             mutation: true,
             maxRetries: 0,
+            headerProfile: "form-urlencoded",
           },
         );
-        if (
-          res.status !== 200 ||
-          res.body.length === 0 ||
-          res.body[0] !== "<"
-        ) {
-          throw "Failed to add favorite";
-        }
+        source.requireStatus("Failed to add favorite", res);
+        source.requireHtmlBody("Failed to add favorite", res);
         return "ok";
       } else {
         let res = await source.requestClient.post(
           url,
-          {
-            "Content-Type": "application/x-www-form-urlencoded",
-          },
-          EhentaiModules.buildDeleteFavoriteForm(),
+          {},
+          buildDeleteFavoriteForm(),
           {
             action: "Failed to delete favorite",
             requestKey: `favorite:del:${comicId}`,
             mutation: true,
             maxRetries: 0,
+            headerProfile: "form-urlencoded",
           },
         );
-        if (
-          res.status !== 200 ||
-          res.body.length === 0 ||
-          res.body[0] !== "<"
-        ) {
-          throw "Failed to delete favorite";
-        }
+        source.requireStatus("Failed to delete favorite", res);
+        source.requireHtmlBody("Failed to delete favorite", res);
         return "ok";
       }
     },
@@ -75,32 +63,32 @@ EhentaiModules.features.createFavoritesFeature = function createFavoritesFeature
         await source.checkEHEvent();
       } catch (_) {}
       let res = await source.requestClient.get(
-        EhentaiModules.buildFavoritesUrl(source.baseUrl, "-1"),
+        buildFavoritesUrl(source.baseUrl, "-1"),
         {},
         {
           action: "Failed to load favorite folders",
           requestKey: "favorites:folders",
         },
       );
-      if (res.status !== 200) {
-        throw source.formatResponseError("Failed to load favorite folders", res);
-      }
-      let document = new HtmlDocument(res.body);
-      let folders = new Map();
-      folders.set("-1", "All");
-      let sum = 0;
-      for (let item of document.querySelectorAll("div.fp")) {
-        if (item.text === "Show All Favorites") continue;
-        let name = item.children[2]?.text ?? `Favorite ${folders.size}`;
-        let length = item.children[0]?.text;
-        if (length) {
-          name += ` (${length})`;
-          sum += +length;
+      source.requireStatus("Failed to load favorite folders", res);
+      source.requireHtmlBody("Failed to load favorite folders", res);
+      let folders = await source.withDocument(res.body, async (document) => {
+        let map = new Map();
+        map.set("-1", "All");
+        let sum = 0;
+        for (let item of document.querySelectorAll("div.fp")) {
+          if (item.text === "Show All Favorites") continue;
+          let name = item.children[2]?.text ?? `Favorite ${map.size}`;
+          let length = item.children[0]?.text;
+          if (length) {
+            name += ` (${length})`;
+            sum += +length;
+          }
+          map.set((map.size - 1).toString(), name);
         }
-        folders.set((folders.size - 1).toString(), name);
-      }
-      folders.set("-1", `All (${sum})`);
-      document.dispose();
+        map.set("-1", `All (${sum})`);
+        return map;
+      });
       let favorited = [];
       if (comicId) {
         let comic = await source.comic.loadInfo(comicId);
@@ -114,8 +102,8 @@ EhentaiModules.features.createFavoritesFeature = function createFavoritesFeature
       };
     },
     loadNext: async (next, folder) => {
-      let url = EhentaiModules.buildFavoritesUrl(source.baseUrl, folder);
+      let url = buildFavoritesUrl(source.baseUrl, folder);
       return source.getGalleries(next ?? url, false);
     },
   };
-};
+}

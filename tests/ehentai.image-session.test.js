@@ -33,7 +33,13 @@ function loadModules() {
     console,
   };
   vm.createContext(context);
-  vm.runInContext(`${source}\nthis.__mods__ = EhentaiModules;`, context);
+  vm.runInContext(
+    `${source}
+this.__mods__ = {
+  ImageLoadingSessionManager,
+};`,
+    context,
+  );
   return context.__mods__;
 }
 
@@ -46,6 +52,9 @@ function createSource(modules) {
     baseUrl: "https://e-hentai.org",
     apiUrl: "https://api.e-hentai.org/api.php",
     imageSessionCache: new Map(),
+    buildRequestHeaders(method, url, headers) {
+      return { ...(headers || {}), referer: this.baseUrl };
+    },
     parseUrl: () => ({ id: "123", token: "abc" }),
     comic: {
       loadThumbnails: async (id, next) => {

@@ -15,16 +15,55 @@ function createDeferred() {
 
 function loadModules(networkOverrides = {}) {
   const source = fs.readFileSync("./ehentai.js", "utf8");
+  const runtimeNetwork = {
+    get: async () => ({ status: 200, body: "ok" }),
+    post: async () => ({ status: 200, body: "{}" }),
+    sendRequest: async () => ({ status: 200, body: "" }),
+    getCookies: async () => [],
+    setCookies: () => {},
+    deleteCookies: () => {},
+    ...networkOverrides,
+  };
+
+  const callHttp = (method, url, headers, data) => {
+    if (method === "GET" && runtimeNetwork.get) {
+      return runtimeNetwork.get(url, headers);
+    }
+    if (method === "POST" && runtimeNetwork.post) {
+      return runtimeNetwork.post(url, headers, data);
+    }
+    return runtimeNetwork.sendRequest(method, url, headers, data);
+  };
+
   const context = {
     ComicSource: class {},
-    Network: {
-      get: async () => ({ status: 200, body: "ok" }),
-      post: async () => ({ status: 200, body: "{}" }),
-      sendRequest: async () => ({ status: 200, body: "" }),
-      getCookies: async () => [],
-      setCookies: () => {},
-      deleteCookies: () => {},
-      ...networkOverrides,
+    Network: runtimeNetwork,
+    sendMessage: async (message) => {
+      if (message.method === "http") {
+        return callHttp(
+          message.http_method,
+          message.url,
+          message.headers,
+          message.data,
+        );
+      }
+      if (message.method === "cookie") {
+        if (message.function === "set") {
+          runtimeNetwork.setCookies(message.url, message.cookies);
+          return null;
+        }
+        if (message.function === "get") {
+          return runtimeNetwork.getCookies(message.url);
+        }
+        if (message.function === "delete") {
+          runtimeNetwork.deleteCookies(message.url);
+          return null;
+        }
+      }
+      if (message.method === "delay") {
+        return null;
+      }
+      return null;
     },
     HtmlDocument: class {},
     UI: { showMessage: () => {}, showDialog: () => {}, launchUrl: () => {} },
@@ -44,7 +83,13 @@ function loadModules(networkOverrides = {}) {
     console,
   };
   vm.createContext(context);
-  vm.runInContext(`${source}\nthis.__mods__ = EhentaiModules;`, context);
+  vm.runInContext(
+    `${source}
+this.__mods__ = {
+  EhentaiRequestClient,
+};`,
+    context,
+  );
   return { modules: context.__mods__, context };
 }
 

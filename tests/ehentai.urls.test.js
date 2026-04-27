@@ -4,7 +4,11 @@ const fs = require("node:fs");
 const vm = require("node:vm");
 
 function loadModules() {
-  const source = fs.readFileSync("./ehentai.js", "utf8");
+  const source = [
+    fs.readFileSync("./src/ehentai/index.js", "utf8"),
+    fs.readFileSync("./src/ehentai/query.js", "utf8"),
+    fs.readFileSync("./src/ehentai/urls.js", "utf8"),
+  ].join("\n\n");
   const context = {
     ComicSource: class {},
     Network: {
@@ -33,9 +37,19 @@ function loadModules() {
     console,
   };
   vm.createContext(context);
-  vm.runInContext(`${source}\nthis.__mods__ = EhentaiModules;`, context, {
-    filename: "./ehentai.js",
-  });
+  vm.runInContext(
+    `${source}
+this.__mods__ = {
+  buildBaseUrl,
+  buildApiUrl,
+  parseGalleryUrl,
+  buildFavoritesUrl,
+};`,
+    context,
+    {
+    filename: "./src/ehentai/urls.js",
+    },
+  );
   return context.__mods__;
 }
 

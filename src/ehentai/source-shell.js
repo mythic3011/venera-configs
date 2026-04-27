@@ -14,7 +14,7 @@ class Ehentai extends ComicSource {
     this.minAppVersion = "1.5.3";
 
     // update url
-    this.url = EhentaiModules.buildCdnSourceUrl("ehentai.js");
+    this.url = buildCdnSourceUrl("ehentai.js");
 
     /**
      * cached api key
@@ -41,6 +41,16 @@ class Ehentai extends ComicSource {
     this.keyCache = new Map();
     this.galleryInfoCache = new Map();
     this.imageSessionCache = new Map();
+
+    this.account = createEhentaiAccountFeature(this);
+    this.explore = createEhentaiExploreFeature(this);
+    this.category = createEhentaiCategory();
+    this.categoryComics = createEhentaiCategoryComics(this);
+    this.search = createSearchFeature(this);
+    this.favorites = createFavoritesFeature(this);
+    this.comic = createComicFeature(this);
+    this.settings = createSettings();
+    this.translation = i18n;
   }
 
   /**
@@ -48,19 +58,19 @@ class Ehentai extends ComicSource {
    * @returns {{id: string, token: string}}
    */
   parseUrl(url) {
-    return EhentaiModules.parseGalleryUrl(url);
+    return parseGalleryUrl(url);
   }
 
   get requestClient() {
     if (!this._requestClient) {
-      this._requestClient = new EhentaiModules.EhentaiRequestClient(this);
+      this._requestClient = new EhentaiRequestClient(this);
     }
     return this._requestClient;
   }
 
   get imageSessions() {
     if (!this._imageSessions) {
-      this._imageSessions = new EhentaiModules.ImageLoadingSessionManager(this);
+      this._imageSessions = new ImageLoadingSessionManager(this);
     }
     return this._imageSessions;
   }
@@ -129,6 +139,97 @@ class Ehentai extends ComicSource {
     return `${action} failed: invalid status code ${status}`;
   }
 
+  requireStatus(action, response, expectedStatus = 200) {
+    if (!response || response.status !== expectedStatus) {
+      throw this.formatResponseError(action, response || {});
+    }
+  }
+
+  requireNonEmptyBody(action, response) {
+    const body = String((response && response.body) || "").trim();
+    if (body.length === 0) {
+      throw this.formatResponseError(action, response || {});
+    }
+    return body;
+  }
+
+  requireHtmlBody(action, response) {
+    const body = this.requireNonEmptyBody(action, response);
+    if (body[0] !== "<") {
+      throw `${action} failed: invalid HTML response`;
+    }
+    return body;
+  }
+
+  parseJsonResponse(action, response) {
+    this.requireNonEmptyBody(action, response);
+    try {
+      return JSON.parse(response.body);
+    } catch (_) {
+      throw `${action} failed: invalid JSON response`;
+    }
+  }
+
+  async withDocument(html, parser) {
+    const document = new HtmlDocument(html);
+    try {
+      return await parser(document);
+    } finally {
+      document.dispose();
+    }
+  }
+
+  buildRequestHeaders(method, url, headers, options) {
+    const merged = { ...(headers || {}) };
+
+    if (options.headerProfile === "json-api") {
+      if (!merged["Content-Type"]) {
+        merged["Content-Type"] = "application/json";
+      }
+    }
+
+    if (options.headerProfile === "form-urlencoded") {
+      if (!merged["Content-Type"]) {
+        merged["Content-Type"] = "application/x-www-form-urlencoded";
+      }
+    }
+
+    if (options.headerProfile === "gallery-view") {
+      if (!merged.cookie) {
+        merged.cookie = "nw=1";
+      }
+    }
+
+    if (options.headerProfile === "thumbnail") {
+      if (!merged.referer) {
+        merged.referer = this.baseUrl;
+      }
+    }
+
+    if (options.headerProfile === "forums-browser") {
+      if (!merged.accept) {
+        merged.accept =
+          "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7";
+      }
+      if (!merged["accept-encoding"]) {
+        merged["accept-encoding"] = "gzip, deflate, br";
+      }
+      if (!merged["accept-language"]) {
+        merged["accept-language"] = "zh-CN,zh;q=0.9,en-US;q=0.8,en;q=0.7";
+      }
+    }
+
+    if (options.refererUrl && !merged.referer) {
+      merged.referer = options.refererUrl;
+    }
+
+    if (options.networkClient === "dart-io" && !merged.http_client) {
+      merged.http_client = "dart:io";
+    }
+
+    return merged;
+  }
+
   async checkEHEvent() {
     if (!this.isLogged) {
       return;
@@ -143,7 +244,7 @@ class Ehentai extends ComicSource {
         return;
       }
       const res = await this.requestClient.get(
-        EhentaiModules.buildEhNewsUrl(),
+        buildEhNewsUrl(),
         {},
         {
           action: "Failed to load event news",
@@ -169,109 +270,12 @@ class Ehentai extends ComicSource {
     }
   }
 
-  // [Optional] account related
-  account = EhentaiModules.features.createAccountFeature(this, {
-    /**
-     * [Optional] login with webview
-     */
-    loginWithWebview: {
-      url: EhentaiModules.buildForumsLoginUrl(),
-      /**
-       * check login status
-       * @param url {string} - current url
-       * @param title {string} - current title
-       * @returns {boolean} - return true if login success
-       */
-      checkStatus: (url, title) => {
-        return title === "E-Hentai Forums";
-      },
-      onLoginSuccess: async () => {
-        let cookies = await Network.getCookies(
-          EhentaiModules.buildForumsCookieUrl(),
-        );
-        cookies.forEach((cookie) => {
-          cookie.domain = ".exhentai.org";
-        });
-        Network.setCookies(EhentaiModules.buildExCookieUrl(), cookies);
-      },
-    },
-
-    loginWithCookies: {
-      fields: ["ipb_member_id", "ipb_pass_hash", "igneous", "star"],
-      /**
-       * Validate cookies, return false if cookies are invalid.
-       *
-       * Use `Network.setCookies` to set cookies before validate.
-       * @param values {string[]} - same order as `fields`
-       * @returns {Promise<boolean>}
-       */
-      validate: async (values) => {
-        if (values.length !== 4) {
-          return false;
-        }
-        if (values[0].length === 0 || values[1].length === 0) {
-          return false;
-        }
-        let cookies = [];
-        for (let i = 0; i < values.length; i++) {
-          cookies.push(
-            new Cookie({
-              name: this.account.loginWithCookies.fields[i],
-              value: values[i],
-              domain: ".e-hentai.org",
-            }),
-          );
-          cookies.push(
-            new Cookie({
-              name: this.account.loginWithCookies.fields[i],
-              value: values[i],
-              domain: ".exhentai.org",
-            }),
-          );
-        }
-        Network.deleteCookies(EhentaiModules.buildEhCookieUrl());
-        Network.setCookies(EhentaiModules.buildEhCookieUrl(), cookies);
-        let res = await Network.get(EhentaiModules.buildForumsHomeUrl(), {
-          referer: EhentaiModules.buildForumsIndexRefererUrl(),
-          accept:
-            "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
-          "accept-encoding": "gzip, deflate, br",
-          "accept-language": "zh-CN,zh;q=0.9,en-US;q=0.8,en;q=0.7",
-        });
-        if (res.status !== 200) {
-          return false;
-        }
-        let document = new HtmlDocument(res.body);
-        let name = document.querySelector("div#userlinks > p.home > b > a");
-        document.dispose();
-        return name != null;
-      },
-    },
-
-    /**
-     * logout function, clear account related data
-     */
-    logout: () => {
-      Network.deleteCookies(EhentaiModules.buildEhCookieUrl());
-      Network.deleteCookies(EhentaiModules.buildForumsCookieUrl());
-      Network.deleteCookies(EhentaiModules.buildExCookieUrl());
-      this.responseCache.clear();
-      this.thumbnailCache.clear();
-      this.keyCache.clear();
-      this.galleryInfoCache.clear();
-      this.imageSessionCache.clear();
-    },
-
-    // {string?} - register url
-    registerWebsite: null,
-  });
-
   get baseUrl() {
-    return EhentaiModules.buildBaseUrl(this.loadSetting("domain"));
+    return buildBaseUrl(this.loadSetting("domain"));
   }
 
   get apiUrl() {
-    return EhentaiModules.buildApiUrl(this.baseUrl);
+    return buildApiUrl(this.baseUrl);
   }
 
   getStarsFromPosition(position) {
@@ -310,7 +314,7 @@ class Ehentai extends ComicSource {
   async onLoadFailed(reason = null) {
     let cookies;
     try {
-      cookies = await Network.getCookies(EhentaiModules.buildEhCookieUrl());
+      cookies = await Network.getCookies(buildEhCookieUrl());
     } catch (error) {
       throw this.formatRequestError("Failed to recover session cookies", error);
     }
@@ -318,8 +322,8 @@ class Ehentai extends ComicSource {
       c.domain = ".exhentai.org";
     });
     cookies = cookies.filter((item) => item.name !== "igneous");
-    Network.deleteCookies(EhentaiModules.buildExCookieUrl());
-    Network.setCookies(EhentaiModules.buildExCookieUrl(), cookies);
+    Network.deleteCookies(buildExCookieUrl());
+    Network.setCookies(buildExCookieUrl(), cookies);
     let suffix = reason ? ` (${reason})` : "";
     throw `You may not have permission to access this page${suffix}. Please check your network or try to login again.`;
   }
@@ -365,7 +369,7 @@ class Ehentai extends ComicSource {
     }
     let document = new HtmlDocument(res.body);
     try {
-      return EhentaiModules.parsers.parseGalleryList({
+      return parseGalleryList({
         document,
         source: this,
         url,
@@ -376,121 +380,4 @@ class Ehentai extends ComicSource {
     }
   }
 
-  // explore page list
-  explore = EhentaiModules.features.createExploreFeature(this, [
-    {
-      // title of the page.
-      // title is used to identify the page, it should be unique
-      title: "eh latest",
-
-      /// multiPartPage or multiPageComicList or mixed
-      type: "multiPageComicList",
-
-      loadNext: (next) => {
-        return this.getGalleries(next ?? this.baseUrl, false);
-      },
-    },
-    {
-      // title of the page.
-      // title is used to identify the page, it should be unique
-      title: "eh popular",
-
-      /// multiPartPage or multiPageComicList or mixed
-      type: "multiPageComicList",
-
-      loadNext: (next) => {
-        return this.getGalleries(
-          next ?? EhentaiModules.buildPopularUrl(this.baseUrl),
-          false,
-        );
-      },
-    },
-    {
-      // title of the page.
-      // title is used to identify the page, it should be unique
-      title: "eh watched",
-
-      /// multiPartPage or multiPageComicList or mixed
-      type: "multiPageComicList",
-
-      loadNext: async (next) => {
-        if (!this.isLogged) {
-          UI.showMessage("Need login first");
-          return {
-            comics: [],
-            next: null,
-          };
-        }
-        return this.getGalleries(
-          next ?? EhentaiModules.buildWatchedUrl(this.baseUrl),
-          false,
-        );
-      },
-    },
-  ]);
-
-  // categories
-  category = {
-    /// title of the category page, used to identify the page, it should be unique
-    title: "ehentai",
-    parts: [],
-    // enable ranking page
-    enableRankingPage: true,
-  };
-
-  /// category comic loading related
-  categoryComics = {
-    ranking: {
-      // For a single option, use `-` to separate the value and text, left for value, right for text
-      options: ["15-yesterday", "13-month", "12-year", "11-all"],
-      /**
-       * load ranking comics
-       * @param option {string} - option from optionList
-       * @param page {number} - page number
-       * @returns {Promise<{comics: Comic[], maxPage: number}>}
-       */
-      load: async (option, page) => {
-        let res = await this.getGalleries(
-          EhentaiModules.buildToplistUrl(
-            EhentaiModules.buildBaseUrl("e-hentai.org"),
-            option,
-            page - 1,
-          ),
-          true,
-        );
-        let comics = res.comics;
-        if (this.loadSetting("domain") === "exhentai.org") {
-          comics.forEach((e) => {
-            e.id = e.id.replace("e-hentai", "exhentai");
-          });
-        }
-        return {
-          comics: comics,
-          maxPage: 200,
-        };
-      },
-    },
-  };
-
-  /// search related
-  search = EhentaiModules.features.createSearchFeature(this);
-
-  // favorite related
-  favorites = EhentaiModules.features.createFavoritesFeature(this);
-
-  /// single comic related
-  comic = EhentaiModules.features.createComicFeature(this);
-
-  /*
-    [Optional] settings related
-    Use this.loadSetting to load setting
-    ```
-    let setting1Value = this.loadSetting('setting1')
-    console.log(setting1Value)
-    ```
-     */
-  settings = EhentaiModules.settings;
-
-  // [Optional] translations for the strings in this config
-  translation = EhentaiModules.i18n;
 }

@@ -41,7 +41,7 @@ class ImageLoadingSessionManager {
     const parsed = this.source.parseUrl(comicId);
 
     if (session.key.mpvkey) {
-      const payload = EhentaiModules.buildImageDispatchPayload({
+      const payload = buildImageDispatchPayload({
         galleryId: parsed.id,
         imgKey: session.key.imageKeys[page],
         page: page + 1,
@@ -67,9 +67,9 @@ class ImageLoadingSessionManager {
     }
 
     const pageUrl = await this.getPageUrl(session, page);
-    const payload = EhentaiModules.buildShowPagePayload({
+    const payload = buildShowPagePayload({
       galleryId: parsed.id,
-      imgKey: EhentaiModules.imageKeyFromPageUrl(pageUrl),
+      imgKey: imageKeyFromPageUrl(pageUrl),
       page: page + 1,
       showkey: session.key.showkey,
       nl,
@@ -122,9 +122,12 @@ class ImageLoadingSessionManager {
     const res = await this.dispatchImage({ comicId, page, nl });
     return {
       url: res.url,
-      headers: {
-        referer: this.source.baseUrl,
-      },
+      headers: this.source.buildRequestHeaders(
+        "GET",
+        res.url,
+        {},
+        { headerProfile: "thumbnail" },
+      ),
       onLoadFailed: this.createRetry({
         image,
         comicId,
@@ -135,5 +138,3 @@ class ImageLoadingSessionManager {
     };
   }
 }
-
-EhentaiModules.ImageLoadingSessionManager = ImageLoadingSessionManager;

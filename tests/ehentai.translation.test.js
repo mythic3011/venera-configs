@@ -18,16 +18,51 @@ function loadEhentai({ getImpl, locale = "en_US", network = {} } = {}) {
     saveData() {}
   }
 
+  const runtimeNetwork = {
+    get: getImpl ?? (async () => ({ status: 500, body: "" })),
+    post: async () => ({ status: 200, body: "{}" }),
+    getCookies: async () => [],
+    setCookies: () => {},
+    deleteCookies: () => {},
+    sendRequest: async () => ({ status: 200, body: "" }),
+    ...network,
+  };
+
   const context = {
     ComicSource,
-    Network: {
-      get: getImpl ?? (async () => ({ status: 500, body: "" })),
-      post: async () => ({ status: 200, body: "{}" }),
-      getCookies: async () => [],
-      setCookies: () => {},
-      deleteCookies: () => {},
-      sendRequest: async () => ({ status: 200, body: "" }),
-      ...network,
+    Network: runtimeNetwork,
+    sendMessage: async (message) => {
+      if (message.method === "http") {
+        if (message.http_method === "GET") {
+          return runtimeNetwork.get(message.url, message.headers);
+        }
+        if (message.http_method === "POST") {
+          return runtimeNetwork.post(message.url, message.headers, message.data);
+        }
+        return runtimeNetwork.sendRequest(
+          message.http_method,
+          message.url,
+          message.headers,
+          message.data,
+        );
+      }
+      if (message.method === "cookie") {
+        if (message.function === "set") {
+          runtimeNetwork.setCookies(message.url, message.cookies);
+          return null;
+        }
+        if (message.function === "get") {
+          return runtimeNetwork.getCookies(message.url);
+        }
+        if (message.function === "delete") {
+          runtimeNetwork.deleteCookies(message.url);
+          return null;
+        }
+      }
+      if (message.method === "delay") {
+        return null;
+      }
+      return null;
     },
     APP: { locale },
     UI: { showMessage: () => {}, showDialog: () => {}, launchUrl: () => {} },

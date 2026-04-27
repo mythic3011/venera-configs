@@ -1,4 +1,4 @@
-EhentaiModules.i18n = {
+const i18n = {
   zh_CN: {
     domain: "域名",
     ehevent: "触发黎明事件",

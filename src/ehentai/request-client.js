@@ -29,7 +29,7 @@ class EhentaiRequestClient {
     const resolved = {
       action: options.action || `${method} ${url}`,
       requestKey: options.requestKey || `${method}:${url}:${body ?? ""}`,
-      domainKey: options.domainKey || EhentaiModules.domainKey(url),
+      domainKey: options.domainKey || domainKey(url),
       expectedStatus: options.expectedStatus ?? 200,
       maxRetries: options.maxRetries ?? (options.mutation ? 0 : 0),
       cooldownMs: options.cooldownMs ?? 60000,
@@ -45,12 +45,13 @@ class EhentaiRequestClient {
     }
 
     const inflightKey = resolved.requestKey;
+    const finalHeaders = this._resolveHeaders(method, url, headers, resolved);
     if (this.source.requestState.inflight.has(inflightKey)) {
       return this.source.requestState.inflight.get(inflightKey);
     }
 
     const run = this._enqueueByDomain(resolved.domainKey, () =>
-      this._sendWithRetry(method, url, headers, body, resolved),
+      this._sendWithRetry(method, url, finalHeaders, body, resolved),
     );
 
     this.source.requestState.inflight.set(inflightKey, run);
@@ -111,6 +112,18 @@ class EhentaiRequestClient {
     throw `${options.action} failed after retries`;
   }
 
+  _resolveHeaders(method, url, headers, options) {
+    if (typeof this.source.buildRequestHeaders === "function") {
+      return this.source.buildRequestHeaders(
+        method,
+        url,
+        headers || {},
+        options || {},
+      );
+    }
+    return headers || {};
+  }
+
   async _dispatch(method, url, headers, body) {
     if (method === "GET") {
       return Network.get(url, headers);
@@ -139,5 +152,3 @@ class EhentaiRequestClient {
     this.source.requestState.cooldownUntil.set(domainKey, Date.now() + cooldownMs);
   }
 }
-
-EhentaiModules.EhentaiRequestClient = EhentaiRequestClient;

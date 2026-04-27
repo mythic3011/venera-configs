@@ -1,4 +1,4 @@
-EhentaiModules.features.createSearchFeature = function createSearchFeature(source) {
+function createSearchFeature(source) {
   return {
     /**
      * load search result with next page token
@@ -8,7 +8,12 @@ EhentaiModules.features.createSearchFeature = function createSearchFeature(sourc
      * @returns {Promise<{comics: Comic[], maxPage: number}>}
      */
     loadNext: async (keyword, options, next) => {
-      let category = JSON.parse(options[0]);
+      let category = [];
+      try {
+        category = JSON.parse(options[0]);
+      } catch (_) {
+        throw "Failed to parse search options";
+      }
       let stars = options[1];
       let language = options[2];
       let fcats = 1023;
@@ -21,7 +26,7 @@ EhentaiModules.features.createSearchFeature = function createSearchFeature(sourc
       if (language && !keyword.includes("language:")) {
         keyword += ` language:${language}`;
       }
-      let url = EhentaiModules.buildSearchUrl(source.baseUrl, keyword, fcats, stars);
+      let url = buildSearchUrl(source.baseUrl, keyword, fcats, stars);
       return source.getGalleries(next ?? url, false);
     },
 
@@ -77,4 +82,4 @@ EhentaiModules.features.createSearchFeature = function createSearchFeature(sourc
     // enable tags suggestions
     enableTagsSuggestions: true,
   };
-};
+}

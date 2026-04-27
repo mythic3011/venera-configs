@@ -1,4 +1,4 @@
-EhentaiModules.buildRateGalleryPayload = function buildRateGalleryPayload({
+function buildRateGalleryPayload({
   galleryId,
   token,
   rating,
@@ -13,9 +13,9 @@ EhentaiModules.buildRateGalleryPayload = function buildRateGalleryPayload({
     apikey,
     apiuid,
   };
-};
+}
 
-EhentaiModules.buildVoteCommentPayload = function buildVoteCommentPayload({
+function buildVoteCommentPayload({
   galleryId,
   token,
   commentId,
@@ -32,9 +32,9 @@ EhentaiModules.buildVoteCommentPayload = function buildVoteCommentPayload({
     apikey,
     apiuid,
   };
-};
+}
 
-EhentaiModules.buildImageDispatchPayload = function buildImageDispatchPayload({
+function buildImageDispatchPayload({
   galleryId,
   imgKey,
   page,
@@ -49,9 +49,9 @@ EhentaiModules.buildImageDispatchPayload = function buildImageDispatchPayload({
     mpvkey,
     nl,
   };
-};
+}
 
-EhentaiModules.buildShowPagePayload = function buildShowPagePayload({
+function buildShowPagePayload({
   galleryId,
   imgKey,
   page,
@@ -66,4 +66,4 @@ EhentaiModules.buildShowPagePayload = function buildShowPagePayload({
     showkey,
     nl,
   };
-};
+}

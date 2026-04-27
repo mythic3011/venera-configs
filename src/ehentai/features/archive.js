@@ -1,3 +1,3 @@
-EhentaiModules.features.createArchiveFeature = function createArchiveFeature(source, feature) {
+function createArchiveFeature(source, feature) {
   return feature;
-};
+}

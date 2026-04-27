@@ -1,3 +1,3 @@
-EhentaiModules.features.createExploreFeature = function createExploreFeature(source, feature) {
+function createExploreFeature(source, feature) {
   return feature;
-};
+}
