@@ -1,28 +1,10 @@
-/** @type {import('./_venera_.js')} */
-
-/**
- * @typedef {Object} PageJumpTarget
- * @Property {string} page - The page name (search, category)
- * @Property {Object} attributes - The attributes of the page
- *
- * @example
- * {
- *     page: "search",
- *     attributes: {
- *         keyword: "example",
- *     },
- * }
- */
-
-/**
- * IMPORTANT for Venera parser compatibility:
- * 1) Keep this source class as the first `class` declaration in the file.
- * 2) Keep the declaration in the form:
- *    `class <YourSourceName> extends ComicSource`
- * 3) Do not prepend `_venera_.js` content to source files.
- * 4) Initialize source fields in `constructor()` instead of class fields.
- */
 class NewComicSource extends ComicSource {
+    /*
+     * IMPORTANT for Venera parser compatibility:
+     * 1) This file must start with `class <YourSourceName> extends ComicSource`.
+     * 2) Do not prepend `_venera_.js`, comments, imports, or helper declarations.
+     * 3) Initialize source fields in `constructor()` instead of class fields.
+     */
     constructor() {
         super()
 

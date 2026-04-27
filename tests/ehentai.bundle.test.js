@@ -86,6 +86,14 @@ test("bundle avoids syntax unsupported by flutter_qjs", () => {
   }
 });
 
+test("bundle starts with source class for Venera parser detection", () => {
+  const source = fs.readFileSync("./ehentai.js", "utf8");
+  assert.ok(
+    source.startsWith("class Ehentai extends ComicSource"),
+    "ehentai.js must start with the source class declaration",
+  );
+});
+
 test("Ehentai initializes feature properties inside constructor after core state", () => {
   const source = fs.readFileSync("./ehentai.js", "utf8");
   const nameMatch = source.match(/this\.name\s*=\s*"ehentai"/);

@@ -1,4 +1,331 @@
-"use strict";
+class Ehentai extends ComicSource {
+    constructor() {
+        super(), this.name = "ehentai", this.key = "ehentai", this.version = "1.2.0", this.minAppVersion = "1.5.3",
+        this.url = buildCdnSourceUrl("ehentai.js"), this.apikey = null, this.uid = null,
+        this._accountFieldNames = [ "ipb_member_id", "ipb_pass_hash", "igneous", "star" ],
+        this._cachedDomain = null, this._cachedBaseUrl = null, this._cachedApiUrl = null,
+        this._accountStoreCache = null, this._abuseResponsePattern = /your ip address has been banned|access denied|request denied|temporarily banned/i,
+        this.requestState = {
+            queues: new Map,
+            inflight: new Map,
+            cooldownUntil: new Map
+        }, this.responseCache = new Map, this.thumbnailCache = new Map, this.keyCache = new Map,
+        this.galleryInfoCache = new Map, this.imageSessionCache = new Map, this.account = createEhentaiAccountFeature(this),
+        this.explore = createEhentaiExploreFeature(this), this.category = createEhentaiCategory(),
+        this.categoryComics = createEhentaiCategoryComics(this), this.search = createSearchFeature(this),
+        this.favorites = createFavoritesFeature(this), this.comic = createComicFeature(this),
+        this.settings = createSettings(this), this.translation = i18n;
+    }
+    parseUrl(e) {
+        return parseGalleryUrl(e);
+    }
+    get requestClient() {
+        return this._requestClient || (this._requestClient = new EhentaiRequestClient(this)),
+        this._requestClient;
+    }
+    get imageSessions() {
+        return this._imageSessions || (this._imageSessions = new ImageLoadingSessionManager(this)),
+        this._imageSessions;
+    }
+    getErrorMessage(e) {
+        return null == e ? "Unknown error" : "string" == typeof e ? e : e instanceof Error && e.message || "string" == typeof e.message && e.message.length > 0 ? e.message : String(e);
+    }
+    isRedirectError(e) {
+        return this.getErrorMessage(e).toLowerCase().includes("redirect");
+    }
+    isAbuseResponseBody(e) {
+        let t = String(e && e.body || e || "");
+        return !this.hasNonWhitespace(t) || this._abuseResponsePattern.test(t);
+    }
+    hasNonWhitespace(e) {
+        for (let t = 0; t < e.length; t++) {
+            let r = e.charCodeAt(t);
+            if (32 !== r && 9 !== r && 10 !== r && 13 !== r) return !0;
+        }
+        return !1;
+    }
+    firstNonWhitespaceChar(e) {
+        for (let t = 0; t < e.length; t++) {
+            let r = e.charCodeAt(t);
+            if (32 !== r && 9 !== r && 10 !== r && 13 !== r) return e[t];
+        }
+        return "";
+    }
+    formatRequestError(e, t) {
+        let r = this.getErrorMessage(t);
+        return this.isRedirectError(r) ? `${e} failed: request was redirected by the server` : r.toLowerCase().includes("timeout") || r.toLowerCase().includes("network") || r.toLowerCase().includes("socket") ? `${e} failed: network error (${r})` : `${e} failed: ${r}`;
+    }
+    formatResponseError(e, t) {
+        var r;
+        let i = null == t ? void 0 : t.status, a = String(null != (r = null == t ? void 0 : t.body) ? r : "").trim();
+        return 403 === i || 429 === i ? `${e} failed: server returned ${i}` : 0 === a.length ? `${e} failed: empty response from server` : this.isAbuseResponseBody(a) ? `${e} failed: access was denied by the server` : `${e} failed: invalid status code ${i}`;
+    }
+    requireStatus(e, t, r = 200) {
+        if (!t || t.status !== r) throw this.formatResponseError(e, t || {});
+    }
+    requireNonEmptyBody(e, t) {
+        const r = String(t && t.body || "");
+        if (!this.hasNonWhitespace(r)) throw this.formatResponseError(e, t || {});
+        return r;
+    }
+    requireHtmlBody(e, t) {
+        const r = this.requireNonEmptyBody(e, t);
+        if ("<" !== this.firstNonWhitespaceChar(r)) throw `${e} failed: invalid HTML response`;
+        return r;
+    }
+    parseJsonResponse(e, t) {
+        this.requireNonEmptyBody(e, t);
+        try {
+            return JSON.parse(t.body);
+        } catch (t) {
+            throw `${e} failed: invalid JSON response`;
+        }
+    }
+    async withDocument(e, t) {
+        const r = new HtmlDocument(e);
+        try {
+            return await t(r);
+        } finally {
+            r.dispose();
+        }
+    }
+    buildRequestHeaders(e, t, r, i) {
+        const a = {
+            ...r || {}
+        };
+        return "json-api" === i.headerProfile && (a["Content-Type"] || (a["Content-Type"] = "application/json")),
+        "form-urlencoded" === i.headerProfile && (a["Content-Type"] || (a["Content-Type"] = "application/x-www-form-urlencoded")),
+        "gallery-view" === i.headerProfile && (a.cookie || (a.cookie = "nw=1")), "thumbnail" === i.headerProfile && (a.referer || (a.referer = this.baseUrl)),
+        "forums-browser" === i.headerProfile && (a.accept || (a.accept = "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"),
+        a["accept-encoding"] || (a["accept-encoding"] = "gzip, deflate, br"), a["accept-language"] || (a["accept-language"] = "zh-CN,zh;q=0.9,en-US;q=0.8,en;q=0.7")),
+        i.refererUrl && !a.referer && (a.referer = i.refererUrl), "dart-io" !== i.networkClient || a.http_client || (a.http_client = "dart:io"),
+        a;
+    }
+    async checkEHEvent() {
+        if (this.isLogged && this.loadSetting("ehevent")) try {
+            const e = this.loadData("lastEventTime"), t = (new Date).toISOString().split("T")[0];
+            if (e == t) return;
+            const r = await this.requestClient.get(buildEhNewsUrl(), {}, {
+                action: "Failed to load event news",
+                requestKey: "event-news"
+            });
+            if (200 !== r.status || this.isAbuseResponseBody(r.body)) return;
+            this.saveData("lastEventTime", t), await this.withDocument(r.body, async e => {
+                const t = e.getElementById("eventpane");
+                if (null == t) return;
+                const r = t.querySelector("div > p:nth-child(2)");
+                null != r && UI.showMessage(r.text);
+            });
+        } catch (e) {}
+    }
+    get baseUrl() {
+        const e = this.loadSetting("domain");
+        return e === this._cachedDomain && this._cachedBaseUrl || (this._cachedDomain = e,
+        this._cachedBaseUrl = buildBaseUrl(e), this._cachedApiUrl = buildApiUrl(this._cachedBaseUrl)),
+        this._cachedBaseUrl;
+    }
+    get apiUrl() {
+        return this._cachedApiUrl || (this._cachedApiUrl = buildApiUrl(this.baseUrl)), this._cachedApiUrl;
+    }
+    get accountFieldNames() {
+        return this._accountFieldNames;
+    }
+    normalizeAccountValues(e) {
+        let t = [];
+        for (let r = 0; r < this.accountFieldNames.length; r++) t.push(String(e && e[r] || ""));
+        return t;
+    }
+    createAccountCookies(e) {
+        let t = this.normalizeAccountValues(e), r = [];
+        for (let e = 0; e < this.accountFieldNames.length; e++) {
+            let i = this.accountFieldNames[e], a = t[e];
+            r.push(new Cookie({
+                name: i,
+                value: a,
+                domain: ".e-hentai.org"
+            })), r.push(new Cookie({
+                name: i,
+                value: a,
+                domain: ".exhentai.org"
+            }));
+        }
+        return r;
+    }
+    applyCookiesFromValues(e) {
+        let t = this.createAccountCookies(e);
+        Network.deleteCookies(buildEhCookieUrl()), Network.deleteCookies(buildExCookieUrl()),
+        Network.setCookies(buildEhCookieUrl(), t), Network.setCookies(buildExCookieUrl(), t);
+    }
+    clearRuntimeCaches() {
+        this.responseCache.clear(), this.thumbnailCache.clear(), this.keyCache.clear(),
+        this.galleryInfoCache.clear(), this.imageSessionCache.clear(), this.apikey = null,
+        this.uid = null;
+    }
+    clearSessionCookies() {
+        Network.deleteCookies(buildEhCookieUrl()), Network.deleteCookies(buildForumsCookieUrl()),
+        Network.deleteCookies(buildExCookieUrl());
+    }
+    loadAccountStore() {
+        if (this._accountStoreCache) return this._accountStoreCache;
+        let e = this.loadData("accountStore"), t = null;
+        if (!e) return this._accountStoreCache = {
+            version: 1,
+            activeProfileId: null,
+            profiles: []
+        }, this._accountStoreCache;
+        if ("string" == typeof e) try {
+            t = JSON.parse(e);
+        } catch (e) {
+            t = null;
+        } else "object" == typeof e && (t = e);
+        if (!t || !Array.isArray(t.profiles)) return this._accountStoreCache = {
+            version: 1,
+            activeProfileId: null,
+            profiles: []
+        }, this._accountStoreCache;
+        let r = t.profiles.map((e, t) => {
+            let r = this.normalizeAccountValues(e && e.values);
+            return {
+                id: String(e && e.id || `${Date.now()}_${t}`),
+                name: e && e.name ? String(e.name) : "",
+                values: r,
+                createdAt: String(e && e.createdAt || (new Date).toISOString()),
+                lastUsedAt: String(e && e.lastUsedAt || (new Date).toISOString())
+            };
+        }).filter(e => e.values[0] && e.values[1]), i = t.activeProfileId && r.some(e => e.id === t.activeProfileId) ? String(t.activeProfileId) : null;
+        return this._accountStoreCache = {
+            version: 1,
+            activeProfileId: i,
+            profiles: r
+        }, this._accountStoreCache;
+    }
+    saveAccountStore(e) {
+        let t = {
+            version: 1,
+            activeProfileId: e.activeProfileId || null,
+            profiles: e.profiles || []
+        };
+        this._accountStoreCache = t, this.saveData("accountStore", JSON.stringify(t));
+    }
+    getAccountDisplayName(e, t) {
+        let r = e && e.name ? e.name : `${this.translate("account")} ${t + 1}`, i = e && e.values ? e.values[0] : "";
+        return i ? `${r} (${i})` : r;
+    }
+    upsertAccountProfile(e, t) {
+        let r = this.normalizeAccountValues(e);
+        if (!r[0] || !r[1]) return null;
+        let i = this.loadAccountStore(), a = (new Date).toISOString(), l = i.profiles.find(e => e.values[0] === r[0] && e.values[1] === r[1]);
+        if (l) return l.values = r, t && (l.name = t), l.lastUsedAt = a, i.activeProfileId = l.id,
+        this.saveAccountStore(i), l.id;
+        let n = `${Date.now()}_${Math.floor(1e5 * Math.random())}`;
+        return i.profiles.push({
+            id: n,
+            name: t || "",
+            values: r,
+            createdAt: a,
+            lastUsedAt: a
+        }), i.activeProfileId = n, this.saveAccountStore(i), n;
+    }
+    async captureAccountFromCookieJar(e) {
+        let t = await Network.getCookies(buildEhCookieUrl()), r = [];
+        for (let e of this.accountFieldNames) {
+            let i = t.find(t => t.name === e);
+            r.push(i ? String(i.value || "") : "");
+        }
+        return this.upsertAccountProfile(r, e || "");
+    }
+    async activateAccountProfile(e) {
+        let t = this.loadAccountStore(), r = t.profiles.find(t => t.id === e);
+        if (!r) throw "Account profile not found";
+        return this.applyCookiesFromValues(r.values), this.clearRuntimeCaches(), r.lastUsedAt = (new Date).toISOString(),
+        t.activeProfileId = r.id, this.saveAccountStore(t), r;
+    }
+    logoutAccountSession() {
+        this.clearSessionCookies(), this.clearRuntimeCaches();
+        let e = this.loadAccountStore();
+        e.activeProfileId = null, this.saveAccountStore(e);
+    }
+    getStarsFromPosition(e) {
+        let t = 0;
+        for (;";" !== e[t] && (t++, t !== e.length); ) ;
+        switch (e.substring(0, t)) {
+          case "background-position:0px -1px":
+            return 5;
+
+          case "background-position:0px -21px":
+            return 4.5;
+
+          case "background-position:-16px -1px":
+            return 4;
+
+          case "background-position:-16px -21px":
+            return 3.5;
+
+          case "background-position:-32px -1px":
+            return 3;
+
+          case "background-position:-32px -21px":
+            return 2.5;
+
+          case "background-position:-48px -1px":
+            return 2;
+
+          case "background-position:-48px -21px":
+            return 1.5;
+
+          case "background-position:-64px -1px":
+            return 1;
+
+          case "background-position:-64px -21px":
+            return .5;
+        }
+        return .5;
+    }
+    async onLoadFailed(e = null) {
+        let t;
+        try {
+            t = await Network.getCookies(buildEhCookieUrl());
+        } catch (e) {
+            throw this.formatRequestError("Failed to recover session cookies", e);
+        }
+        throw t.forEach(e => {
+            e.domain = ".exhentai.org";
+        }), t = t.filter(e => "igneous" !== e.name), Network.deleteCookies(buildExCookieUrl()),
+        Network.setCookies(buildExCookieUrl(), t), `You may not have permission to access this page${e ? ` (${e})` : ""}. Please check your network or try to login again.`;
+    }
+    async getGalleries(e, t) {
+        try {
+            await this.checkEHEvent();
+        } catch (e) {}
+        let r;
+        try {
+            r = await this.requestClient.get(e, {}, {
+                action: "Failed to load gallery list",
+                requestKey: `galleries:${e}`
+            });
+        } catch (e) {
+            throw this.isRedirectError(e) && await this.onLoadFailed("request was redirected"),
+            this.formatRequestError("Failed to load gallery list", e);
+        }
+        if (200 !== r.status) throw this.formatResponseError("Failed to load gallery list", r);
+        if (0 === r.body.trim().length && await this.onLoadFailed("empty response from gallery list"),
+        "<" !== r.body[0]) {
+            if (this.isAbuseResponseBody(r.body)) throw "Your IP address has been banned";
+            throw "Failed to load gallery list";
+        }
+        let i = new HtmlDocument(r.body);
+        try {
+            return parseGalleryList({
+                document: i,
+                source: this,
+                url: e,
+                isLeaderBoard: t
+            });
+        } finally {
+            i.dispose();
+        }
+    }
+}
 
 const parsers = {}, features = {};
 
@@ -1244,336 +1571,6 @@ function createEhentaiCategoryComics(e) {
             }
         }
     };
-}
-
-const ABUSE_RESPONSE_PATTERN = /your ip address has been banned|access denied|request denied|temporarily banned/i;
-
-class Ehentai extends ComicSource {
-    constructor() {
-        super(), this.name = "ehentai", this.key = "ehentai", this.version = "1.2.0", this.minAppVersion = "1.5.3",
-        this.url = buildCdnSourceUrl("ehentai.js"), this.apikey = null, this.uid = null,
-        this._accountFieldNames = [ "ipb_member_id", "ipb_pass_hash", "igneous", "star" ],
-        this._cachedDomain = null, this._cachedBaseUrl = null, this._cachedApiUrl = null,
-        this._accountStoreCache = null, this.requestState = {
-            queues: new Map,
-            inflight: new Map,
-            cooldownUntil: new Map
-        }, this.responseCache = new Map, this.thumbnailCache = new Map, this.keyCache = new Map,
-        this.galleryInfoCache = new Map, this.imageSessionCache = new Map, this.account = createEhentaiAccountFeature(this),
-        this.explore = createEhentaiExploreFeature(this), this.category = createEhentaiCategory(),
-        this.categoryComics = createEhentaiCategoryComics(this), this.search = createSearchFeature(this),
-        this.favorites = createFavoritesFeature(this), this.comic = createComicFeature(this),
-        this.settings = createSettings(this), this.translation = i18n;
-    }
-    parseUrl(e) {
-        return parseGalleryUrl(e);
-    }
-    get requestClient() {
-        return this._requestClient || (this._requestClient = new EhentaiRequestClient(this)),
-        this._requestClient;
-    }
-    get imageSessions() {
-        return this._imageSessions || (this._imageSessions = new ImageLoadingSessionManager(this)),
-        this._imageSessions;
-    }
-    getErrorMessage(e) {
-        return null == e ? "Unknown error" : "string" == typeof e ? e : e instanceof Error && e.message || "string" == typeof e.message && e.message.length > 0 ? e.message : String(e);
-    }
-    isRedirectError(e) {
-        return this.getErrorMessage(e).toLowerCase().includes("redirect");
-    }
-    isAbuseResponseBody(e) {
-        let t = String(e && e.body || e || "");
-        return !this.hasNonWhitespace(t) || ABUSE_RESPONSE_PATTERN.test(t);
-    }
-    hasNonWhitespace(e) {
-        for (let t = 0; t < e.length; t++) {
-            let r = e.charCodeAt(t);
-            if (32 !== r && 9 !== r && 10 !== r && 13 !== r) return !0;
-        }
-        return !1;
-    }
-    firstNonWhitespaceChar(e) {
-        for (let t = 0; t < e.length; t++) {
-            let r = e.charCodeAt(t);
-            if (32 !== r && 9 !== r && 10 !== r && 13 !== r) return e[t];
-        }
-        return "";
-    }
-    formatRequestError(e, t) {
-        let r = this.getErrorMessage(t);
-        return this.isRedirectError(r) ? `${e} failed: request was redirected by the server` : r.toLowerCase().includes("timeout") || r.toLowerCase().includes("network") || r.toLowerCase().includes("socket") ? `${e} failed: network error (${r})` : `${e} failed: ${r}`;
-    }
-    formatResponseError(e, t) {
-        var r;
-        let i = null == t ? void 0 : t.status, a = String(null != (r = null == t ? void 0 : t.body) ? r : "").trim();
-        return 403 === i || 429 === i ? `${e} failed: server returned ${i}` : 0 === a.length ? `${e} failed: empty response from server` : this.isAbuseResponseBody(a) ? `${e} failed: access was denied by the server` : `${e} failed: invalid status code ${i}`;
-    }
-    requireStatus(e, t, r = 200) {
-        if (!t || t.status !== r) throw this.formatResponseError(e, t || {});
-    }
-    requireNonEmptyBody(e, t) {
-        const r = String(t && t.body || "");
-        if (!this.hasNonWhitespace(r)) throw this.formatResponseError(e, t || {});
-        return r;
-    }
-    requireHtmlBody(e, t) {
-        const r = this.requireNonEmptyBody(e, t);
-        if ("<" !== this.firstNonWhitespaceChar(r)) throw `${e} failed: invalid HTML response`;
-        return r;
-    }
-    parseJsonResponse(e, t) {
-        this.requireNonEmptyBody(e, t);
-        try {
-            return JSON.parse(t.body);
-        } catch (t) {
-            throw `${e} failed: invalid JSON response`;
-        }
-    }
-    async withDocument(e, t) {
-        const r = new HtmlDocument(e);
-        try {
-            return await t(r);
-        } finally {
-            r.dispose();
-        }
-    }
-    buildRequestHeaders(e, t, r, i) {
-        const a = {
-            ...r || {}
-        };
-        return "json-api" === i.headerProfile && (a["Content-Type"] || (a["Content-Type"] = "application/json")),
-        "form-urlencoded" === i.headerProfile && (a["Content-Type"] || (a["Content-Type"] = "application/x-www-form-urlencoded")),
-        "gallery-view" === i.headerProfile && (a.cookie || (a.cookie = "nw=1")), "thumbnail" === i.headerProfile && (a.referer || (a.referer = this.baseUrl)),
-        "forums-browser" === i.headerProfile && (a.accept || (a.accept = "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"),
-        a["accept-encoding"] || (a["accept-encoding"] = "gzip, deflate, br"), a["accept-language"] || (a["accept-language"] = "zh-CN,zh;q=0.9,en-US;q=0.8,en;q=0.7")),
-        i.refererUrl && !a.referer && (a.referer = i.refererUrl), "dart-io" !== i.networkClient || a.http_client || (a.http_client = "dart:io"),
-        a;
-    }
-    async checkEHEvent() {
-        if (this.isLogged && this.loadSetting("ehevent")) try {
-            const e = this.loadData("lastEventTime"), t = (new Date).toISOString().split("T")[0];
-            if (e == t) return;
-            const r = await this.requestClient.get(buildEhNewsUrl(), {}, {
-                action: "Failed to load event news",
-                requestKey: "event-news"
-            });
-            if (200 !== r.status || this.isAbuseResponseBody(r.body)) return;
-            this.saveData("lastEventTime", t), await this.withDocument(r.body, async e => {
-                const t = e.getElementById("eventpane");
-                if (null == t) return;
-                const r = t.querySelector("div > p:nth-child(2)");
-                null != r && UI.showMessage(r.text);
-            });
-        } catch (e) {}
-    }
-    get baseUrl() {
-        const e = this.loadSetting("domain");
-        return e === this._cachedDomain && this._cachedBaseUrl || (this._cachedDomain = e,
-        this._cachedBaseUrl = buildBaseUrl(e), this._cachedApiUrl = buildApiUrl(this._cachedBaseUrl)),
-        this._cachedBaseUrl;
-    }
-    get apiUrl() {
-        return this._cachedApiUrl || (this._cachedApiUrl = buildApiUrl(this.baseUrl)), this._cachedApiUrl;
-    }
-    get accountFieldNames() {
-        return this._accountFieldNames;
-    }
-    normalizeAccountValues(e) {
-        let t = [];
-        for (let r = 0; r < this.accountFieldNames.length; r++) t.push(String(e && e[r] || ""));
-        return t;
-    }
-    createAccountCookies(e) {
-        let t = this.normalizeAccountValues(e), r = [];
-        for (let e = 0; e < this.accountFieldNames.length; e++) {
-            let i = this.accountFieldNames[e], a = t[e];
-            r.push(new Cookie({
-                name: i,
-                value: a,
-                domain: ".e-hentai.org"
-            })), r.push(new Cookie({
-                name: i,
-                value: a,
-                domain: ".exhentai.org"
-            }));
-        }
-        return r;
-    }
-    applyCookiesFromValues(e) {
-        let t = this.createAccountCookies(e);
-        Network.deleteCookies(buildEhCookieUrl()), Network.deleteCookies(buildExCookieUrl()),
-        Network.setCookies(buildEhCookieUrl(), t), Network.setCookies(buildExCookieUrl(), t);
-    }
-    clearRuntimeCaches() {
-        this.responseCache.clear(), this.thumbnailCache.clear(), this.keyCache.clear(),
-        this.galleryInfoCache.clear(), this.imageSessionCache.clear(), this.apikey = null,
-        this.uid = null;
-    }
-    clearSessionCookies() {
-        Network.deleteCookies(buildEhCookieUrl()), Network.deleteCookies(buildForumsCookieUrl()),
-        Network.deleteCookies(buildExCookieUrl());
-    }
-    loadAccountStore() {
-        if (this._accountStoreCache) return this._accountStoreCache;
-        let e = this.loadData("accountStore"), t = null;
-        if (!e) return this._accountStoreCache = {
-            version: 1,
-            activeProfileId: null,
-            profiles: []
-        }, this._accountStoreCache;
-        if ("string" == typeof e) try {
-            t = JSON.parse(e);
-        } catch (e) {
-            t = null;
-        } else "object" == typeof e && (t = e);
-        if (!t || !Array.isArray(t.profiles)) return this._accountStoreCache = {
-            version: 1,
-            activeProfileId: null,
-            profiles: []
-        }, this._accountStoreCache;
-        let r = t.profiles.map((e, t) => {
-            let r = this.normalizeAccountValues(e && e.values);
-            return {
-                id: String(e && e.id || `${Date.now()}_${t}`),
-                name: e && e.name ? String(e.name) : "",
-                values: r,
-                createdAt: String(e && e.createdAt || (new Date).toISOString()),
-                lastUsedAt: String(e && e.lastUsedAt || (new Date).toISOString())
-            };
-        }).filter(e => e.values[0] && e.values[1]), i = t.activeProfileId && r.some(e => e.id === t.activeProfileId) ? String(t.activeProfileId) : null;
-        return this._accountStoreCache = {
-            version: 1,
-            activeProfileId: i,
-            profiles: r
-        }, this._accountStoreCache;
-    }
-    saveAccountStore(e) {
-        let t = {
-            version: 1,
-            activeProfileId: e.activeProfileId || null,
-            profiles: e.profiles || []
-        };
-        this._accountStoreCache = t, this.saveData("accountStore", JSON.stringify(t));
-    }
-    getAccountDisplayName(e, t) {
-        let r = e && e.name ? e.name : `${this.translate("account")} ${t + 1}`, i = e && e.values ? e.values[0] : "";
-        return i ? `${r} (${i})` : r;
-    }
-    upsertAccountProfile(e, t) {
-        let r = this.normalizeAccountValues(e);
-        if (!r[0] || !r[1]) return null;
-        let i = this.loadAccountStore(), a = (new Date).toISOString(), l = i.profiles.find(e => e.values[0] === r[0] && e.values[1] === r[1]);
-        if (l) return l.values = r, t && (l.name = t), l.lastUsedAt = a, i.activeProfileId = l.id,
-        this.saveAccountStore(i), l.id;
-        let n = `${Date.now()}_${Math.floor(1e5 * Math.random())}`;
-        return i.profiles.push({
-            id: n,
-            name: t || "",
-            values: r,
-            createdAt: a,
-            lastUsedAt: a
-        }), i.activeProfileId = n, this.saveAccountStore(i), n;
-    }
-    async captureAccountFromCookieJar(e) {
-        let t = await Network.getCookies(buildEhCookieUrl()), r = [];
-        for (let e of this.accountFieldNames) {
-            let i = t.find(t => t.name === e);
-            r.push(i ? String(i.value || "") : "");
-        }
-        return this.upsertAccountProfile(r, e || "");
-    }
-    async activateAccountProfile(e) {
-        let t = this.loadAccountStore(), r = t.profiles.find(t => t.id === e);
-        if (!r) throw "Account profile not found";
-        return this.applyCookiesFromValues(r.values), this.clearRuntimeCaches(), r.lastUsedAt = (new Date).toISOString(),
-        t.activeProfileId = r.id, this.saveAccountStore(t), r;
-    }
-    logoutAccountSession() {
-        this.clearSessionCookies(), this.clearRuntimeCaches();
-        let e = this.loadAccountStore();
-        e.activeProfileId = null, this.saveAccountStore(e);
-    }
-    getStarsFromPosition(e) {
-        let t = 0;
-        for (;";" !== e[t] && (t++, t !== e.length); ) ;
-        switch (e.substring(0, t)) {
-          case "background-position:0px -1px":
-            return 5;
-
-          case "background-position:0px -21px":
-            return 4.5;
-
-          case "background-position:-16px -1px":
-            return 4;
-
-          case "background-position:-16px -21px":
-            return 3.5;
-
-          case "background-position:-32px -1px":
-            return 3;
-
-          case "background-position:-32px -21px":
-            return 2.5;
-
-          case "background-position:-48px -1px":
-            return 2;
-
-          case "background-position:-48px -21px":
-            return 1.5;
-
-          case "background-position:-64px -1px":
-            return 1;
-
-          case "background-position:-64px -21px":
-            return .5;
-        }
-        return .5;
-    }
-    async onLoadFailed(e = null) {
-        let t;
-        try {
-            t = await Network.getCookies(buildEhCookieUrl());
-        } catch (e) {
-            throw this.formatRequestError("Failed to recover session cookies", e);
-        }
-        throw t.forEach(e => {
-            e.domain = ".exhentai.org";
-        }), t = t.filter(e => "igneous" !== e.name), Network.deleteCookies(buildExCookieUrl()),
-        Network.setCookies(buildExCookieUrl(), t), `You may not have permission to access this page${e ? ` (${e})` : ""}. Please check your network or try to login again.`;
-    }
-    async getGalleries(e, t) {
-        try {
-            await this.checkEHEvent();
-        } catch (e) {}
-        let r;
-        try {
-            r = await this.requestClient.get(e, {}, {
-                action: "Failed to load gallery list",
-                requestKey: `galleries:${e}`
-            });
-        } catch (e) {
-            throw this.isRedirectError(e) && await this.onLoadFailed("request was redirected"),
-            this.formatRequestError("Failed to load gallery list", e);
-        }
-        if (200 !== r.status) throw this.formatResponseError("Failed to load gallery list", r);
-        if (0 === r.body.trim().length && await this.onLoadFailed("empty response from gallery list"),
-        "<" !== r.body[0]) {
-            if (this.isAbuseResponseBody(r.body)) throw "Your IP address has been banned";
-            throw "Failed to load gallery list";
-        }
-        let i = new HtmlDocument(r.body);
-        try {
-            return parseGalleryList({
-                document: i,
-                source: this,
-                url: e,
-                isLeaderBoard: t
-            });
-        } finally {
-            i.dispose();
-        }
-    }
 }
 
 class EhentaiRequestClient {

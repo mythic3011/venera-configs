@@ -1,5 +1,3 @@
-const ABUSE_RESPONSE_PATTERN = /your ip address has been banned|access denied|request denied|temporarily banned/i;
-
 class Ehentai extends ComicSource {
   // Note: The fields which are marked as [Optional] should be removed if not used
 
@@ -34,6 +32,8 @@ class Ehentai extends ComicSource {
     this._cachedBaseUrl = null;
     this._cachedApiUrl = null;
     this._accountStoreCache = null;
+    this._abuseResponsePattern =
+      /your ip address has been banned|access denied|request denied|temporarily banned/i;
 
     this.requestState = {
       queues: new Map(),
@@ -106,7 +106,7 @@ class Ehentai extends ComicSource {
     if (!this.hasNonWhitespace(text)) {
       return true;
     }
-    return ABUSE_RESPONSE_PATTERN.test(text);
+    return this._abuseResponsePattern.test(text);
   }
 
   hasNonWhitespace(text) {

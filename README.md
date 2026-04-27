@@ -42,7 +42,7 @@ https://cdn.jsdelivr.net/gh/venera-app/venera-configs@main/{fileName}
 
 1. Transpiled from modern ES syntax to ES2018-compatible syntax (for flutter_qjs compatibility)
 2. Kept parser-friendly for Venera `ComicSourceParser`:
-   - first `class` line must be `class <Source> extends ComicSource`
+   - the file must start with `class <Source> extends ComicSource`
    - do not prepend `_venera_.js` runtime definitions
    - do not one-line minify output
 
@@ -62,7 +62,7 @@ Venera runs comic sources through `flutter_qjs`, not Node or Chrome V8. Source f
 
 - Initialize fields inside `constructor()` with `this.name = ...`; do not use class field initializers.
 - Do not rely on optional chaining, nullish coalescing, `.at()`, `replaceAll()`, or `matchAll()` in root source files.
-- Keep generated files parser-friendly: the source class declaration must remain on its own line as `class <Source> extends ComicSource`.
+- Keep generated files parser-friendly: the first bytes of the file must be the source class declaration, `class <Source> extends ComicSource`.
 
 ## CI checks
 
