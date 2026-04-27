@@ -477,13 +477,39 @@ class Ehentai extends ComicSource {
   }
 
   async captureAccountFromCookieJar(preferredName) {
-    let cookies = await Network.getCookies(buildEhCookieUrl());
+    let values = await this.collectAccountValuesFromCookieDomains();
+    return this.upsertAccountProfile(values, preferredName || "");
+  }
+
+  async collectAccountValuesFromCookieDomains() {
+    let domains = [buildForumsCookieUrl(), buildEhCookieUrl(), buildExCookieUrl()];
+    let byName = new Map();
+    for (let domain of domains) {
+      let cookies = [];
+      try {
+        cookies = await Network.getCookies(domain);
+      } catch (_) {
+        cookies = [];
+      }
+      for (let cookie of cookies) {
+        if (!cookie || !cookie.name) {
+          continue;
+        }
+        let name = String(cookie.name);
+        let value = String(cookie.value || "");
+        if (value.length === 0) {
+          continue;
+        }
+        if (!byName.has(name)) {
+          byName.set(name, value);
+        }
+      }
+    }
     let values = [];
     for (let key of this.accountFieldNames) {
-      let cookie = cookies.find((item) => item.name === key);
-      values.push(cookie ? String(cookie.value || "") : "");
+      values.push(byName.get(key) || "");
     }
-    return this.upsertAccountProfile(values, preferredName || "");
+    return values;
   }
 
   async activateAccountProfile(profileId) {

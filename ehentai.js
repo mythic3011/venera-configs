@@ -227,12 +227,27 @@ class Ehentai extends ComicSource {
         }), i.activeProfileId = n, this.saveAccountStore(i), n;
     }
     async captureAccountFromCookieJar(e) {
-        let t = await Network.getCookies(buildEhCookieUrl()), r = [];
-        for (let e of this.accountFieldNames) {
-            let i = t.find(t => t.name === e);
-            r.push(i ? String(i.value || "") : "");
+        let t = await this.collectAccountValuesFromCookieDomains();
+        return this.upsertAccountProfile(t, e || "");
+    }
+    async collectAccountValuesFromCookieDomains() {
+        let e = [ buildForumsCookieUrl(), buildEhCookieUrl(), buildExCookieUrl() ], t = new Map;
+        for (let r of e) {
+            let e = [];
+            try {
+                e = await Network.getCookies(r);
+            } catch (t) {
+                e = [];
+            }
+            for (let r of e) {
+                if (!r || !r.name) continue;
+                let e = String(r.name), i = String(r.value || "");
+                0 !== i.length && (t.has(e) || t.set(e, i));
+            }
         }
-        return this.upsertAccountProfile(r, e || "");
+        let r = [];
+        for (let e of this.accountFieldNames) r.push(t.get(e) || "");
+        return r;
     }
     async activateAccountProfile(e) {
         let t = this.loadAccountStore(), r = t.profiles.find(t => t.id === e);
@@ -1482,10 +1497,21 @@ function createEhentaiAccountFeature(e) {
             url: buildForumsLoginUrl(),
             checkStatus: (e, t) => "E-Hentai Forums" === t,
             onLoginSuccess: async () => {
-                let t = await Network.getCookies(buildForumsCookieUrl());
-                t.forEach(e => {
-                    e.domain = ".exhentai.org";
-                }), Network.setCookies(buildExCookieUrl(), t);
+                let t = await Network.getCookies(buildForumsCookieUrl()), r = [];
+                t.forEach(t => {
+                    if (!t || !t.name) return;
+                    if (!e.accountFieldNames.includes(String(t.name))) return;
+                    let i = String(t.value || "");
+                    0 !== i.length && (r.push(new Cookie({
+                        name: String(t.name),
+                        value: i,
+                        domain: ".e-hentai.org"
+                    })), r.push(new Cookie({
+                        name: String(t.name),
+                        value: i,
+                        domain: ".exhentai.org"
+                    })));
+                }), r.length > 0 && (Network.setCookies(buildEhCookieUrl(), r), Network.setCookies(buildExCookieUrl(), r));
                 try {
                     await e.captureAccountFromCookieJar("");
                 } catch (e) {}

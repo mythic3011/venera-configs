@@ -7,10 +7,37 @@ function createEhentaiAccountFeature(source) {
       },
       onLoginSuccess: async () => {
         let cookies = await Network.getCookies(buildForumsCookieUrl());
+        let accountCookies = [];
         cookies.forEach((cookie) => {
-          cookie.domain = ".exhentai.org";
+          if (!cookie || !cookie.name) {
+            return;
+          }
+          if (!source.accountFieldNames.includes(String(cookie.name))) {
+            return;
+          }
+          let value = String(cookie.value || "");
+          if (value.length === 0) {
+            return;
+          }
+          accountCookies.push(
+            new Cookie({
+              name: String(cookie.name),
+              value,
+              domain: ".e-hentai.org",
+            }),
+          );
+          accountCookies.push(
+            new Cookie({
+              name: String(cookie.name),
+              value,
+              domain: ".exhentai.org",
+            }),
+          );
         });
-        Network.setCookies(buildExCookieUrl(), cookies);
+        if (accountCookies.length > 0) {
+          Network.setCookies(buildEhCookieUrl(), accountCookies);
+          Network.setCookies(buildExCookieUrl(), accountCookies);
+        }
         try {
           await source.captureAccountFromCookieJar("");
         } catch (_) {}

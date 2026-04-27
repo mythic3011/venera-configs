@@ -3,32 +3,37 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const vm = require("node:vm");
 
-function loadCtor() {
+function loadCtor(options = {}) {
   const source = fs.readFileSync("./ehentai.js", "utf8");
   assert.equal(source.includes("import "), false);
   assert.equal(source.includes("export "), false);
   assert.equal(source.includes("require("), false);
+
+  const dataStore = new Map();
 
   class ComicSource {
     loadSetting(key) {
       if (key === "domain") return "e-hentai.org";
       return null;
     }
-    loadData() {
-      return null;
+    loadData(key) {
+      return dataStore.has(key) ? dataStore.get(key) : null;
     }
-    saveData() {}
+    saveData(key, value) {
+      dataStore.set(key, value);
+    }
   }
 
+  const network = options.network || {};
   const context = {
     ComicSource,
     Network: {
-      get: async () => ({ status: 200, body: "<html></html>" }),
-      post: async () => ({ status: 200, body: "{}" }),
-      sendRequest: async () => ({ status: 200, body: "" }),
-      getCookies: async () => [],
-      setCookies: () => {},
-      deleteCookies: () => {},
+      get: network.get || (async () => ({ status: 200, body: "<html></html>" })),
+      post: network.post || (async () => ({ status: 200, body: "{}" })),
+      sendRequest: network.sendRequest || (async () => ({ status: 200, body: "" })),
+      getCookies: network.getCookies || (async () => []),
+      setCookies: network.setCookies || (() => {}),
+      deleteCookies: network.deleteCookies || (() => {}),
     },
     UI: { showMessage: () => {}, showDialog: () => {}, launchUrl: () => {} },
     HtmlDocument: class {
@@ -68,7 +73,7 @@ function loadCtor() {
   vm.runInContext(`${source}\nthis.__Ehentai__ = Ehentai;`, context, {
     filename: "./ehentai.js",
   });
-  return context.__Ehentai__;
+  return { Ctor: context.__Ehentai__, context, dataStore };
 }
 
 test("bundle avoids syntax unsupported by flutter_qjs", () => {
@@ -111,8 +116,35 @@ test("Ehentai initializes feature properties inside constructor after core state
 });
 
 test("bundle stays standalone and exposes Ehentai metadata", () => {
-  const Ctor = loadCtor();
+  const { Ctor } = loadCtor();
   const source = new Ctor();
   assert.equal(source.key, "ehentai");
   assert.ok(source.version);
+});
+
+test("captureAccountFromCookieJar can add account from forums-only cookies", async () => {
+  const byUrl = new Map([
+    ["https://forums.e-hentai.org", [
+      { name: "ipb_member_id", value: "member_2" },
+      { name: "ipb_pass_hash", value: "pass_2" },
+      { name: "igneous", value: "igneous_2" },
+      { name: "star", value: "star_2" },
+    ]],
+    ["https://e-hentai.org", []],
+    ["https://exhentai.org", []],
+  ]);
+  const { Ctor } = loadCtor({
+    network: {
+      getCookies: async (url) => byUrl.get(String(url)) || [],
+    },
+  });
+  const source = new Ctor();
+
+  const id = await source.captureAccountFromCookieJar("Forums Login");
+  const store = source.loadAccountStore();
+
+  assert.ok(id);
+  assert.equal(store.profiles.length, 1);
+  assert.equal(store.profiles[0].values[0], "member_2");
+  assert.equal(store.profiles[0].values[1], "pass_2");
 });
