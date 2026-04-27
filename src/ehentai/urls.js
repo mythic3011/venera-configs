@@ -33,7 +33,7 @@ EhentaiModules.buildPathQueryUrl = function buildPathQueryUrl(
 
 EhentaiModules.buildCdnSourceUrl = function buildCdnSourceUrl(fileName) {
   return EhentaiModules.buildPathUrl(
-    "https://cdn.jsdelivr.net/gh/venera-app/venera-configs@main",
+    "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main",
     fileName,
   );
 };
@@ -73,14 +73,15 @@ EhentaiModules.buildForumsHomeUrl = function buildForumsHomeUrl() {
   )}/`;
 };
 
-EhentaiModules.buildForumsIndexRefererUrl = function buildForumsIndexRefererUrl() {
-  return EhentaiModules.buildPathQueryUrl(
-    EhentaiModules.buildBaseUrl(EhentaiModules.URL_HOSTS.FORUMS),
-    "index.php",
-    {},
-    true,
-  );
-};
+EhentaiModules.buildForumsIndexRefererUrl =
+  function buildForumsIndexRefererUrl() {
+    return EhentaiModules.buildPathQueryUrl(
+      EhentaiModules.buildBaseUrl(EhentaiModules.URL_HOSTS.FORUMS),
+      "index.php",
+      {},
+      true,
+    );
+  };
 
 EhentaiModules.buildEhCookieUrl = function buildEhCookieUrl() {
   return EhentaiModules.buildBaseUrl(EhentaiModules.URL_HOSTS.EH);
@@ -102,7 +103,10 @@ EhentaiModules.buildWatchedUrl = function buildWatchedUrl(baseUrl) {
   return EhentaiModules.buildPathUrl(baseUrl, "watched");
 };
 
-EhentaiModules.buildGalleryPageUrl = function buildGalleryPageUrl(comicId, pageToken) {
+EhentaiModules.buildGalleryPageUrl = function buildGalleryPageUrl(
+  comicId,
+  pageToken,
+) {
   if (!EhentaiModules.hasValue(pageToken)) {
     return comicId;
   }
@@ -110,12 +114,17 @@ EhentaiModules.buildGalleryPageUrl = function buildGalleryPageUrl(comicId, pageT
 };
 
 EhentaiModules.parseGalleryUrl = function parseGalleryUrl(url) {
-  const clean = String(url || "").split("?")[0].split("#")[0];
+  const clean = String(url || "")
+    .split("?")[0]
+    .split("#")[0];
   const segments = clean.split("/");
   return { id: segments[4], token: segments[5] };
 };
 
-EhentaiModules.buildFavoritesUrl = function buildFavoritesUrl(baseUrl, folderId) {
+EhentaiModules.buildFavoritesUrl = function buildFavoritesUrl(
+  baseUrl,
+  folderId,
+) {
   if (!EhentaiModules.hasValue(folderId) || folderId === "-1") {
     return EhentaiModules.buildPathUrl(baseUrl, "favorites.php");
   }
@@ -124,7 +133,12 @@ EhentaiModules.buildFavoritesUrl = function buildFavoritesUrl(baseUrl, folderId)
   });
 };
 
-EhentaiModules.buildSearchUrl = function buildSearchUrl(baseUrl, keyword, fcats, stars) {
+EhentaiModules.buildSearchUrl = function buildSearchUrl(
+  baseUrl,
+  keyword,
+  fcats,
+  stars,
+) {
   const query = {
     f_search: keyword,
     f_cats: fcats ? String(fcats) : null,
@@ -133,7 +147,11 @@ EhentaiModules.buildSearchUrl = function buildSearchUrl(baseUrl, keyword, fcats,
   return EhentaiModules.buildPathQueryUrl(baseUrl, "", query);
 };
 
-EhentaiModules.buildToplistUrl = function buildToplistUrl(baseUrl, option, page) {
+EhentaiModules.buildToplistUrl = function buildToplistUrl(
+  baseUrl,
+  option,
+  page,
+) {
   return EhentaiModules.buildPathQueryUrl(baseUrl, "toplist.php", {
     tl: option,
     p: page,
@@ -152,7 +170,11 @@ EhentaiModules.buildGalleryPopupUrl = function buildGalleryPopupUrl(
   });
 };
 
-EhentaiModules.buildArchiverUrl = function buildArchiverUrl(baseUrl, gid, token) {
+EhentaiModules.buildArchiverUrl = function buildArchiverUrl(
+  baseUrl,
+  gid,
+  token,
+) {
   return EhentaiModules.buildPathQueryUrl(baseUrl, "archiver.php", {
     gid,
     token,
@@ -180,9 +202,15 @@ EhentaiModules.buildArchiveResultUrl = function buildArchiveResultUrl(
   return `${EhentaiModules.buildBaseUrl(host)}${String(hrefPath)}`;
 };
 
-EhentaiModules.normalizeGalleryLink = function normalizeGalleryLink(baseUrl, url) {
+EhentaiModules.normalizeGalleryLink = function normalizeGalleryLink(
+  baseUrl,
+  url,
+) {
   const parsed = EhentaiModules.parseGalleryUrl(url);
-  if (!EhentaiModules.hasValue(parsed.id) || !EhentaiModules.hasValue(parsed.token)) {
+  if (
+    !EhentaiModules.hasValue(parsed.id) ||
+    !EhentaiModules.hasValue(parsed.token)
+  ) {
     return null;
   }
   return `${baseUrl}/g/${parsed.id}/${parsed.token}/`;
