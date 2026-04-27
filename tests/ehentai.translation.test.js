@@ -3,7 +3,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const vm = require("node:vm");
 
-function loadEhentai({ getImpl, locale = "en_US" } = {}) {
+function loadEhentai({ getImpl, locale = "en_US", network = {} } = {}) {
   const source = fs.readFileSync("./ehentai.js", "utf8");
   const wrapped = `${source}\nthis.__Ehentai__ = Ehentai;`;
 
@@ -27,6 +27,7 @@ function loadEhentai({ getImpl, locale = "en_US" } = {}) {
       setCookies: () => {},
       deleteCookies: () => {},
       sendRequest: async () => ({ status: 200, body: "" }),
+      ...network,
     },
     APP: { locale },
     UI: { showMessage: () => {}, showDialog: () => {}, launchUrl: () => {} },
@@ -55,47 +56,72 @@ function loadEhentai({ getImpl, locale = "en_US" } = {}) {
   return new context.__Ehentai__();
 }
 
-test("translate() falls back to built-in translations before CDN JSON finishes loading", () => {
+test("onLoadFailed() clears igneous and includes failure context", async () => {
+  const setCookiesCalls = [];
   const eh = loadEhentai({
-    getImpl: async () => new Promise(() => {}),
-    locale: "zh_CN",
+    network: {
+      getCookies: async () => [
+        { name: "ipb_member_id", value: "1", domain: ".e-hentai.org" },
+        { name: "igneous", value: "keep-out", domain: ".e-hentai.org" },
+      ],
+      setCookies: (url, cookies) => {
+        setCookiesCalls.push({ url, cookies });
+      },
+      deleteCookies: () => {},
+    },
   });
 
-  assert.equal(eh.translate("fight"), "战斗");
+  await assert.rejects(
+    () => eh.onLoadFailed("empty response from gallery list"),
+    /empty response from gallery list/,
+  );
+
+  assert.equal(setCookiesCalls.length, 1);
+  assert.equal(setCookiesCalls[0].url, "https://exhentai.org");
+  assert.deepEqual(
+    setCookiesCalls[0].cookies.map((cookie) => cookie.name),
+    ["ipb_member_id"],
+  );
 });
 
-test("ensureRemoteTranslationLoaded() stores CDN JSON and translate() prefers it afterwards", async () => {
-  const eh = loadEhentai({
-    getImpl: async (url) => {
-      assert.equal(
-        url,
-        "https://cdn.jsdelivr.net/gh/venera-app/venera-configs@main/i18n/ehentai.json",
-      );
-      return {
-        status: 200,
-        body: JSON.stringify({
-          en_US: { fight: "Fight CDN" },
-        }),
-      };
-    },
-    locale: "en_US",
-  });
+test("formatRequestError() preserves the underlying failure detail", () => {
+  const eh = loadEhentai();
 
-  await eh.ensureRemoteTranslationLoaded();
-
-  assert.equal(eh.translate("fight"), "Fight CDN");
+  assert.equal(
+    eh.formatRequestError(
+      "Failed to load gallery list",
+      new Error("socket hang up"),
+    ),
+    "Failed to load gallery list failed: network error (socket hang up)",
+  );
+  assert.equal(
+    eh.formatRequestError("Failed to load gallery list", "redirected to login"),
+    "Failed to load gallery list failed: request was redirected by the server",
+  );
 });
 
-test("ensureRemoteTranslationLoaded() falls back cleanly when CDN JSON fetch fails", async () => {
-  const eh = loadEhentai({
-    getImpl: async () => {
-      throw new Error("network failed");
-    },
-    locale: "en_US",
-  });
+test("formatResponseError() classifies empty and blocked responses", () => {
+  const eh = loadEhentai();
 
-  const result = await eh.ensureRemoteTranslationLoaded();
-
-  assert.equal(result, null);
-  assert.equal(eh.translate("fight"), "Fight");
+  assert.equal(
+    eh.formatResponseError("Failed to load gallery details", {
+      status: 403,
+      body: "",
+    }),
+    "Failed to load gallery details failed: server returned 403",
+  );
+  assert.equal(
+    eh.formatResponseError("Failed to load gallery details", {
+      status: 200,
+      body: "Your IP address has been banned",
+    }),
+    "Failed to load gallery details failed: access was denied by the server",
+  );
+  assert.equal(
+    eh.formatResponseError("Failed to load gallery details", {
+      status: 200,
+      body: "   ",
+    }),
+    "Failed to load gallery details failed: empty response from server",
+  );
 });

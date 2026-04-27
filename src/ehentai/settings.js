@@ -1,0 +1,1 @@
+EhentaiModules.settings = EhentaiModules.settings || {};
