@@ -6,11 +6,158 @@ const vm = require("node:vm");
 
 const REPO_ROOT = path.resolve(__dirname, "..");
 const INDEX_PATH = path.join(REPO_ROOT, "index.json");
-const CDN_BASE = "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/";
+const RELEASE_AUTHORITY_PATH = path.join(
+  __dirname,
+  "config",
+  "release-authority.json",
+);
 const CHECK_MODE = process.argv.includes("--check");
 
 function readJson(filePath) {
   return JSON.parse(fs.readFileSync(filePath, "utf8"));
+}
+
+function assertNonEmptyString(value, fieldPath) {
+  if (typeof value !== "string" || value.trim() === "") {
+    throw new Error(
+      `Invalid release authority config: "${fieldPath}" must be a non-empty string.`,
+    );
+  }
+}
+
+function assertMatches(value, fieldPath, regex, hint) {
+  if (!regex.test(value)) {
+    throw new Error(
+      `Invalid release authority config: "${fieldPath}" has invalid value "${value}". ${hint}`,
+    );
+  }
+}
+
+function validateReleaseAuthority(config) {
+  if (!config || typeof config !== "object" || Array.isArray(config)) {
+    throw new Error(
+      "Invalid release authority config: top-level JSON must be an object.",
+    );
+  }
+
+  assertNonEmptyString(config.provider, "provider");
+  assertMatches(
+    config.provider,
+    "provider",
+    /^[a-z0-9_-]+$/i,
+    'Expected letters, numbers, "_" or "-".',
+  );
+
+  const repo = config.repo;
+  if (!repo || typeof repo !== "object" || Array.isArray(repo)) {
+    throw new Error(
+      'Invalid release authority config: "repo" must be an object.',
+    );
+  }
+
+  assertNonEmptyString(repo.owner, "repo.owner");
+  assertNonEmptyString(repo.name, "repo.name");
+  assertMatches(
+    repo.owner,
+    "repo.owner",
+    /^[A-Za-z0-9._-]+$/,
+    "Expected GitHub owner-safe characters only.",
+  );
+  assertMatches(
+    repo.name,
+    "repo.name",
+    /^[A-Za-z0-9._-]+$/,
+    "Expected GitHub repository-safe characters only.",
+  );
+
+  assertNonEmptyString(config.ref, "ref");
+  assertMatches(
+    config.ref,
+    "ref",
+    /^[A-Za-z0-9._/-]+$/,
+    "Expected branch/tag-safe characters only.",
+  );
+
+  const template = config.urlTemplate;
+  if (!template || typeof template !== "object" || Array.isArray(template)) {
+    throw new Error(
+      'Invalid release authority config: "urlTemplate" must be an object.',
+    );
+  }
+
+  assertNonEmptyString(template.scheme, "urlTemplate.scheme");
+  assertNonEmptyString(template.host, "urlTemplate.host");
+  assertNonEmptyString(
+    template.repositoryPathPrefix,
+    "urlTemplate.repositoryPathPrefix",
+  );
+  assertNonEmptyString(
+    template.repoRefSeparator,
+    "urlTemplate.repoRefSeparator",
+  );
+
+  assertMatches(
+    template.scheme,
+    "urlTemplate.scheme",
+    /^https$/,
+    'Only "https" is supported.',
+  );
+  assertMatches(
+    template.host,
+    "urlTemplate.host",
+    /^[a-z0-9.-]+$/i,
+    "Expected a hostname.",
+  );
+  assertMatches(
+    template.repositoryPathPrefix,
+    "urlTemplate.repositoryPathPrefix",
+    /^[A-Za-z0-9._/-]+$/,
+    "Expected URL path-safe characters only.",
+  );
+
+  if (template.repositoryPathPrefix.startsWith("/") ||
+      template.repositoryPathPrefix.endsWith("/")) {
+    throw new Error(
+      'Invalid release authority config: "urlTemplate.repositoryPathPrefix" must not start or end with "/".',
+    );
+  }
+
+  if (template.repoRefSeparator.includes("/")) {
+    throw new Error(
+      'Invalid release authority config: "urlTemplate.repoRefSeparator" must not contain "/".',
+    );
+  }
+
+  if (typeof template.trailingSlash !== "boolean") {
+    throw new Error(
+      'Invalid release authority config: "urlTemplate.trailingSlash" must be a boolean.',
+    );
+  }
+
+  return config;
+}
+
+function readReleaseAuthority() {
+  if (!fs.existsSync(RELEASE_AUTHORITY_PATH)) {
+    throw new Error(
+      `Missing release authority config: ${path.relative(REPO_ROOT, RELEASE_AUTHORITY_PATH)}`,
+    );
+  }
+
+  return validateReleaseAuthority(readJson(RELEASE_AUTHORITY_PATH));
+}
+
+function buildCdnBase(releaseAuthority) {
+  const { repo, ref, urlTemplate } = releaseAuthority;
+  const repoRef = `${repo.name}${urlTemplate.repoRefSeparator}${ref}`;
+  const pathPart = [
+    urlTemplate.repositoryPathPrefix,
+    repo.owner,
+    repoRef,
+  ].join("/");
+  const trailing = urlTemplate.trailingSlash ? "/" : "";
+
+  return `${urlTemplate.scheme}://${urlTemplate.host}/${pathPart}${trailing}`;
 }
 
 function readSourceMetadata(sourceCode, fileName) {
@@ -101,7 +248,7 @@ function readSourceMetadata(sourceCode, fileName) {
   };
 }
 
-function buildEntry(existingEntry) {
+function buildEntry(existingEntry, cdnBase) {
   const sourcePath = path.join(REPO_ROOT, existingEntry.fileName);
   if (!fs.existsSync(sourcePath)) {
     throw new Error(`Missing source file: ${existingEntry.fileName}`);
@@ -124,7 +271,7 @@ function buildEntry(existingEntry) {
     fileName: existingEntry.fileName,
     key,
     version,
-    url: `${CDN_BASE}${existingEntry.fileName}`,
+    url: `${cdnBase}${existingEntry.fileName}`,
   };
 
   if (existingEntry.description) {
@@ -135,8 +282,10 @@ function buildEntry(existingEntry) {
 }
 
 function main() {
+  const releaseAuthority = readReleaseAuthority();
+  const cdnBase = buildCdnBase(releaseAuthority);
   const currentIndex = readJson(INDEX_PATH);
-  const nextIndex = currentIndex.map(buildEntry);
+  const nextIndex = currentIndex.map((entry) => buildEntry(entry, cdnBase));
   const formatted = `${JSON.stringify(nextIndex, null, 2)}\n`;
 
   if (CHECK_MODE) {

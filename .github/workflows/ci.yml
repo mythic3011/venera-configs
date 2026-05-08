@@ -22,13 +22,35 @@ jobs:
         with:
           node-version: "22"
 
+      - name: Validate release authority config
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const path = 'scripts/config/release-authority.json';
+
+          if (!fs.existsSync(path)) {
+            throw new Error(`${path} is missing`);
+          }
+
+          const raw = fs.readFileSync(path, 'utf8');
+          const config = JSON.parse(raw);
+
+          if (!config || Array.isArray(config) || typeof config !== 'object') {
+            throw new Error(`${path} must be a JSON object`);
+          }
+
+          if (Object.keys(config).length === 0) {
+            throw new Error(`${path} must not be empty`);
+          }
+          NODE
+
       - name: Verify generated ehentai output
         run: |
           cp ehentai.js /tmp/ehentai.js.before
           node scripts/build-source.js ehentai
           cmp /tmp/ehentai.js.before ehentai.js
 
-      - name: Verify index metadata
+      - name: Verify index metadata (authoritative check)
         run: node scripts/sync-index.js --check
 
       - name: Run tests

@@ -14,6 +14,8 @@ Configuration file repository for venera
 
 **Do NOT manually edit CDN URLs in source files or index.json.**
 
+Source and config code should not hardcode full public URLs. Keep authority as components (CDN origin + provider path + repository + release ref) and let builders compose the final public URL.
+
 All source metadata (name, key, version, url) is auto-generated from the class definitions:
 
 ```bash
@@ -30,11 +32,20 @@ When you:
 - Update `name`, `key`, or `version` in any source class, run `node scripts/sync-index.js`
 - Keep `description` in `index.json` for optional source-specific notes (not auto-replaced)
 
-CDN URLs are built automatically from the filename:
+CDN URLs are built automatically from release authority components and the artifact filename:
 
 ```
-https://cdn.jsdelivr.net/gh/venera-app/venera-configs@main/{fileName}
+https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/{fileName}
 ```
+
+## Compatibility surface and rename policy
+
+- Public `id/key` is a compatibility surface.
+- Public artifact filename (for example `ehentai.js`) is a compatibility surface.
+- Do not rename or remove a public id/key or artifact filename without one of:
+  - an alias path
+  - a deprecation path
+  - an approved breaking-change note
 
 ## Generated source files
 

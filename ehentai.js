@@ -361,6 +361,11 @@ const URL_HOSTS = {
     EX: "exhentai.org",
     FORUMS: "forums.e-hentai.org",
     API_EH: "api.e-hentai.org"
+}, RELEASE_AUTHORITY_DEFAULTS = {
+    cdnOrigin: "https://cdn.jsdelivr.net",
+    providerPath: "gh",
+    repository: "mythic3011/venera-configs",
+    releaseRef: "main"
 };
 
 function buildBaseUrl(e) {
@@ -377,8 +382,29 @@ function buildPathQueryUrl(e, t, r, i = !1) {
     return l ? `${a}?${l}` : i ? `${a}?` : a;
 }
 
+function sanitizeAuthorityValue(e, t) {
+    return String(e || "").trim() || t;
+}
+
+function getReleaseAuthorityOverrides() {
+    if ("object" != typeof globalThis || null === globalThis) return {};
+    const e = globalThis.__VENERA_RELEASE_AUTHORITY__;
+    return e && "object" == typeof e ? e : {};
+}
+
+function buildReleaseAuthority() {
+    const e = getReleaseAuthorityOverrides();
+    return {
+        cdnOrigin: sanitizeAuthorityValue(e.cdnOrigin, RELEASE_AUTHORITY_DEFAULTS.cdnOrigin).replace(/\/+$/, ""),
+        providerPath: sanitizeAuthorityValue(e.providerPath, RELEASE_AUTHORITY_DEFAULTS.providerPath).replace(/^\/+|\/+$/g, ""),
+        repository: sanitizeAuthorityValue(e.repository, RELEASE_AUTHORITY_DEFAULTS.repository).replace(/^\/+|\/+$/g, ""),
+        releaseRef: sanitizeAuthorityValue(e.releaseRef, RELEASE_AUTHORITY_DEFAULTS.releaseRef)
+    };
+}
+
 function buildCdnSourceUrl(e) {
-    return buildPathUrl("https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main", e);
+    const t = buildReleaseAuthority(), r = `${t.providerPath}/${t.repository}@${t.releaseRef}`, i = buildPathUrl(t.cdnOrigin, r);
+    return buildPathUrl(i, e);
 }
 
 function buildApiUrl(e) {

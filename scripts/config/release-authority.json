@@ -1,0 +1,15 @@
+{
+  "provider": "jsdelivr",
+  "repo": {
+    "owner": "mythic3011",
+    "name": "venera-configs"
+  },
+  "ref": "main",
+  "urlTemplate": {
+    "scheme": "https",
+    "host": "cdn.jsdelivr.net",
+    "repositoryPathPrefix": "gh",
+    "repoRefSeparator": "@",
+    "trailingSlash": true
+  }
+}
