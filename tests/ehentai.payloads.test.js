@@ -5,10 +5,10 @@ const vm = require("node:vm");
 
 function loadModules() {
   const source = [
-    fs.readFileSync("./src/ehentai/index.js", "utf8"),
-    fs.readFileSync("./src/ehentai/query.js", "utf8"),
-    fs.readFileSync("./src/ehentai/api-payloads.js", "utf8"),
-    fs.readFileSync("./src/ehentai/form-payloads.js", "utf8"),
+    fs.readFileSync("./plugins/ehentai/src/index.js", "utf8"),
+    fs.readFileSync("./plugins/ehentai/src/query.js", "utf8"),
+    fs.readFileSync("./plugins/ehentai/src/api-payloads.js", "utf8"),
+    fs.readFileSync("./plugins/ehentai/src/form-payloads.js", "utf8"),
   ].join("\n\n");
   const context = {
     ComicSource: class {},

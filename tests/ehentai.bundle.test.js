@@ -1,10 +1,29 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
+const path = require("node:path");
 const vm = require("node:vm");
 
+const repoRoot = path.resolve(__dirname, "..");
+const manifestPath = path.join(repoRoot, ".generated", "build-manifest.json");
+
+function getEhentaiPlugin() {
+  const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+  const plugin = manifest.plugins.find((entry) => entry.id === "ehentai");
+  assert.ok(plugin, "ehentai is missing from build manifest");
+  return plugin;
+}
+
+function readEhentaiArtifact() {
+  const plugin = getEhentaiPlugin();
+  return {
+    source: fs.readFileSync(path.join(repoRoot, plugin.outputPath), "utf8"),
+    outputPath: plugin.outputPath,
+  };
+}
+
 function loadCtor(options = {}) {
-  const source = fs.readFileSync("./ehentai.js", "utf8");
+  const { source, outputPath } = readEhentaiArtifact();
   assert.equal(source.includes("import "), false);
   assert.equal(source.includes("export "), false);
   assert.equal(source.includes("require("), false);
@@ -71,13 +90,13 @@ function loadCtor(options = {}) {
 
   vm.createContext(context);
   vm.runInContext(`${source}\nthis.__Ehentai__ = Ehentai;`, context, {
-    filename: "./ehentai.js",
+    filename: outputPath,
   });
   return { Ctor: context.__Ehentai__, context, dataStore };
 }
 
 test("bundle avoids syntax unsupported by flutter_qjs", () => {
-  const source = fs.readFileSync("./ehentai.js", "utf8");
+  const { source } = readEhentaiArtifact();
   const forbidden = [
     [/\?\./, "optional chaining"],
     [/\?\?/, "nullish coalescing"],
@@ -92,7 +111,7 @@ test("bundle avoids syntax unsupported by flutter_qjs", () => {
 });
 
 test("bundle starts with source class for Venera parser detection", () => {
-  const source = fs.readFileSync("./ehentai.js", "utf8");
+  const { source } = readEhentaiArtifact();
   assert.ok(
     source.startsWith("class Ehentai extends ComicSource"),
     "ehentai.js must start with the source class declaration",
@@ -100,7 +119,7 @@ test("bundle starts with source class for Venera parser detection", () => {
 });
 
 test("Ehentai initializes feature properties inside constructor after core state", () => {
-  const source = fs.readFileSync("./ehentai.js", "utf8");
+  const { source } = readEhentaiArtifact();
   const nameMatch = source.match(/this\.name\s*=\s*"ehentai"/);
   const cacheMatch = source.match(/this\.imageSessionCache\s*=/);
   const accountMatch = source.match(/this\.account\s*=/);

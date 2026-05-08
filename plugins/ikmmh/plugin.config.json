@@ -1,0 +1,17 @@
+{
+  "id": "ikmmh",
+  "artifact": "ikmmh.js",
+  "name": "爱看漫",
+  "version": "1.0.5",
+  "minAppVersion": "1.0.0",
+  "aliases": [],
+  "source": {
+    "type": "concat",
+    "moduleOrder": [
+      "plugins/ikmmh/src/index.js"
+    ]
+  },
+  "pipeline": {
+    "mode": "standard"
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "id": "happy",
+  "artifact": "happy.js",
+  "name": "嗨皮漫画",
+  "version": "1.0.0",
+  "minAppVersion": "1.6.0",
+  "description": "中国大陆及日韩IP无法访问，遇到403可以尝试切换其他地区网络",
+  "aliases": [],
+  "source": {
+    "type": "concat",
+    "moduleOrder": [
+      "plugins/happy/src/index.js"
+    ]
+  },
+  "pipeline": {
+    "mode": "standard"
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "id": "hitomi",
+  "artifact": "hitomi.js",
+  "name": "hitomi.la",
+  "version": "1.1.2",
+  "minAppVersion": "1.4.6",
+  "aliases": [],
+  "source": {
+    "type": "concat",
+    "moduleOrder": [
+      "plugins/hitomi/src/index.js"
+    ]
+  },
+  "pipeline": {
+    "mode": "standard"
+  }
+}

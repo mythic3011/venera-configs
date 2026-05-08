@@ -16,9 +16,7 @@ jobs:
           fetch-depth: 0
 
       - name: Validate release authority config
-        run: |
-          test -f scripts/config/release-authority.json
-          node -e "JSON.parse(require('node:fs').readFileSync('scripts/config/release-authority.json', 'utf8'))"
+        run: npm run validate:release-authority
       
       - name: Get changed .js and .json files
         id: changed-files
@@ -52,13 +50,18 @@ jobs:
       - name: Purge jsDelivr CDN
         if: steps.changed-files.outputs.files != ''
         run: |
-          REPO_FULL="${GITHUB_REPOSITORY}"
+          AUTH_JSON="scripts/config/release-authority.json"
+          REPO_OWNER=$(node -e "const a=require('./${AUTH_JSON}'); process.stdout.write(a.repo.owner)")
+          REPO_NAME=$(node -e "const a=require('./${AUTH_JSON}'); process.stdout.write(a.repo.name)")
+          RELEASE_REF=$(node -e "const a=require('./${AUTH_JSON}'); process.stdout.write(a.ref)")
+          PROVIDER_PATH=$(node -e "const a=require('./${AUTH_JSON}'); process.stdout.write(a.urlTemplate.repositoryPathPrefix)")
+          REPO_FULL="${REPO_OWNER}/${REPO_NAME}"
           
           echo "Purging jsDelivr CDN for repository: $REPO_FULL"
           
           for file in ${{ steps.changed-files.outputs.files }}; do
             if [ -z "$file" ]; then continue; fi
-            PURGE_URL="https://purge.jsdelivr.net/gh/${REPO_FULL}@main/${file}"
+            PURGE_URL="https://purge.jsdelivr.net/${PROVIDER_PATH}/${REPO_FULL}@${RELEASE_REF}/${file}"
             
             echo "Purging: $PURGE_URL"
             

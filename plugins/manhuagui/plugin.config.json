@@ -1,0 +1,17 @@
+{
+  "id": "ManHuaGui",
+  "artifact": "manhuagui.js",
+  "name": "漫画柜",
+  "version": "1.2.1",
+  "minAppVersion": "1.4.0",
+  "aliases": [],
+  "source": {
+    "type": "concat",
+    "moduleOrder": [
+      "plugins/manhuagui/src/index.js"
+    ]
+  },
+  "pipeline": {
+    "mode": "standard"
+  }
+}

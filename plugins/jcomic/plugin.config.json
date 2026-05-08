@@ -1,0 +1,17 @@
+{
+  "id": "jcomic",
+  "artifact": "jcomic.js",
+  "name": "jcomic.net",
+  "version": "1.0.0",
+  "minAppVersion": "1.4.6",
+  "aliases": [],
+  "source": {
+    "type": "concat",
+    "moduleOrder": [
+      "plugins/jcomic/src/index.js"
+    ]
+  },
+  "pipeline": {
+    "mode": "standard"
+  }
+}

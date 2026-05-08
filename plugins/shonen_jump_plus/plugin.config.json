@@ -1,0 +1,17 @@
+{
+  "id": "shonen_jump_plus",
+  "artifact": "shonen_jump_plus.js",
+  "name": "少年ジャンプ＋",
+  "version": "1.1.1",
+  "minAppVersion": "1.2.1",
+  "aliases": [],
+  "source": {
+    "type": "concat",
+    "moduleOrder": [
+      "plugins/shonen_jump_plus/src/index.js"
+    ]
+  },
+  "pipeline": {
+    "mode": "standard"
+  }
+}

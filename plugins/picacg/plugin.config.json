@@ -1,0 +1,20 @@
+{
+  "id": "picacg",
+  "artifact": "picacg.js",
+  "name": "Picacg",
+  "version": "1.0.5",
+  "minAppVersion": "1.0.0",
+  "aliases": [],
+  "source": {
+    "type": "concat",
+    "moduleOrder": [
+      "plugins/picacg/src/index.js"
+    ]
+  },
+  "runtimeShared": [
+    "shared/families/picacg/index.js"
+  ],
+  "pipeline": {
+    "mode": "standard"
+  }
+}

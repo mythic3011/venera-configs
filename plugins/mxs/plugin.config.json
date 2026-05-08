@@ -1,0 +1,17 @@
+{
+  "id": "mxs",
+  "artifact": "mxs.js",
+  "name": "漫小肆",
+  "version": "1.0.0",
+  "minAppVersion": "1.5.0",
+  "aliases": [],
+  "source": {
+    "type": "concat",
+    "moduleOrder": [
+      "plugins/mxs/src/index.js"
+    ]
+  },
+  "pipeline": {
+    "mode": "standard"
+  }
+}

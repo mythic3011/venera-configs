@@ -1,0 +1,17 @@
+{
+  "id": "Komiic",
+  "artifact": "komiic.js",
+  "name": "Komiic",
+  "version": "1.0.3",
+  "minAppVersion": "1.0.0",
+  "aliases": [],
+  "source": {
+    "type": "concat",
+    "moduleOrder": [
+      "plugins/komiic/src/index.js"
+    ]
+  },
+  "pipeline": {
+    "mode": "standard"
+  }
+}

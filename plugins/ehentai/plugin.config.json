@@ -1,0 +1,41 @@
+{
+  "id": "ehentai",
+  "artifact": "ehentai.js",
+  "name": "ehentai",
+  "version": "1.2.0",
+  "minAppVersion": "1.5.3",
+  "aliases": [],
+  "source": {
+    "type": "concat",
+    "moduleOrder": [
+      "plugins/ehentai/src/source-shell.js",
+      "plugins/ehentai/src/index.js",
+      "plugins/ehentai/src/query.js",
+      "plugins/ehentai/src/urls.js",
+      "plugins/ehentai/src/api-payloads.js",
+      "plugins/ehentai/src/form-payloads.js",
+      "plugins/ehentai/src/cache-keys.js",
+      "plugins/ehentai/src/parsers/gallery-list-parser.js",
+      "plugins/ehentai/src/parsers/gallery-detail-parser.js",
+      "plugins/ehentai/src/parsers/thumbnail-parser.js",
+      "plugins/ehentai/src/parsers/dispatch-key-parser.js",
+      "plugins/ehentai/src/parsers/comment-parser.js",
+      "plugins/ehentai/src/parsers/archive-parser.js",
+      "plugins/ehentai/src/features/account.js",
+      "plugins/ehentai/src/features/explore.js",
+      "plugins/ehentai/src/features/search.js",
+      "plugins/ehentai/src/features/favorites.js",
+      "plugins/ehentai/src/features/comic.js",
+      "plugins/ehentai/src/features/comments.js",
+      "plugins/ehentai/src/features/archive.js",
+      "plugins/ehentai/src/settings.js",
+      "plugins/ehentai/src/i18n.js",
+      "plugins/ehentai/src/source-config.js",
+      "plugins/ehentai/src/request-client.js",
+      "plugins/ehentai/src/image-session.js"
+    ]
+  },
+  "pipeline": {
+    "mode": "standard"
+  }
+}

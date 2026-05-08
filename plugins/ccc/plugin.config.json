@@ -1,0 +1,17 @@
+{
+  "id": "ccc",
+  "artifact": "ccc.js",
+  "name": "CCC追漫台",
+  "version": "1.0.1",
+  "minAppVersion": "1.6.0",
+  "aliases": [],
+  "source": {
+    "type": "concat",
+    "moduleOrder": [
+      "plugins/ccc/src/index.js"
+    ]
+  },
+  "pipeline": {
+    "mode": "standard"
+  }
+}

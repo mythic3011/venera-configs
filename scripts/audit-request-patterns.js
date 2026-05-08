@@ -4,10 +4,23 @@ const fs = require("node:fs");
 const path = require("node:path");
 
 const root = path.resolve(__dirname, "..");
-const files = fs
-  .readdirSync(root)
-  .filter((name) => name.endsWith(".js") && !name.startsWith("_"))
-  .map((name) => path.join(root, name));
+const manifestPath = path.join(root, ".generated", "build-manifest.json");
+
+function collectFiles() {
+  if (fs.existsSync(manifestPath)) {
+    const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+    return manifest.plugins
+      .map((plugin) => path.join(root, plugin.outputPath))
+      .filter((filePath) => fs.existsSync(filePath));
+  }
+
+  return fs
+    .readdirSync(root)
+    .filter((name) => name.endsWith(".js") && !name.startsWith("_"))
+    .map((name) => path.join(root, name));
+}
+
+const files = collectFiles();
 
 const checks = [
   { key: "networkGet", label: "Network.get", regex: /\bNetwork\.get\s*\(/g },
@@ -24,10 +37,10 @@ function count(content, regex) {
   return matches ? matches.length : 0;
 }
 
-const rows = files.map((file) => {
-  const content = fs.readFileSync(file, "utf8");
+const rows = files.map((filePath) => {
+  const content = fs.readFileSync(filePath, "utf8");
   const row = {
-    file: path.basename(file),
+    file: path.relative(root, filePath),
   };
   let total = 0;
   for (const check of checks) {
@@ -57,11 +70,5 @@ function formatRow(values) {
 console.log(formatRow(headers));
 console.log(widths.map((w) => "-".repeat(w)).join("-|-"));
 for (const row of rows) {
-  console.log(
-    formatRow([
-      row.file,
-      ...checks.map((c) => row[c.key]),
-      row.total,
-    ]),
-  );
+  console.log(formatRow([row.file, ...checks.map((c) => row[c.key]), row.total]));
 }

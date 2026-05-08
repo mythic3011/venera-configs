@@ -1,0 +1,17 @@
+{
+  "id": "comic_walker",
+  "artifact": "comic_walker.js",
+  "name": "カドコミ",
+  "version": "1.0.0",
+  "minAppVersion": "1.6.0",
+  "aliases": [],
+  "source": {
+    "type": "concat",
+    "moduleOrder": [
+      "plugins/comic_walker/src/index.js"
+    ]
+  },
+  "pipeline": {
+    "mode": "standard"
+  }
+}

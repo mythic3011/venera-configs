@@ -5,13 +5,13 @@ const vm = require("node:vm");
 
 function loadParsers() {
   const source = [
-    fs.readFileSync("./src/ehentai/index.js", "utf8"),
-    fs.readFileSync("./src/ehentai/parsers/gallery-list-parser.js", "utf8"),
-    fs.readFileSync("./src/ehentai/parsers/gallery-detail-parser.js", "utf8"),
-    fs.readFileSync("./src/ehentai/parsers/thumbnail-parser.js", "utf8"),
-    fs.readFileSync("./src/ehentai/parsers/dispatch-key-parser.js", "utf8"),
-    fs.readFileSync("./src/ehentai/parsers/comment-parser.js", "utf8"),
-    fs.readFileSync("./src/ehentai/parsers/archive-parser.js", "utf8"),
+    fs.readFileSync("./plugins/ehentai/src/index.js", "utf8"),
+    fs.readFileSync("./plugins/ehentai/src/parsers/gallery-list-parser.js", "utf8"),
+    fs.readFileSync("./plugins/ehentai/src/parsers/gallery-detail-parser.js", "utf8"),
+    fs.readFileSync("./plugins/ehentai/src/parsers/thumbnail-parser.js", "utf8"),
+    fs.readFileSync("./plugins/ehentai/src/parsers/dispatch-key-parser.js", "utf8"),
+    fs.readFileSync("./plugins/ehentai/src/parsers/comment-parser.js", "utf8"),
+    fs.readFileSync("./plugins/ehentai/src/parsers/archive-parser.js", "utf8"),
   ].join("\n\n");
 
   class Comic {

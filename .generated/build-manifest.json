@@ -1,0 +1,1116 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-05-08T16:23:40.464Z",
+  "releaseAuthorityPath": "scripts/config/release-authority.json",
+  "releaseAuthority": {
+    "provider": "jsdelivr",
+    "repo": {
+      "owner": "mythic3011",
+      "name": "venera-configs"
+    },
+    "ref": "main",
+    "urlTemplate": {
+      "scheme": "https",
+      "host": "cdn.jsdelivr.net",
+      "repositoryPathPrefix": "gh",
+      "repoRefSeparator": "@",
+      "trailingSlash": true
+    }
+  },
+  "publicIndexPath": "index.json",
+  "pluginConfigFiles": [
+    "plugins/baozi/plugin.config.json",
+    "plugins/ccc/plugin.config.json",
+    "plugins/comic_walker/plugin.config.json",
+    "plugins/comick/plugin.config.json",
+    "plugins/copy_manga/plugin.config.json",
+    "plugins/ehentai/plugin.config.json",
+    "plugins/goda/plugin.config.json",
+    "plugins/happy/plugin.config.json",
+    "plugins/hcomic/plugin.config.json",
+    "plugins/hitomi/plugin.config.json",
+    "plugins/hot_manga/plugin.config.json",
+    "plugins/ikmmh/plugin.config.json",
+    "plugins/jcomic/plugin.config.json",
+    "plugins/jm/plugin.config.json",
+    "plugins/kavita/plugin.config.json",
+    "plugins/komga/plugin.config.json",
+    "plugins/komiic/plugin.config.json",
+    "plugins/lanraragi/plugin.config.json",
+    "plugins/manga_dex/plugin.config.json",
+    "plugins/manhuagui/plugin.config.json",
+    "plugins/manhuaren/plugin.config.json",
+    "plugins/manwaba/plugin.config.json",
+    "plugins/mh1234/plugin.config.json",
+    "plugins/mh18/plugin.config.json",
+    "plugins/mxs/plugin.config.json",
+    "plugins/nhentai/plugin.config.json",
+    "plugins/picacg/plugin.config.json",
+    "plugins/shonen_jump_plus/plugin.config.json",
+    "plugins/wnacg/plugin.config.json",
+    "plugins/ykmh/plugin.config.json",
+    "plugins/zaimanhua/plugin.config.json"
+  ],
+  "plugins": [
+    {
+      "id": "baozi",
+      "artifact": "baozi.js",
+      "name": "包子漫画",
+      "version": "1.1.6",
+      "minAppVersion": "1.0.0",
+      "description": null,
+      "aliases": [],
+      "deprecation": null,
+      "pipeline": {
+        "mode": "standard",
+        "injectRuntimeReleaseAuthority": true
+      },
+      "runtimeShared": [],
+      "source": {
+        "type": "concat",
+        "moduleOrder": [
+          "plugins/baozi/src/index.js"
+        ]
+      },
+      "sourceEntries": [
+        "plugins/baozi/src/index.js"
+      ],
+      "configPath": "plugins/baozi/plugin.config.json",
+      "outputPath": "dist/plugins/baozi.js",
+      "publicUrl": "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/dist/plugins/baozi.js",
+      "checksums": {
+        "sha256": "1afa02fbff722cd3fc1a034a083571f40e72d94b366747f49c41cce6a097eee3",
+        "bytes": 14088
+      }
+    },
+    {
+      "id": "ccc",
+      "artifact": "ccc.js",
+      "name": "CCC追漫台",
+      "version": "1.0.1",
+      "minAppVersion": "1.6.0",
+      "description": null,
+      "aliases": [],
+      "deprecation": null,
+      "pipeline": {
+        "mode": "standard",
+        "injectRuntimeReleaseAuthority": true
+      },
+      "runtimeShared": [],
+      "source": {
+        "type": "concat",
+        "moduleOrder": [
+          "plugins/ccc/src/index.js"
+        ]
+      },
+      "sourceEntries": [
+        "plugins/ccc/src/index.js"
+      ],
+      "configPath": "plugins/ccc/plugin.config.json",
+      "outputPath": "dist/plugins/ccc.js",
+      "publicUrl": "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/dist/plugins/ccc.js",
+      "checksums": {
+        "sha256": "f7c9612185dd2c7a8b802c22e56739d31d484238db3e1aa7137d712ea7ea9c27",
+        "bytes": 19774
+      }
+    },
+    {
+      "id": "comic_walker",
+      "artifact": "comic_walker.js",
+      "name": "カドコミ",
+      "version": "1.0.0",
+      "minAppVersion": "1.6.0",
+      "description": null,
+      "aliases": [],
+      "deprecation": null,
+      "pipeline": {
+        "mode": "standard",
+        "injectRuntimeReleaseAuthority": true
+      },
+      "runtimeShared": [],
+      "source": {
+        "type": "concat",
+        "moduleOrder": [
+          "plugins/comic_walker/src/index.js"
+        ]
+      },
+      "sourceEntries": [
+        "plugins/comic_walker/src/index.js"
+      ],
+      "configPath": "plugins/comic_walker/plugin.config.json",
+      "outputPath": "dist/plugins/comic_walker.js",
+      "publicUrl": "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/dist/plugins/comic_walker.js",
+      "checksums": {
+        "sha256": "e25a8bebff1609bfb3e40e1bc201a5b5b149f9547f086fb4132e81d0513d78aa",
+        "bytes": 10888
+      }
+    },
+    {
+      "id": "comick",
+      "artifact": "comick.js",
+      "name": "comick",
+      "version": "1.2.0",
+      "minAppVersion": "1.4.0",
+      "description": null,
+      "aliases": [],
+      "deprecation": null,
+      "pipeline": {
+        "mode": "standard",
+        "injectRuntimeReleaseAuthority": true
+      },
+      "runtimeShared": [],
+      "source": {
+        "type": "concat",
+        "moduleOrder": [
+          "plugins/comick/src/index.js"
+        ]
+      },
+      "sourceEntries": [
+        "plugins/comick/src/index.js"
+      ],
+      "configPath": "plugins/comick/plugin.config.json",
+      "outputPath": "dist/plugins/comick.js",
+      "publicUrl": "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/dist/plugins/comick.js",
+      "checksums": {
+        "sha256": "5aa42ba9cde2dc76d57d4e2f76cc03870283f38b62be49b8557f35add71c558d",
+        "bytes": 23063
+      }
+    },
+    {
+      "id": "copy_manga",
+      "artifact": "copy_manga.js",
+      "name": "拷贝漫画",
+      "version": "1.4.1",
+      "minAppVersion": "1.6.0",
+      "description": null,
+      "aliases": [],
+      "deprecation": null,
+      "pipeline": {
+        "mode": "standard",
+        "injectRuntimeReleaseAuthority": true
+      },
+      "runtimeShared": [
+        "shared/errors/runtime.js",
+        "shared/http/runtime.js",
+        "shared/url/runtime.js",
+        "shared/parser/copy_like.js",
+        "shared/features/copy_like/index.js",
+        "shared/families/copy_like/index.js"
+      ],
+      "source": {
+        "type": "concat",
+        "moduleOrder": [
+          "plugins/copy_manga/src/index.js"
+        ]
+      },
+      "sourceEntries": [
+        "plugins/copy_manga/src/index.js"
+      ],
+      "configPath": "plugins/copy_manga/plugin.config.json",
+      "outputPath": "dist/plugins/copy_manga.js",
+      "publicUrl": "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/dist/plugins/copy_manga.js",
+      "checksums": {
+        "sha256": "23828fc25c9db7581896ac2c2ad58c796a7ad94a9ea0dd0c846decee9e27ccf4",
+        "bytes": 45709
+      }
+    },
+    {
+      "id": "ehentai",
+      "artifact": "ehentai.js",
+      "name": "ehentai",
+      "version": "1.2.0",
+      "minAppVersion": "1.5.3",
+      "description": null,
+      "aliases": [],
+      "deprecation": null,
+      "pipeline": {
+        "mode": "standard",
+        "injectRuntimeReleaseAuthority": true
+      },
+      "runtimeShared": [],
+      "source": {
+        "type": "concat",
+        "moduleOrder": [
+          "plugins/ehentai/src/source-shell.js",
+          "plugins/ehentai/src/index.js",
+          "plugins/ehentai/src/query.js",
+          "plugins/ehentai/src/urls.js",
+          "plugins/ehentai/src/api-payloads.js",
+          "plugins/ehentai/src/form-payloads.js",
+          "plugins/ehentai/src/cache-keys.js",
+          "plugins/ehentai/src/parsers/gallery-list-parser.js",
+          "plugins/ehentai/src/parsers/gallery-detail-parser.js",
+          "plugins/ehentai/src/parsers/thumbnail-parser.js",
+          "plugins/ehentai/src/parsers/dispatch-key-parser.js",
+          "plugins/ehentai/src/parsers/comment-parser.js",
+          "plugins/ehentai/src/parsers/archive-parser.js",
+          "plugins/ehentai/src/features/account.js",
+          "plugins/ehentai/src/features/explore.js",
+          "plugins/ehentai/src/features/search.js",
+          "plugins/ehentai/src/features/favorites.js",
+          "plugins/ehentai/src/features/comic.js",
+          "plugins/ehentai/src/features/comments.js",
+          "plugins/ehentai/src/features/archive.js",
+          "plugins/ehentai/src/settings.js",
+          "plugins/ehentai/src/i18n.js",
+          "plugins/ehentai/src/source-config.js",
+          "plugins/ehentai/src/request-client.js",
+          "plugins/ehentai/src/image-session.js"
+        ]
+      },
+      "sourceEntries": [
+        "plugins/ehentai/src/source-shell.js",
+        "plugins/ehentai/src/index.js",
+        "plugins/ehentai/src/query.js",
+        "plugins/ehentai/src/urls.js",
+        "plugins/ehentai/src/api-payloads.js",
+        "plugins/ehentai/src/form-payloads.js",
+        "plugins/ehentai/src/cache-keys.js",
+        "plugins/ehentai/src/parsers/gallery-list-parser.js",
+        "plugins/ehentai/src/parsers/gallery-detail-parser.js",
+        "plugins/ehentai/src/parsers/thumbnail-parser.js",
+        "plugins/ehentai/src/parsers/dispatch-key-parser.js",
+        "plugins/ehentai/src/parsers/comment-parser.js",
+        "plugins/ehentai/src/parsers/archive-parser.js",
+        "plugins/ehentai/src/features/account.js",
+        "plugins/ehentai/src/features/explore.js",
+        "plugins/ehentai/src/features/search.js",
+        "plugins/ehentai/src/features/favorites.js",
+        "plugins/ehentai/src/features/comic.js",
+        "plugins/ehentai/src/features/comments.js",
+        "plugins/ehentai/src/features/archive.js",
+        "plugins/ehentai/src/settings.js",
+        "plugins/ehentai/src/i18n.js",
+        "plugins/ehentai/src/source-config.js",
+        "plugins/ehentai/src/request-client.js",
+        "plugins/ehentai/src/image-session.js"
+      ],
+      "configPath": "plugins/ehentai/plugin.config.json",
+      "outputPath": "dist/plugins/ehentai.js",
+      "publicUrl": "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/dist/plugins/ehentai.js",
+      "checksums": {
+        "sha256": "b265017ddd1636d42b3ad4ea0128e2c7a540755ead9c1ce76248768a8424c8f7",
+        "bytes": 69442
+      }
+    },
+    {
+      "id": "goda",
+      "artifact": "goda.js",
+      "name": "GoDa漫画",
+      "version": "1.0.0",
+      "minAppVersion": "1.4.0",
+      "description": null,
+      "aliases": [],
+      "deprecation": null,
+      "pipeline": {
+        "mode": "standard",
+        "injectRuntimeReleaseAuthority": true
+      },
+      "runtimeShared": [
+        "shared/errors/runtime.js",
+        "shared/http/runtime.js",
+        "shared/features/mh_like/index.js",
+        "shared/families/mh_like/index.js"
+      ],
+      "source": {
+        "type": "concat",
+        "moduleOrder": [
+          "plugins/goda/src/index.js"
+        ]
+      },
+      "sourceEntries": [
+        "plugins/goda/src/index.js"
+      ],
+      "configPath": "plugins/goda/plugin.config.json",
+      "outputPath": "dist/plugins/goda.js",
+      "publicUrl": "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/dist/plugins/goda.js",
+      "checksums": {
+        "sha256": "82ad57935d5b0b6426758c33be6046d118c000493432a34bcc9adc7ebfcb3c5c",
+        "bytes": 19708
+      }
+    },
+    {
+      "id": "happy",
+      "artifact": "happy.js",
+      "name": "嗨皮漫画",
+      "version": "1.0.0",
+      "minAppVersion": "1.6.0",
+      "description": "中国大陆及日韩IP无法访问，遇到403可以尝试切换其他地区网络",
+      "aliases": [],
+      "deprecation": null,
+      "pipeline": {
+        "mode": "standard",
+        "injectRuntimeReleaseAuthority": true
+      },
+      "runtimeShared": [],
+      "source": {
+        "type": "concat",
+        "moduleOrder": [
+          "plugins/happy/src/index.js"
+        ]
+      },
+      "sourceEntries": [
+        "plugins/happy/src/index.js"
+      ],
+      "configPath": "plugins/happy/plugin.config.json",
+      "outputPath": "dist/plugins/happy.js",
+      "publicUrl": "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/dist/plugins/happy.js",
+      "checksums": {
+        "sha256": "197699457f0b3da7eed18a53942e5f5d647494d4e0c911aa891fa3de1d8df5b5",
+        "bytes": 20857
+      }
+    },
+    {
+      "id": "hcomic",
+      "artifact": "hcomic.js",
+      "name": "H-Comic",
+      "version": "1.0.0",
+      "minAppVersion": "1.6.0",
+      "description": null,
+      "aliases": [],
+      "deprecation": null,
+      "pipeline": {
+        "mode": "standard",
+        "injectRuntimeReleaseAuthority": true
+      },
+      "runtimeShared": [],
+      "source": {
+        "type": "concat",
+        "moduleOrder": [
+          "plugins/hcomic/src/index.js"
+        ]
+      },
+      "sourceEntries": [
+        "plugins/hcomic/src/index.js"
+      ],
+      "configPath": "plugins/hcomic/plugin.config.json",
+      "outputPath": "dist/plugins/hcomic.js",
+      "publicUrl": "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/dist/plugins/hcomic.js",
+      "checksums": {
+        "sha256": "f141e57cd52f03bd01bbeae99551b56af650a40463be833edfde9e3aa9537869",
+        "bytes": 16324
+      }
+    },
+    {
+      "id": "hitomi",
+      "artifact": "hitomi.js",
+      "name": "hitomi.la",
+      "version": "1.1.2",
+      "minAppVersion": "1.4.6",
+      "description": null,
+      "aliases": [],
+      "deprecation": null,
+      "pipeline": {
+        "mode": "standard",
+        "injectRuntimeReleaseAuthority": true
+      },
+      "runtimeShared": [],
+      "source": {
+        "type": "concat",
+        "moduleOrder": [
+          "plugins/hitomi/src/index.js"
+        ]
+      },
+      "sourceEntries": [
+        "plugins/hitomi/src/index.js"
+      ],
+      "configPath": "plugins/hitomi/plugin.config.json",
+      "outputPath": "dist/plugins/hitomi.js",
+      "publicUrl": "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/dist/plugins/hitomi.js",
+      "checksums": {
+        "sha256": "6c576fb6a301339b4a3479475e25023b67966fff65e9ca5ee85e4d62b6e6c7df",
+        "bytes": 33683
+      }
+    },
+    {
+      "id": "hot_manga",
+      "artifact": "hot_manga.js",
+      "name": "热辣漫画",
+      "version": "1.0.0",
+      "minAppVersion": "1.6.0",
+      "description": null,
+      "aliases": [],
+      "deprecation": null,
+      "pipeline": {
+        "mode": "standard",
+        "injectRuntimeReleaseAuthority": true
+      },
+      "runtimeShared": [
+        "shared/errors/runtime.js",
+        "shared/http/runtime.js",
+        "shared/url/runtime.js",
+        "shared/parser/copy_like.js",
+        "shared/features/copy_like/index.js",
+        "shared/families/copy_like/index.js"
+      ],
+      "source": {
+        "type": "concat",
+        "moduleOrder": [
+          "plugins/hot_manga/src/index.js"
+        ]
+      },
+      "sourceEntries": [
+        "plugins/hot_manga/src/index.js"
+      ],
+      "configPath": "plugins/hot_manga/plugin.config.json",
+      "outputPath": "dist/plugins/hot_manga.js",
+      "publicUrl": "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/dist/plugins/hot_manga.js",
+      "checksums": {
+        "sha256": "a4ec708d53467c3e19dea56c297e51a56807319aa18d5e14355001d515582989",
+        "bytes": 39079
+      }
+    },
+    {
+      "id": "ikmmh",
+      "artifact": "ikmmh.js",
+      "name": "爱看漫",
+      "version": "1.0.5",
+      "minAppVersion": "1.0.0",
+      "description": null,
+      "aliases": [],
+      "deprecation": null,
+      "pipeline": {
+        "mode": "standard",
+        "injectRuntimeReleaseAuthority": true
+      },
+      "runtimeShared": [],
+      "source": {
+        "type": "concat",
+        "moduleOrder": [
+          "plugins/ikmmh/src/index.js"
+        ]
+      },
+      "sourceEntries": [
+        "plugins/ikmmh/src/index.js"
+      ],
+      "configPath": "plugins/ikmmh/plugin.config.json",
+      "outputPath": "dist/plugins/ikmmh.js",
+      "publicUrl": "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/dist/plugins/ikmmh.js",
+      "checksums": {
+        "sha256": "c26e7bae259b9434e27014ff815cd36a7e676834d2e96c509a199dd177284eed",
+        "bytes": 15308
+      }
+    },
+    {
+      "id": "jcomic",
+      "artifact": "jcomic.js",
+      "name": "jcomic.net",
+      "version": "1.0.0",
+      "minAppVersion": "1.4.6",
+      "description": null,
+      "aliases": [],
+      "deprecation": null,
+      "pipeline": {
+        "mode": "standard",
+        "injectRuntimeReleaseAuthority": true
+      },
+      "runtimeShared": [],
+      "source": {
+        "type": "concat",
+        "moduleOrder": [
+          "plugins/jcomic/src/index.js"
+        ]
+      },
+      "sourceEntries": [
+        "plugins/jcomic/src/index.js"
+      ],
+      "configPath": "plugins/jcomic/plugin.config.json",
+      "outputPath": "dist/plugins/jcomic.js",
+      "publicUrl": "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/dist/plugins/jcomic.js",
+      "checksums": {
+        "sha256": "e3cbc48d406865c671d9a112283b2af2a8089f4f55b0def2e36246b0271a2f19",
+        "bytes": 11460
+      }
+    },
+    {
+      "id": "jm",
+      "artifact": "jm.js",
+      "name": "禁漫天堂",
+      "version": "1.4.0",
+      "minAppVersion": "1.5.0",
+      "description": "禁漫天堂漫畫源, 不能使用時請嘗試切換分流",
+      "aliases": [],
+      "deprecation": null,
+      "pipeline": {
+        "mode": "standard",
+        "injectRuntimeReleaseAuthority": true
+      },
+      "runtimeShared": [],
+      "source": {
+        "type": "concat",
+        "moduleOrder": [
+          "plugins/jm/src/index.js"
+        ]
+      },
+      "sourceEntries": [
+        "plugins/jm/src/index.js"
+      ],
+      "configPath": "plugins/jm/plugin.config.json",
+      "outputPath": "dist/plugins/jm.js",
+      "publicUrl": "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/dist/plugins/jm.js",
+      "checksums": {
+        "sha256": "b18e0cc1558921ffda7f7852f5b17e8beb809243325db8133c1c446dab5337e9",
+        "bytes": 25788
+      }
+    },
+    {
+      "id": "kavita",
+      "artifact": "kavita.js",
+      "name": "Kavita",
+      "version": "1.0.0",
+      "minAppVersion": "1.4.0",
+      "description": null,
+      "aliases": [],
+      "deprecation": null,
+      "pipeline": {
+        "mode": "standard",
+        "injectRuntimeReleaseAuthority": true
+      },
+      "runtimeShared": [
+        "shared/families/self_hosted_library/index.js",
+        "shared/url/self_hosted_url.js",
+        "shared/http/self_hosted_json.js",
+        "shared/features/self_hosted/reference_cache.js",
+        "shared/features/self_hosted/category_parts.js"
+      ],
+      "source": {
+        "type": "concat",
+        "moduleOrder": [
+          "plugins/kavita/src/index.js"
+        ]
+      },
+      "sourceEntries": [
+        "plugins/kavita/src/index.js"
+      ],
+      "configPath": "plugins/kavita/plugin.config.json",
+      "outputPath": "dist/plugins/kavita.js",
+      "publicUrl": "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/dist/plugins/kavita.js",
+      "checksums": {
+        "sha256": "f5cb41020877d3335eb39fe43f51a5b49ebe158a5d20333996b241afc6a995d2",
+        "bytes": 30827
+      }
+    },
+    {
+      "id": "komga",
+      "artifact": "komga.js",
+      "name": "Komga",
+      "version": "1.0.0",
+      "minAppVersion": "1.4.0",
+      "description": null,
+      "aliases": [],
+      "deprecation": null,
+      "pipeline": {
+        "mode": "standard",
+        "injectRuntimeReleaseAuthority": true
+      },
+      "runtimeShared": [
+        "shared/families/self_hosted_library/index.js",
+        "shared/url/self_hosted_url.js",
+        "shared/http/self_hosted_json.js",
+        "shared/features/self_hosted/reference_cache.js",
+        "shared/features/self_hosted/category_parts.js"
+      ],
+      "source": {
+        "type": "concat",
+        "moduleOrder": [
+          "plugins/komga/src/index.js"
+        ]
+      },
+      "sourceEntries": [
+        "plugins/komga/src/index.js"
+      ],
+      "configPath": "plugins/komga/plugin.config.json",
+      "outputPath": "dist/plugins/komga.js",
+      "publicUrl": "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/dist/plugins/komga.js",
+      "checksums": {
+        "sha256": "d1556b2a16313a24c3afb17f14abc4b318d5d38e3ceb4e523c33748c75c5f8bf",
+        "bytes": 36545
+      }
+    },
+    {
+      "id": "Komiic",
+      "artifact": "komiic.js",
+      "name": "Komiic",
+      "version": "1.0.3",
+      "minAppVersion": "1.0.0",
+      "description": null,
+      "aliases": [],
+      "deprecation": null,
+      "pipeline": {
+        "mode": "standard",
+        "injectRuntimeReleaseAuthority": true
+      },
+      "runtimeShared": [],
+      "source": {
+        "type": "concat",
+        "moduleOrder": [
+          "plugins/komiic/src/index.js"
+        ]
+      },
+      "sourceEntries": [
+        "plugins/komiic/src/index.js"
+      ],
+      "configPath": "plugins/komiic/plugin.config.json",
+      "outputPath": "dist/plugins/komiic.js",
+      "publicUrl": "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/dist/plugins/komiic.js",
+      "checksums": {
+        "sha256": "7a6d65634ab2bef310f7987e28d7aba0a2c10b01ff9410bb39aa34dde03b6f7c",
+        "bytes": 21101
+      }
+    },
+    {
+      "id": "lanraragi",
+      "artifact": "lanraragi.js",
+      "name": "Lanraragi",
+      "version": "1.2.0",
+      "minAppVersion": "1.4.0",
+      "description": null,
+      "aliases": [],
+      "deprecation": null,
+      "pipeline": {
+        "mode": "standard",
+        "injectRuntimeReleaseAuthority": true
+      },
+      "runtimeShared": [
+        "shared/families/self_hosted_library/index.js",
+        "shared/url/self_hosted_url.js",
+        "shared/http/self_hosted_json.js",
+        "shared/storage/offset_pagination.js",
+        "shared/features/self_hosted/offset_search_loader.js",
+        "shared/features/self_hosted/tag_helpers.js"
+      ],
+      "source": {
+        "type": "concat",
+        "moduleOrder": [
+          "plugins/lanraragi/src/index.js"
+        ]
+      },
+      "sourceEntries": [
+        "plugins/lanraragi/src/index.js"
+      ],
+      "configPath": "plugins/lanraragi/plugin.config.json",
+      "outputPath": "dist/plugins/lanraragi.js",
+      "publicUrl": "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/dist/plugins/lanraragi.js",
+      "checksums": {
+        "sha256": "c94be5ed3ea64ccab55a99f1c097de2b40d3572ce5816b7a75e1c3d6d6cb1d45",
+        "bytes": 39542
+      }
+    },
+    {
+      "id": "manga_dex",
+      "artifact": "manga_dex.js",
+      "name": "MangaDex",
+      "version": "1.1.1",
+      "minAppVersion": "1.6.0",
+      "description": "Account feature is not supported yet.",
+      "aliases": [],
+      "deprecation": null,
+      "pipeline": {
+        "mode": "standard",
+        "injectRuntimeReleaseAuthority": true
+      },
+      "runtimeShared": [],
+      "source": {
+        "type": "concat",
+        "moduleOrder": [
+          "plugins/manga_dex/src/index.js"
+        ]
+      },
+      "sourceEntries": [
+        "plugins/manga_dex/src/index.js"
+      ],
+      "configPath": "plugins/manga_dex/plugin.config.json",
+      "outputPath": "dist/plugins/manga_dex.js",
+      "publicUrl": "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/dist/plugins/manga_dex.js",
+      "checksums": {
+        "sha256": "c74dde8c6e3d50bf4872cacedcc5cd7901f511b1854f4ecdcea1b1804f21caf7",
+        "bytes": 24867
+      }
+    },
+    {
+      "id": "ManHuaGui",
+      "artifact": "manhuagui.js",
+      "name": "漫画柜",
+      "version": "1.2.1",
+      "minAppVersion": "1.4.0",
+      "description": null,
+      "aliases": [],
+      "deprecation": null,
+      "pipeline": {
+        "mode": "standard",
+        "injectRuntimeReleaseAuthority": true
+      },
+      "runtimeShared": [],
+      "source": {
+        "type": "concat",
+        "moduleOrder": [
+          "plugins/manhuagui/src/index.js"
+        ]
+      },
+      "sourceEntries": [
+        "plugins/manhuagui/src/index.js"
+      ],
+      "configPath": "plugins/manhuagui/plugin.config.json",
+      "outputPath": "dist/plugins/manhuagui.js",
+      "publicUrl": "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/dist/plugins/manhuagui.js",
+      "checksums": {
+        "sha256": "170c50df3f927069fbd8ca4aed6fed4794fc805fa53775e621de8d51039d5c8e",
+        "bytes": 36152
+      }
+    },
+    {
+      "id": "manhuaren",
+      "artifact": "manhuaren.js",
+      "name": "漫画人",
+      "version": "1.0.0",
+      "minAppVersion": "1.6.0",
+      "description": null,
+      "aliases": [],
+      "deprecation": null,
+      "pipeline": {
+        "mode": "standard",
+        "injectRuntimeReleaseAuthority": true
+      },
+      "runtimeShared": [],
+      "source": {
+        "type": "concat",
+        "moduleOrder": [
+          "plugins/manhuaren/src/index.js"
+        ]
+      },
+      "sourceEntries": [
+        "plugins/manhuaren/src/index.js"
+      ],
+      "configPath": "plugins/manhuaren/plugin.config.json",
+      "outputPath": "dist/plugins/manhuaren.js",
+      "publicUrl": "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/dist/plugins/manhuaren.js",
+      "checksums": {
+        "sha256": "bc3f8bb31c16ebd1282c3ead474142724386b1e9280a56c0fdb3e1f7d189e7d5",
+        "bytes": 28242
+      }
+    },
+    {
+      "id": "manwaba",
+      "artifact": "manwaba.js",
+      "name": "漫蛙吧",
+      "version": "1.0.2",
+      "minAppVersion": "1.4.0",
+      "description": null,
+      "aliases": [],
+      "deprecation": null,
+      "pipeline": {
+        "mode": "standard",
+        "injectRuntimeReleaseAuthority": true
+      },
+      "runtimeShared": [],
+      "source": {
+        "type": "concat",
+        "moduleOrder": [
+          "plugins/manwaba/src/index.js"
+        ]
+      },
+      "sourceEntries": [
+        "plugins/manwaba/src/index.js"
+      ],
+      "configPath": "plugins/manwaba/plugin.config.json",
+      "outputPath": "dist/plugins/manwaba.js",
+      "publicUrl": "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/dist/plugins/manwaba.js",
+      "checksums": {
+        "sha256": "eab070f72b36b36317e90466c589a9c71bb8140490e2c5b669d77e8af411d6c9",
+        "bytes": 10005
+      }
+    },
+    {
+      "id": "mh1234",
+      "artifact": "mh1234.js",
+      "name": "漫画1234",
+      "version": "1.0.0",
+      "minAppVersion": "1.4.0",
+      "description": null,
+      "aliases": [],
+      "deprecation": null,
+      "pipeline": {
+        "mode": "standard",
+        "injectRuntimeReleaseAuthority": true
+      },
+      "runtimeShared": [
+        "shared/url/web_source_url.js",
+        "shared/features/tag_action_helpers.js"
+      ],
+      "source": {
+        "type": "concat",
+        "moduleOrder": [
+          "plugins/mh1234/src/index.js"
+        ]
+      },
+      "sourceEntries": [
+        "plugins/mh1234/src/index.js"
+      ],
+      "configPath": "plugins/mh1234/plugin.config.json",
+      "outputPath": "dist/plugins/mh1234.js",
+      "publicUrl": "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/dist/plugins/mh1234.js",
+      "checksums": {
+        "sha256": "3d44864201905f2b76322f68d5ff1b6c83e2aa1fd61fd4ded87d66174f3265fd",
+        "bytes": 20408
+      }
+    },
+    {
+      "id": "mh18",
+      "artifact": "mh18.js",
+      "name": "18漫画",
+      "version": "1.0.0",
+      "minAppVersion": "1.4.0",
+      "description": null,
+      "aliases": [],
+      "deprecation": null,
+      "pipeline": {
+        "mode": "standard",
+        "injectRuntimeReleaseAuthority": true
+      },
+      "runtimeShared": [
+        "shared/errors/runtime.js",
+        "shared/http/runtime.js",
+        "shared/features/mh_like/index.js",
+        "shared/families/mh_like/index.js"
+      ],
+      "source": {
+        "type": "concat",
+        "moduleOrder": [
+          "plugins/mh18/src/index.js"
+        ]
+      },
+      "sourceEntries": [
+        "plugins/mh18/src/index.js"
+      ],
+      "configPath": "plugins/mh18/plugin.config.json",
+      "outputPath": "dist/plugins/mh18.js",
+      "publicUrl": "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/dist/plugins/mh18.js",
+      "checksums": {
+        "sha256": "ce44f99caee8eba4505e08b142944a0d4832605ba4c022c420a4ed03cf55a48d",
+        "bytes": 19592
+      }
+    },
+    {
+      "id": "mxs",
+      "artifact": "mxs.js",
+      "name": "漫小肆",
+      "version": "1.0.0",
+      "minAppVersion": "1.5.0",
+      "description": null,
+      "aliases": [],
+      "deprecation": null,
+      "pipeline": {
+        "mode": "standard",
+        "injectRuntimeReleaseAuthority": true
+      },
+      "runtimeShared": [],
+      "source": {
+        "type": "concat",
+        "moduleOrder": [
+          "plugins/mxs/src/index.js"
+        ]
+      },
+      "sourceEntries": [
+        "plugins/mxs/src/index.js"
+      ],
+      "configPath": "plugins/mxs/plugin.config.json",
+      "outputPath": "dist/plugins/mxs.js",
+      "publicUrl": "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/dist/plugins/mxs.js",
+      "checksums": {
+        "sha256": "4b6d9adb2f81d5f3a7e6560d90963bcff342681d4888c813f5c2259b36c47138",
+        "bytes": 15847
+      }
+    },
+    {
+      "id": "nhentai",
+      "artifact": "nhentai.js",
+      "name": "nhentai",
+      "version": "1.0.8",
+      "minAppVersion": "1.0.0",
+      "description": null,
+      "aliases": [],
+      "deprecation": null,
+      "pipeline": {
+        "mode": "standard",
+        "injectRuntimeReleaseAuthority": true
+      },
+      "runtimeShared": [],
+      "source": {
+        "type": "concat",
+        "moduleOrder": [
+          "plugins/nhentai/src/index.js"
+        ]
+      },
+      "sourceEntries": [
+        "plugins/nhentai/src/index.js"
+      ],
+      "configPath": "plugins/nhentai/plugin.config.json",
+      "outputPath": "dist/plugins/nhentai.js",
+      "publicUrl": "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/dist/plugins/nhentai.js",
+      "checksums": {
+        "sha256": "529701464d49c97c7f5af8bad2f38ce98c98929d262a14321f0b6a65af87c471",
+        "bytes": 39784
+      }
+    },
+    {
+      "id": "picacg",
+      "artifact": "picacg.js",
+      "name": "Picacg",
+      "version": "1.0.5",
+      "minAppVersion": "1.0.0",
+      "description": null,
+      "aliases": [],
+      "deprecation": null,
+      "pipeline": {
+        "mode": "standard",
+        "injectRuntimeReleaseAuthority": true
+      },
+      "runtimeShared": [
+        "shared/families/picacg/index.js"
+      ],
+      "source": {
+        "type": "concat",
+        "moduleOrder": [
+          "plugins/picacg/src/index.js"
+        ]
+      },
+      "sourceEntries": [
+        "plugins/picacg/src/index.js"
+      ],
+      "configPath": "plugins/picacg/plugin.config.json",
+      "outputPath": "dist/plugins/picacg.js",
+      "publicUrl": "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/dist/plugins/picacg.js",
+      "checksums": {
+        "sha256": "5637dfe8ac327c13c3b3aaf75b54cf0dfc97cf4b406bff61239f328e9d1ea6ea",
+        "bytes": 30989
+      }
+    },
+    {
+      "id": "shonen_jump_plus",
+      "artifact": "shonen_jump_plus.js",
+      "name": "少年ジャンプ＋",
+      "version": "1.1.1",
+      "minAppVersion": "1.2.1",
+      "description": null,
+      "aliases": [],
+      "deprecation": null,
+      "pipeline": {
+        "mode": "standard",
+        "injectRuntimeReleaseAuthority": true
+      },
+      "runtimeShared": [],
+      "source": {
+        "type": "concat",
+        "moduleOrder": [
+          "plugins/shonen_jump_plus/src/index.js"
+        ]
+      },
+      "sourceEntries": [
+        "plugins/shonen_jump_plus/src/index.js"
+      ],
+      "configPath": "plugins/shonen_jump_plus/plugin.config.json",
+      "outputPath": "dist/plugins/shonen_jump_plus.js",
+      "publicUrl": "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/dist/plugins/shonen_jump_plus.js",
+      "checksums": {
+        "sha256": "8c70447ed06c0d5f74729c5af36a2e7f26e3fa950ea552d83b0fe8e336bd0e95",
+        "bytes": 15928
+      }
+    },
+    {
+      "id": "wnacg",
+      "artifact": "wnacg.js",
+      "name": "紳士漫畫",
+      "version": "1.0.4",
+      "minAppVersion": "1.0.0",
+      "description": "紳士漫畫漫畫源, 不能使用時請嘗試更換URL",
+      "aliases": [],
+      "deprecation": null,
+      "pipeline": {
+        "mode": "standard",
+        "injectRuntimeReleaseAuthority": true
+      },
+      "runtimeShared": [],
+      "source": {
+        "type": "concat",
+        "moduleOrder": [
+          "plugins/wnacg/src/index.js"
+        ]
+      },
+      "sourceEntries": [
+        "plugins/wnacg/src/index.js"
+      ],
+      "configPath": "plugins/wnacg/plugin.config.json",
+      "outputPath": "dist/plugins/wnacg.js",
+      "publicUrl": "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/dist/plugins/wnacg.js",
+      "checksums": {
+        "sha256": "3134c8e9ff3162d2618b4fb76391412a1e8a4d3f3e14a490fdb72c9d5b0c6444",
+        "bytes": 18524
+      }
+    },
+    {
+      "id": "ykmh",
+      "artifact": "ykmh.js",
+      "name": "优酷漫画",
+      "version": "1.0.0",
+      "minAppVersion": "1.4.0",
+      "description": null,
+      "aliases": [],
+      "deprecation": null,
+      "pipeline": {
+        "mode": "standard",
+        "injectRuntimeReleaseAuthority": true
+      },
+      "runtimeShared": [
+        "shared/url/web_source_url.js",
+        "shared/features/tag_action_helpers.js"
+      ],
+      "source": {
+        "type": "concat",
+        "moduleOrder": [
+          "plugins/ykmh/src/index.js"
+        ]
+      },
+      "sourceEntries": [
+        "plugins/ykmh/src/index.js"
+      ],
+      "configPath": "plugins/ykmh/plugin.config.json",
+      "outputPath": "dist/plugins/ykmh.js",
+      "publicUrl": "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/dist/plugins/ykmh.js",
+      "checksums": {
+        "sha256": "a61abe6a828ba5bbe8995c289ac846632607f6d284fbf309ee580c62d06120b6",
+        "bytes": 31795
+      }
+    },
+    {
+      "id": "zaimanhua",
+      "artifact": "zaimanhua.js",
+      "name": "再漫画",
+      "version": "1.0.2",
+      "minAppVersion": "1.0.0",
+      "description": null,
+      "aliases": [],
+      "deprecation": null,
+      "pipeline": {
+        "mode": "standard",
+        "injectRuntimeReleaseAuthority": true
+      },
+      "runtimeShared": [],
+      "source": {
+        "type": "concat",
+        "moduleOrder": [
+          "plugins/zaimanhua/src/index.js"
+        ]
+      },
+      "sourceEntries": [
+        "plugins/zaimanhua/src/index.js"
+      ],
+      "configPath": "plugins/zaimanhua/plugin.config.json",
+      "outputPath": "dist/plugins/zaimanhua.js",
+      "publicUrl": "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/dist/plugins/zaimanhua.js",
+      "checksums": {
+        "sha256": "84b5e47f0ab33e783e6c65153ce43dcbc3a6a36b2fecce69ee0b590de24a4c64",
+        "bytes": 14544
+      }
+    }
+  ]
+}

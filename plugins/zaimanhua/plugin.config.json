@@ -1,0 +1,17 @@
+{
+  "id": "zaimanhua",
+  "artifact": "zaimanhua.js",
+  "name": "再漫画",
+  "version": "1.0.2",
+  "minAppVersion": "1.0.0",
+  "aliases": [],
+  "source": {
+    "type": "concat",
+    "moduleOrder": [
+      "plugins/zaimanhua/src/index.js"
+    ]
+  },
+  "pipeline": {
+    "mode": "standard"
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "id": "ykmh",
+  "artifact": "ykmh.js",
+  "name": "优酷漫画",
+  "version": "1.0.0",
+  "minAppVersion": "1.4.0",
+  "aliases": [],
+  "source": {
+    "type": "concat",
+    "moduleOrder": [
+      "plugins/ykmh/src/index.js"
+    ]
+  },
+  "runtimeShared": [
+    "shared/url/web_source_url.js",
+    "shared/features/tag_action_helpers.js"
+  ],
+  "pipeline": {
+    "mode": "standard"
+  }
+}

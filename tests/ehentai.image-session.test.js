@@ -1,10 +1,24 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
+const path = require("node:path");
 const vm = require("node:vm");
 
+const repoRoot = path.resolve(__dirname, "..");
+const manifestPath = path.join(repoRoot, ".generated", "build-manifest.json");
+
+function readEhentaiArtifact() {
+  const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+  const plugin = manifest.plugins.find((entry) => entry.id === "ehentai");
+  assert.ok(plugin, "ehentai is missing from build manifest");
+  return {
+    source: fs.readFileSync(path.join(repoRoot, plugin.outputPath), "utf8"),
+    outputPath: plugin.outputPath,
+  };
+}
+
 function loadModules() {
-  const source = fs.readFileSync("./ehentai.js", "utf8");
+  const { source, outputPath } = readEhentaiArtifact();
   const context = {
     ComicSource: class {},
     Network: {
@@ -39,6 +53,7 @@ this.__mods__ = {
   ImageLoadingSessionManager,
 };`,
     context,
+    { filename: outputPath },
   );
   return context.__mods__;
 }

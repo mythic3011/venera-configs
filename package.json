@@ -4,13 +4,25 @@
   "description": "Configuration files for venera",
   "scripts": {
     "build:ehentai": "node scripts/build-source.js ehentai",
+    "build:all": "node scripts/build-source.js all",
+    "discover:plugins": "node scripts/build/discover-plugins.js",
+    "validate:plugins": "node scripts/build/validate-plugin-config.js",
+    "write:build-manifest": "node scripts/build/write-build-manifest.js",
+    "generate": "node scripts/build/generate.js",
+    "check-generated": "node scripts/build/check-generated.js",
     "sync-index": "node scripts/sync-index.js",
-    "test": "node --test"
+    "check:index": "node scripts/sync-index.js --check",
+    "validate:release-authority": "node -e \"const fs=require('node:fs');const p='scripts/config/release-authority.json';if(!fs.existsSync(p)){throw new Error(p+' is missing')}const c=JSON.parse(fs.readFileSync(p,'utf8'));if(!c||Array.isArray(c)||typeof c!=='object'){throw new Error(p+' must be a JSON object')}if(Object.keys(c).length===0){throw new Error(p+' must not be empty')}\"",
+    "test": "node --test",
+    "test:runtime": "node scripts/runtime/run-runtime-tests.js",
+    "audit:unsafe-runtime-code": "node scripts/audit/unsafe-runtime-code.js"
   },
   "devDependencies": {
     "@babel/core": "^7.23.0",
     "@babel/plugin-transform-class-properties": "^7.28.6",
     "@babel/preset-env": "^7.23.0",
-    "terser": "^5.29.0"
+    "esbuild": "^0.25.4",
+    "terser": "^5.29.0",
+    "zod": "^4.1.5"
   }
 }

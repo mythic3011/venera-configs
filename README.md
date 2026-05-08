@@ -32,10 +32,10 @@ When you:
 - Update `name`, `key`, or `version` in any source class, run `node scripts/sync-index.js`
 - Keep `description` in `index.json` for optional source-specific notes (not auto-replaced)
 
-CDN URLs are built automatically from release authority components and the artifact filename:
+CDN URLs are built automatically from release authority components and the generated artifact output path:
 
 ```
-https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/{fileName}
+https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/dist/plugins/{fileName}
 ```
 
 ## Compatibility surface and rename policy
@@ -49,7 +49,9 @@ https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/{fileName}
 
 ## Generated source files
 
-`ehentai.js` is generated from `src/ehentai`. This generated file is automatically:
+`dist/plugins/*.js` artifacts are generated from `plugins/*/src` using `plugins/*/plugin.config.json`.
+For example, `dist/plugins/ehentai.js` is generated from `plugins/ehentai/src`.
+Generated artifacts are automatically:
 
 1. Transpiled from modern ES syntax to ES2018-compatible syntax (for flutter_qjs compatibility)
 2. Kept parser-friendly for Venera `ComicSourceParser`:
@@ -60,12 +62,14 @@ https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/{fileName}
 To rebuild after editing source files:
 
 ```bash
-node scripts/build-source.js ehentai
+node scripts/build-source.js <plugin-id|all>
 node scripts/sync-index.js --check
 node --test
 ```
 
-Do not hand-edit generated root files; commit generated outputs with source changes.
+Do not hand-edit generated files under `dist/plugins`; commit generated outputs with source changes.
+
+`i18n/ehentai.json` is retained as legacy compatibility content and is not the canonical authoring source.
 
 ## Source compatibility rules
 
@@ -80,7 +84,7 @@ Venera runs comic sources through `flutter_qjs`, not Node or Chrome V8. Source f
 Pull requests run the same checks locally expected for contributors:
 
 ```bash
-node scripts/build-source.js ehentai
+node scripts/build-source.js all
 node scripts/sync-index.js --check
 node --test
 ```

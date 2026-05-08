@@ -1,0 +1,24 @@
+{
+  "id": "komga",
+  "artifact": "komga.js",
+  "name": "Komga",
+  "version": "1.0.0",
+  "minAppVersion": "1.4.0",
+  "aliases": [],
+  "source": {
+    "type": "concat",
+    "moduleOrder": [
+      "plugins/komga/src/index.js"
+    ]
+  },
+  "runtimeShared": [
+    "shared/families/self_hosted_library/index.js",
+    "shared/url/self_hosted_url.js",
+    "shared/http/self_hosted_json.js",
+    "shared/features/self_hosted/reference_cache.js",
+    "shared/features/self_hosted/category_parts.js"
+  ],
+  "pipeline": {
+    "mode": "standard"
+  }
+}

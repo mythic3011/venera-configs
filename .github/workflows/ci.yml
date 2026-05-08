@@ -22,36 +22,23 @@ jobs:
         with:
           node-version: "22"
 
+      - name: Install dependencies
+        run: npm ci
+
       - name: Validate release authority config
-        run: |
-          node <<'NODE'
-          const fs = require('node:fs');
-          const path = 'scripts/config/release-authority.json';
+        run: npm run validate:release-authority
 
-          if (!fs.existsSync(path)) {
-            throw new Error(`${path} is missing`);
-          }
+      - name: Generate plugin artifacts
+        run: npm run generate
 
-          const raw = fs.readFileSync(path, 'utf8');
-          const config = JSON.parse(raw);
-
-          if (!config || Array.isArray(config) || typeof config !== 'object') {
-            throw new Error(`${path} must be a JSON object`);
-          }
-
-          if (Object.keys(config).length === 0) {
-            throw new Error(`${path} must not be empty`);
-          }
-          NODE
-
-      - name: Verify generated ehentai output
-        run: |
-          cp ehentai.js /tmp/ehentai.js.before
-          node scripts/build-source.js ehentai
-          cmp /tmp/ehentai.js.before ehentai.js
-
-      - name: Verify index metadata (authoritative check)
-        run: node scripts/sync-index.js --check
+      - name: Verify generated outputs
+        run: npm run check-generated -- --ci
 
       - name: Run tests
-        run: node --test
+        run: npm run test
+
+      - name: Run runtime compatibility tests
+        run: npm run test:runtime
+
+      - name: Audit unsafe runtime code
+        run: npm run audit:unsafe-runtime-code

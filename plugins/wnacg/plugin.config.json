@@ -1,0 +1,18 @@
+{
+  "id": "wnacg",
+  "artifact": "wnacg.js",
+  "name": "紳士漫畫",
+  "version": "1.0.4",
+  "minAppVersion": "1.0.0",
+  "description": "紳士漫畫漫畫源, 不能使用時請嘗試更換URL",
+  "aliases": [],
+  "source": {
+    "type": "concat",
+    "moduleOrder": [
+      "plugins/wnacg/src/index.js"
+    ]
+  },
+  "pipeline": {
+    "mode": "standard"
+  }
+}

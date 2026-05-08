@@ -5,9 +5,9 @@ const vm = require("node:vm");
 
 function loadModules() {
   const source = [
-    fs.readFileSync("./src/ehentai/index.js", "utf8"),
-    fs.readFileSync("./src/ehentai/query.js", "utf8"),
-    fs.readFileSync("./src/ehentai/urls.js", "utf8"),
+    fs.readFileSync("./plugins/ehentai/src/index.js", "utf8"),
+    fs.readFileSync("./plugins/ehentai/src/query.js", "utf8"),
+    fs.readFileSync("./plugins/ehentai/src/urls.js", "utf8"),
   ].join("\n\n");
   const context = {
     ComicSource: class {},
@@ -47,7 +47,7 @@ this.__mods__ = {
 };`,
     context,
     {
-    filename: "./src/ehentai/urls.js",
+    filename: "./plugins/ehentai/src/urls.js",
     },
   );
   return context.__mods__;

@@ -1,0 +1,7 @@
+[
+  {
+    "artifact": "manhuaren.js",
+    "rule": "eval",
+    "reason": "String pattern match in parser logic"
+  }
+]

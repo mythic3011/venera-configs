@@ -1,0 +1,25 @@
+{
+  "id": "lanraragi",
+  "artifact": "lanraragi.js",
+  "name": "Lanraragi",
+  "version": "1.2.0",
+  "minAppVersion": "1.4.0",
+  "aliases": [],
+  "source": {
+    "type": "concat",
+    "moduleOrder": [
+      "plugins/lanraragi/src/index.js"
+    ]
+  },
+  "runtimeShared": [
+    "shared/families/self_hosted_library/index.js",
+    "shared/url/self_hosted_url.js",
+    "shared/http/self_hosted_json.js",
+    "shared/storage/offset_pagination.js",
+    "shared/features/self_hosted/offset_search_loader.js",
+    "shared/features/self_hosted/tag_helpers.js"
+  ],
+  "pipeline": {
+    "mode": "standard"
+  }
+}

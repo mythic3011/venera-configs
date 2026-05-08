@@ -1,0 +1,23 @@
+{
+  "id": "mh18",
+  "artifact": "mh18.js",
+  "name": "18漫画",
+  "version": "1.0.0",
+  "minAppVersion": "1.4.0",
+  "aliases": [],
+  "source": {
+    "type": "concat",
+    "moduleOrder": [
+      "plugins/mh18/src/index.js"
+    ]
+  },
+  "pipeline": {
+    "mode": "standard"
+  },
+  "runtimeShared": [
+    "shared/errors/runtime.js",
+    "shared/http/runtime.js",
+    "shared/features/mh_like/index.js",
+    "shared/families/mh_like/index.js"
+  ]
+}

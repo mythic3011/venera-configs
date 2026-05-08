@@ -1,0 +1,18 @@
+{
+  "id": "manga_dex",
+  "artifact": "manga_dex.js",
+  "name": "MangaDex",
+  "version": "1.1.1",
+  "minAppVersion": "1.6.0",
+  "description": "Account feature is not supported yet.",
+  "aliases": [],
+  "source": {
+    "type": "concat",
+    "moduleOrder": [
+      "plugins/manga_dex/src/index.js"
+    ]
+  },
+  "pipeline": {
+    "mode": "standard"
+  }
+}
