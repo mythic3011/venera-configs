@@ -975,3 +975,5 @@ function resolvePluginUpdateUrl(e) {
     createCopyLikeCategoryLoaderFeature,
     createCopyLikeSearchLoaderFeature
 });
+
+"use strict";

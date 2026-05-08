@@ -548,3 +548,5 @@ function resolvePluginUpdateUrl(e) {
 
 JM.jmVersion = "2.0.16", JM.jmPkgName = "com.example.app", JM.fallbackServers = [ "www.cdntwice.org", "www.cdnsha.org", "www.cdnaspa.cc", "www.cdnntr.cc" ],
 JM.imageUrl = "https://cdn-msp.jmapinodeudzn.net", JM.ua = "Mozilla/5.0 (Linux; Android 10; K; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/130.0.0.0 Mobile Safari/537.36";
+
+"use strict";

@@ -1,9 +1,3 @@
-const LRR_ROUTES = createSelfHostedRouteHelpers(), LRR_TAG_PREFIXES = {
-    rating: "rating:",
-    dateAdded: "date_added:",
-    source: "source:"
-}, LRR_TAG_FILTER_PREFIXES = [ LRR_TAG_PREFIXES.rating, LRR_TAG_PREFIXES.dateAdded, LRR_TAG_PREFIXES.source ];
-
 class Lanraragi extends ComicSource {
     constructor(...e) {
         super(...e), this.name = "Lanraragi", this.key = "lanraragi", this.version = "1.2.0",
@@ -875,3 +869,11 @@ function resolvePluginUpdateUrl(e) {
     extractSelfHostedUrlEntriesFromTagMap,
     buildSelfHostedEmojiRatingTag
 });
+
+"use strict";
+
+const LRR_ROUTES = createSelfHostedRouteHelpers(), LRR_TAG_PREFIXES = {
+    rating: "rating:",
+    dateAdded: "date_added:",
+    source: "source:"
+}, LRR_TAG_FILTER_PREFIXES = [ LRR_TAG_PREFIXES.rating, LRR_TAG_PREFIXES.dateAdded, LRR_TAG_PREFIXES.source ];

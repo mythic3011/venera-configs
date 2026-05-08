@@ -640,3 +640,5 @@ function resolvePluginUpdateUrl(t) {
     createPicacgRouteHelpers,
     resolvePicacgTagAction
 });
+
+"use strict";

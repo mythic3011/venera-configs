@@ -8,6 +8,7 @@ const {
   extractSourceMetadataFromFile,
   extractSourceMetadataFromCode,
 } = require("./lib");
+const { readConcatSourceFromModuleOrder } = require("./bundle-plugin");
 
 function readSourceMetadata(config) {
   const runtimeSharedPaths = Array.isArray(config.runtimeShared)
@@ -19,15 +20,10 @@ function readSourceMetadata(config) {
     return extractSourceMetadataFromFile(sourcePath, { runtimeSharedPaths });
   }
 
-  const moduleSources = config.source.moduleOrder.map((relativePath) => {
-    const fullPath = path.join(REPO_ROOT, relativePath);
-    if (!fs.existsSync(fullPath)) {
-      throw new Error(`Missing module ${relativePath}`);
-    }
-    return fs.readFileSync(fullPath, "utf8").trimEnd();
-  });
-
-  const joined = `${moduleSources.join("\n\n")}\n`;
+  const joined = readConcatSourceFromModuleOrder(
+    config.source.moduleOrder,
+    config.id,
+  );
   return extractSourceMetadataFromCode(joined, `${config.id}.concat.js`, {
     runtimeSharedPaths,
   });

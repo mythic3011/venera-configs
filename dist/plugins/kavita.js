@@ -1,36 +1,3 @@
-const refreshKavitaReferenceDataFeature = createSelfHostedReferenceCacheFeature({
-    metaTimestampKey: "kavita_meta_ts",
-    ttlMs: 3e5,
-    resetData: {
-        kavita_libraries: [],
-        kavita_genres: [],
-        kavita_authors: []
-    },
-    hasToken: e => Boolean(e.loadData("token")),
-    loadPayload: async e => {
-        const [t, a, o] = await Promise.all([ e.getJson(KAVITA_ROUTES.librariesPath()), e.getJson(KAVITA_ROUTES.genresPath()), e.getJson(KAVITA_ROUTES.peopleByRolePath(), {
-            role: 3
-        }) ]);
-        return {
-            libraries: t,
-            genres: a,
-            authors: o
-        };
-    },
-    savePayload: (e, t) => {
-        const a = Array.isArray(null == t ? void 0 : t.libraries) ? t.libraries.filter(e => e && e.id) : [];
-        e.saveData("kavita_libraries", a.map(e => ({
-            id: e.id,
-            name: e.name
-        }))), e.saveData("kavita_genres", Array.isArray(null == t ? void 0 : t.genres) ? t.genres : []),
-        e.saveData("kavita_authors", Array.isArray(null == t ? void 0 : t.authors) ? t.authors.map(e => ({
-            id: e.id,
-            name: e.name
-        })) : []);
-    },
-    shouldRethrow: e => "Login expired" === String(e)
-}), initKavitaFeature = createSafeInitFeature((e, t) => refreshKavitaReferenceDataFeature(e, t)), KAVITA_ROUTES = createKavitaRouteHelpers();
-
 class Kavita extends ComicSource {
     constructor(...e) {
         super(...e), this.name = "Kavita", this.key = "kavita", this.version = "1.0.0",
@@ -736,3 +703,38 @@ function resolvePluginUpdateUrl(e) {
     createStaticCategoryPart,
     createStoredCategoryPart
 });
+
+"use strict";
+
+const refreshKavitaReferenceDataFeature = createSelfHostedReferenceCacheFeature({
+    metaTimestampKey: "kavita_meta_ts",
+    ttlMs: 3e5,
+    resetData: {
+        kavita_libraries: [],
+        kavita_genres: [],
+        kavita_authors: []
+    },
+    hasToken: e => Boolean(e.loadData("token")),
+    loadPayload: async e => {
+        const [t, a, o] = await Promise.all([ e.getJson(KAVITA_ROUTES.librariesPath()), e.getJson(KAVITA_ROUTES.genresPath()), e.getJson(KAVITA_ROUTES.peopleByRolePath(), {
+            role: 3
+        }) ]);
+        return {
+            libraries: t,
+            genres: a,
+            authors: o
+        };
+    },
+    savePayload: (e, t) => {
+        const a = Array.isArray(null == t ? void 0 : t.libraries) ? t.libraries.filter(e => e && e.id) : [];
+        e.saveData("kavita_libraries", a.map(e => ({
+            id: e.id,
+            name: e.name
+        }))), e.saveData("kavita_genres", Array.isArray(null == t ? void 0 : t.genres) ? t.genres : []),
+        e.saveData("kavita_authors", Array.isArray(null == t ? void 0 : t.authors) ? t.authors.map(e => ({
+            id: e.id,
+            name: e.name
+        })) : []);
+    },
+    shouldRethrow: e => "Login expired" === String(e)
+}), initKavitaFeature = createSafeInitFeature((e, t) => refreshKavitaReferenceDataFeature(e, t)), KAVITA_ROUTES = createKavitaRouteHelpers();

@@ -681,3 +681,5 @@ function resolvePluginUpdateUrl(e) {
     const c = l ? `${l}/${n}` : n;
     return `${i}/${o}/${a}@${s}/${n.startsWith(`${l}/`) ? n : c}`;
 }
+
+"use strict";

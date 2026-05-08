@@ -1,73 +1,3 @@
-const JCOMIC_BASE = "https://jcomic.net", JCOMIC_REFERER = JCOMIC_BASE + "/";
-
-function trimTitle(t) {
-    if (!t) return "";
-    const e = t.lastIndexOf(" (");
-    return e > 0 ? t.slice(0, e).trim() : t.trim();
-}
-
-function parseIdFromHref(t) {
-    if (!t) return null;
-    try {
-        const e = t.split("?")[0].split("/").filter(Boolean);
-        return e.length >= 2 ? decodeURIComponent(e[1]) : decodeURIComponent(e[e.length - 1]);
-    } catch (t) {
-        return null;
-    }
-}
-
-function parseEpIdFromHref(t) {
-    if (!t) return null;
-    const e = t.split("?")[0].split("/").filter(Boolean);
-    return e.length >= 3 ? decodeURIComponent(e[2]) : null;
-}
-
-function parseComicCard(t) {
-    try {
-        const e = t.querySelector('a[href^="/eps/"], a[href^="/page/"]');
-        if (!e) return null;
-        const r = parseIdFromHref(e.attributes.href);
-        if (!r) return null;
-        const o = t.querySelector("img.comic-thumb"), i = o ? o.attributes.src : "", a = t.querySelector("p.comic-title"), n = trimTitle(a ? a.text.trim() : r), c = t.querySelectorAll('a[href^="/author/"] button'), s = Array.from(c).map(t => t.text.trim()).join(" "), l = t.querySelectorAll('a[href^="/cat/"] button');
-        let u = [];
-        if (l.length) u = Array.from(l).map(t => t.text.trim()); else {
-            const e = t.querySelectorAll('a[href^="/cat/"]');
-            u = Array.from(e).map(t => t.text.trim()).filter(Boolean);
-        }
-        const m = t.querySelector("p.comic-date"), p = m ? m.text.trim() : "";
-        return new Comic({
-            id: r,
-            title: n,
-            subTitle: s,
-            cover: i,
-            tags: u,
-            language: "zh-Hant",
-            description: p
-        });
-    } catch (t) {
-        return null;
-    }
-}
-
-function parseMaxPage(t) {
-    const e = t.querySelector("ul.pagination");
-    if (!e) return 1;
-    const r = e.querySelectorAll("a");
-    let o = 1;
-    return r.forEach(t => {
-        const e = t.text.trim(), r = parseInt(e, 10);
-        !Number.isNaN(r) && r > o && (o = r);
-    }), o;
-}
-
-function parseComicList(t) {
-    const e = t.querySelectorAll("div.row.col-lg-4.col-md-6.col-xs-12, div.row.col-md-6.col-xs-12"), r = [];
-    return e.forEach(t => {
-        const e = parseComicCard(t);
-        e && r.push(e);
-    }), r;
-}
-
 class JComic extends ComicSource {
     constructor(...t) {
         super(...t), this.name = "jcomic.net", this.key = "jcomic", this.version = "1.0.0",
@@ -256,4 +186,76 @@ function resolvePluginUpdateUrl(t) {
     if (!s) return `${o}/${i}/${a}@${n}`;
     const l = c ? `${c}/${s}` : s;
     return `${o}/${i}/${a}@${n}/${s.startsWith(`${c}/`) ? s : l}`;
+}
+
+"use strict";
+
+const JCOMIC_BASE = "https://jcomic.net", JCOMIC_REFERER = JCOMIC_BASE + "/";
+
+function trimTitle(t) {
+    if (!t) return "";
+    const e = t.lastIndexOf(" (");
+    return e > 0 ? t.slice(0, e).trim() : t.trim();
+}
+
+function parseIdFromHref(t) {
+    if (!t) return null;
+    try {
+        const e = t.split("?")[0].split("/").filter(Boolean);
+        return e.length >= 2 ? decodeURIComponent(e[1]) : decodeURIComponent(e[e.length - 1]);
+    } catch (t) {
+        return null;
+    }
+}
+
+function parseEpIdFromHref(t) {
+    if (!t) return null;
+    const e = t.split("?")[0].split("/").filter(Boolean);
+    return e.length >= 3 ? decodeURIComponent(e[2]) : null;
+}
+
+function parseComicCard(t) {
+    try {
+        const e = t.querySelector('a[href^="/eps/"], a[href^="/page/"]');
+        if (!e) return null;
+        const r = parseIdFromHref(e.attributes.href);
+        if (!r) return null;
+        const o = t.querySelector("img.comic-thumb"), i = o ? o.attributes.src : "", a = t.querySelector("p.comic-title"), n = trimTitle(a ? a.text.trim() : r), c = t.querySelectorAll('a[href^="/author/"] button'), s = Array.from(c).map(t => t.text.trim()).join(" "), l = t.querySelectorAll('a[href^="/cat/"] button');
+        let u = [];
+        if (l.length) u = Array.from(l).map(t => t.text.trim()); else {
+            const e = t.querySelectorAll('a[href^="/cat/"]');
+            u = Array.from(e).map(t => t.text.trim()).filter(Boolean);
+        }
+        const m = t.querySelector("p.comic-date"), p = m ? m.text.trim() : "";
+        return new Comic({
+            id: r,
+            title: n,
+            subTitle: s,
+            cover: i,
+            tags: u,
+            language: "zh-Hant",
+            description: p
+        });
+    } catch (t) {
+        return null;
+    }
+}
+
+function parseMaxPage(t) {
+    const e = t.querySelector("ul.pagination");
+    if (!e) return 1;
+    const r = e.querySelectorAll("a");
+    let o = 1;
+    return r.forEach(t => {
+        const e = t.text.trim(), r = parseInt(e, 10);
+        !Number.isNaN(r) && r > o && (o = r);
+    }), o;
+}
+
+function parseComicList(t) {
+    const e = t.querySelectorAll("div.row.col-lg-4.col-md-6.col-xs-12, div.row.col-md-6.col-xs-12"), r = [];
+    return e.forEach(t => {
+        const e = parseComicCard(t);
+        e && r.push(e);
+    }), r;
 }

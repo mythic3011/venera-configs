@@ -3,8 +3,9 @@
   "version": "1.0.0",
   "description": "Configuration files for venera",
   "scripts": {
-    "build:ehentai": "node scripts/build-source.js ehentai",
-    "build:all": "node scripts/build-source.js all",
+    "build:plugin": "node scripts/build-source.js",
+    "build:ehentai": "npm run build:plugin -- ehentai",
+    "build:all": "npm run build:plugin -- all",
     "discover:plugins": "node scripts/build/discover-plugins.js",
     "validate:plugins": "node scripts/build/validate-plugin-config.js",
     "write:build-manifest": "node scripts/build/write-build-manifest.js",
@@ -15,7 +16,12 @@
     "validate:release-authority": "node -e \"const fs=require('node:fs');const p='scripts/config/release-authority.json';if(!fs.existsSync(p)){throw new Error(p+' is missing')}const c=JSON.parse(fs.readFileSync(p,'utf8'));if(!c||Array.isArray(c)||typeof c!=='object'){throw new Error(p+' must be a JSON object')}if(Object.keys(c).length===0){throw new Error(p+' must not be empty')}\"",
     "test": "node --test",
     "test:runtime": "node scripts/runtime/run-runtime-tests.js",
-    "audit:unsafe-runtime-code": "node scripts/audit/unsafe-runtime-code.js"
+    "audit:unsafe-runtime-code": "node scripts/audit/unsafe-runtime-code.js",
+    "pipeline:validate": "npm run validate:release-authority && npm run validate:plugins",
+    "pipeline:build": "npm run pipeline:validate && npm run generate && npm run check-generated",
+    "pipeline:test": "npm run test && npm run test:runtime && npm run audit:unsafe-runtime-code",
+    "pipeline:verify": "npm run pipeline:build && npm run check:index && npm run pipeline:test",
+    "pipeline:ci": "npm run pipeline:verify"
   },
   "devDependencies": {
     "@babel/core": "^7.23.0",

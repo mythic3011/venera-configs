@@ -527,3 +527,5 @@ function resolvePluginUpdateUrl(e) {
     createMhLikeSearchLoaderFeature,
     loadMhLikeBaseComicInfoFeature
 });
+
+"use strict";

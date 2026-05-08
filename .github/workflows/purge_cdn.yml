@@ -1,13 +1,22 @@
 name: Purge jsDelivr CDN
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - main
 
+permissions:
+  contents: read
+
+concurrency:
+  group: purge-cdn-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   purge-cdn:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     
     steps:
       - name: Checkout code
@@ -15,10 +24,15 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
       - name: Validate release authority config
         run: npm run validate:release-authority
       
-      - name: Get changed .js and .json files
+      - name: Get changed CDN-served files
         id: changed-files
         run: |
           BEFORE="${{ github.event.before }}"
@@ -35,10 +49,10 @@ jobs:
              DIFF_CMD="git diff --name-only $BEFORE $AFTER"
           fi
           
-          CHANGED_FILES=$($DIFF_CMD | grep -E '\.(js|json)$' || true)
+          CHANGED_FILES=$($DIFF_CMD | grep -E '^(dist/plugins/.*\.js|index\.json)$' || true)
           
           if [ -z "$CHANGED_FILES" ]; then
-            echo "No .js or .json files changed"
+            echo "No CDN-served files changed"
             echo "files=" >> $GITHUB_OUTPUT
           else
             echo "Changed files:"

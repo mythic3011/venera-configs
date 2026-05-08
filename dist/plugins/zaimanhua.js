@@ -318,3 +318,5 @@ Zaimanhua.categoryParamMap = {
     画集: "30788",
     C100: "31137"
 };
+
+"use strict";

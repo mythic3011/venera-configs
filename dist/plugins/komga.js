@@ -1,37 +1,3 @@
-const refreshKomgaReferenceDataFeature = createSelfHostedReferenceCacheFeature({
-    metaTimestampKey: "komga_meta_ts",
-    ttlMs: 3e5,
-    resetData: {
-        komga_libraries: [],
-        komga_tags: [],
-        komga_genres: [],
-        komga_languages: [],
-        komga_collections: []
-    },
-    hasToken: e => Boolean(e.authToken),
-    loadPayload: async e => {
-        const [t, a, o, r, s] = await Promise.all([ e.getJson(KOMGA_ROUTES.librariesPath()), e.getJson(KOMGA_ROUTES.seriesTagsPath()), e.getJson(KOMGA_ROUTES.languagesPath()), e.getJson(KOMGA_ROUTES.collectionsPath(), {
-            unpaged: !0,
-            sort: [ "name,asc" ]
-        }), e.getJson(KOMGA_ROUTES.genresPath()) ]);
-        return {
-            libraries: t,
-            tags: a,
-            languages: o,
-            collections: r,
-            genres: s
-        };
-    },
-    savePayload: (e, t) => {
-        const a = Array.isArray(null == t ? void 0 : t.libraries) ? t.libraries.filter(e => e && e.id) : [], o = null != t && t.collections && "object" == typeof t.collections ? t.collections : null, r = Array.isArray(null == o ? void 0 : o.content) ? o.content : Array.isArray(null == t ? void 0 : t.collections) ? t.collections : [];
-        e.saveData("komga_libraries", a), e.saveData("komga_tags", Array.isArray(null == t ? void 0 : t.tags) ? t.tags : []),
-        e.saveData("komga_genres", Array.isArray(null == t ? void 0 : t.genres) ? t.genres : []),
-        e.saveData("komga_languages", Array.isArray(null == t ? void 0 : t.languages) ? t.languages : []),
-        e.saveData("komga_collections", r);
-    },
-    shouldRethrow: e => "Login expired" === String(e)
-}), initKomgaFeature = createSafeInitFeature((e, t) => refreshKomgaReferenceDataFeature(e, t)), KOMGA_ROUTES = createKomgaRouteHelpers();
-
 class Komga extends ComicSource {
     constructor(...e) {
         super(...e), this.name = "Komga", this.key = "komga", this.version = "1.0.0", this.minAppVersion = "1.4.0",
@@ -781,3 +747,39 @@ function resolvePluginUpdateUrl(e) {
     createStaticCategoryPart,
     createStoredCategoryPart
 });
+
+"use strict";
+
+const refreshKomgaReferenceDataFeature = createSelfHostedReferenceCacheFeature({
+    metaTimestampKey: "komga_meta_ts",
+    ttlMs: 3e5,
+    resetData: {
+        komga_libraries: [],
+        komga_tags: [],
+        komga_genres: [],
+        komga_languages: [],
+        komga_collections: []
+    },
+    hasToken: e => Boolean(e.authToken),
+    loadPayload: async e => {
+        const [t, a, o, r, s] = await Promise.all([ e.getJson(KOMGA_ROUTES.librariesPath()), e.getJson(KOMGA_ROUTES.seriesTagsPath()), e.getJson(KOMGA_ROUTES.languagesPath()), e.getJson(KOMGA_ROUTES.collectionsPath(), {
+            unpaged: !0,
+            sort: [ "name,asc" ]
+        }), e.getJson(KOMGA_ROUTES.genresPath()) ]);
+        return {
+            libraries: t,
+            tags: a,
+            languages: o,
+            collections: r,
+            genres: s
+        };
+    },
+    savePayload: (e, t) => {
+        const a = Array.isArray(null == t ? void 0 : t.libraries) ? t.libraries.filter(e => e && e.id) : [], o = null != t && t.collections && "object" == typeof t.collections ? t.collections : null, r = Array.isArray(null == o ? void 0 : o.content) ? o.content : Array.isArray(null == t ? void 0 : t.collections) ? t.collections : [];
+        e.saveData("komga_libraries", a), e.saveData("komga_tags", Array.isArray(null == t ? void 0 : t.tags) ? t.tags : []),
+        e.saveData("komga_genres", Array.isArray(null == t ? void 0 : t.genres) ? t.genres : []),
+        e.saveData("komga_languages", Array.isArray(null == t ? void 0 : t.languages) ? t.languages : []),
+        e.saveData("komga_collections", r);
+    },
+    shouldRethrow: e => "Login expired" === String(e)
+}), initKomgaFeature = createSafeInitFeature((e, t) => refreshKomgaReferenceDataFeature(e, t)), KOMGA_ROUTES = createKomgaRouteHelpers();

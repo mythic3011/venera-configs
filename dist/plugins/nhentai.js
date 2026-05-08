@@ -1167,3 +1167,5 @@ Nhentai.nhentaiTags = {
     32114: "onpu segawa",
     11924: "kagerou imaizumi"
 };
+
+"use strict";

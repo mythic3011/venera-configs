@@ -358,3 +358,5 @@ function resolvePluginUpdateUrl(e) {
 }
 
 Wnacg.domains = [];
+
+"use strict";

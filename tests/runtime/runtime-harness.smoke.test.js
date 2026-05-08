@@ -10,10 +10,15 @@ const manifestPath = path.join(repoRoot, ".generated", "build-manifest.json");
 
 function loadPluginMetadata(artifactPath) {
   const source = fs.readFileSync(path.join(repoRoot, artifactPath), "utf8");
+  const classFirstMatch = source.match(
+    /^\s*class\s+([A-Za-z_$][A-Za-z0-9_$]*)\s+extends\s+ComicSource\b/,
+  );
+  assert.ok(classFirstMatch, `source must start with ComicSource class in ${artifactPath}`);
+
   const classMatch = source.match(/class\s+([A-Za-z_$][A-Za-z0-9_$]*)\s+extends\s+ComicSource/);
   assert.ok(classMatch, `source class missing in ${artifactPath}`);
 
-  const className = classMatch[1];
+  const className = classFirstMatch[1];
   const context = createVeneraHostShim();
   vm.runInContext(`${source}\nthis.__Ctor__=${className};`, context, {
     filename: artifactPath,

@@ -1,30 +1,3 @@
-const YKMH_DESKTOP_BASE_URL = normalizeWebSourceBaseUrl("https://www.ykmh.net"), YKMH_MOBILE_BASE_URL = normalizeWebSourceBaseUrl("https://m.ykmh.net"), YKMH_DESKTOP_DEFAULT_COVER = buildWebSourceUrl(YKMH_DESKTOP_BASE_URL, "/images/default/cover.png"), YKMH_MOBILE_DEFAULT_COVER = buildWebSourceUrl(YKMH_MOBILE_BASE_URL, "/images/default/cover.png");
-
-function toYkmhDesktopUrl(e) {
-    return toWebSourceAbsoluteUrl(e, YKMH_DESKTOP_BASE_URL);
-}
-
-function toYkmhMobileUrl(e) {
-    return toWebSourceAbsoluteUrl(e, YKMH_MOBILE_BASE_URL);
-}
-
-function toYkmhMobileComicUrl(e) {
-    return ensureWebSourceTrailingSlash(toYkmhMobileUrl(replaceWebSourceBaseUrl(String(e || "").trim(), YKMH_DESKTOP_BASE_URL, YKMH_MOBILE_BASE_URL)));
-}
-
-function buildYkmhCategoryRequestUrl(e, t, a) {
-    return "" === e || void 0 === e ? buildWebSourceUrl(YKMH_DESKTOP_BASE_URL, `/list/${t}/`, {
-        page: a
-    }) : buildWebSourceUrl(YKMH_DESKTOP_BASE_URL, `/list/${e}/${t}/${a}/`);
-}
-
-function buildYkmhSearchRequestUrl(e, t) {
-    const a = {
-        keywords: e
-    };
-    return t && t > 1 && (a.page = t), buildWebSourceUrl(YKMH_DESKTOP_BASE_URL, "/search/", a);
-}
-
 class YKMHSource extends ComicSource {
     constructor(...e) {
         super(...e), this.name = "优酷漫画", this.key = "ykmh", this.version = "1.0.0", this.minAppVersion = "1.4.0",
@@ -691,3 +664,32 @@ YKMHSource.category_param_dict = {
     resolveMappedCategoryTagAction,
     createMappedCategoryTagActionResolver
 });
+
+"use strict";
+
+const YKMH_DESKTOP_BASE_URL = normalizeWebSourceBaseUrl("https://www.ykmh.net"), YKMH_MOBILE_BASE_URL = normalizeWebSourceBaseUrl("https://m.ykmh.net"), YKMH_DESKTOP_DEFAULT_COVER = buildWebSourceUrl(YKMH_DESKTOP_BASE_URL, "/images/default/cover.png"), YKMH_MOBILE_DEFAULT_COVER = buildWebSourceUrl(YKMH_MOBILE_BASE_URL, "/images/default/cover.png");
+
+function toYkmhDesktopUrl(e) {
+    return toWebSourceAbsoluteUrl(e, YKMH_DESKTOP_BASE_URL);
+}
+
+function toYkmhMobileUrl(e) {
+    return toWebSourceAbsoluteUrl(e, YKMH_MOBILE_BASE_URL);
+}
+
+function toYkmhMobileComicUrl(e) {
+    return ensureWebSourceTrailingSlash(toYkmhMobileUrl(replaceWebSourceBaseUrl(String(e || "").trim(), YKMH_DESKTOP_BASE_URL, YKMH_MOBILE_BASE_URL)));
+}
+
+function buildYkmhCategoryRequestUrl(e, t, a) {
+    return "" === e || void 0 === e ? buildWebSourceUrl(YKMH_DESKTOP_BASE_URL, `/list/${t}/`, {
+        page: a
+    }) : buildWebSourceUrl(YKMH_DESKTOP_BASE_URL, `/list/${e}/${t}/${a}/`);
+}
+
+function buildYkmhSearchRequestUrl(e, t) {
+    const a = {
+        keywords: e
+    };
+    return t && t > 1 && (a.page = t), buildWebSourceUrl(YKMH_DESKTOP_BASE_URL, "/search/", a);
+}

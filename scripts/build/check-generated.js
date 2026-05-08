@@ -44,6 +44,27 @@ function checkArtifactHashes(manifest) {
   return errors;
 }
 
+function checkClassFirstArtifacts(manifest) {
+  const errors = [];
+  const classFirstPattern =
+    /^\s*class\s+[A-Za-z_$][A-Za-z0-9_$]*\s+extends\s+ComicSource\b/;
+
+  for (const plugin of manifest.plugins) {
+    const outputPath = path.join(REPO_ROOT, plugin.outputPath);
+    if (!fs.existsSync(outputPath)) {
+      errors.push(`Missing generated artifact: ${plugin.outputPath}`);
+      continue;
+    }
+    const content = fs.readFileSync(outputPath, "utf8");
+    if (!classFirstPattern.test(content)) {
+      errors.push(
+        `Class-first violation for ${plugin.id}: ${plugin.outputPath} must start with 'class <Source> extends ComicSource'`,
+      );
+    }
+  }
+  return errors;
+}
+
 function checkIndexMatchesManifest(manifest) {
   const current = readJson(PUBLIC_INDEX_PATH);
   const expected = manifest.plugins.map((plugin) => {
@@ -75,6 +96,7 @@ function main() {
 
   const errors = [
     ...checkArtifactHashes(manifest),
+    ...checkClassFirstArtifacts(manifest),
     ...checkIndexMatchesManifest(manifest),
   ];
 

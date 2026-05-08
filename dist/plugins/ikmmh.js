@@ -1,23 +1,3 @@
-var _Ikm;
-
-function getValidatorCookie(e) {
-    const t = e.match(/document\.cookie\s*=\s*"([^"]+)"/);
-    if (!t) return null;
-    const r = t[1].split(";");
-    if (0 === r.length) return null;
-    const a = r[0].trim(), o = a.indexOf("="), i = a.substring(0, o), s = a.substring(o + 1);
-    return new Cookie({
-        name: i,
-        value: s,
-        domain: "www.ikmmh.com"
-    });
-}
-
-function needPassValidator(e) {
-    var t = getValidatorCookie(e);
-    return null != t && (Network.setCookies(Ikm.baseUrl, [ t ]), !0);
-}
-
 class Ikm extends ComicSource {
     constructor(...e) {
         super(...e), this.name = "爱看漫", this.key = "ikmmh", this.version = "1.0.5", this.minAppVersion = "1.0.0",
@@ -272,3 +252,25 @@ Ikm.webHeaders = {
         referer: _Ikm.baseUrl
     }
 });
+
+"use strict";
+
+var _Ikm;
+
+function getValidatorCookie(e) {
+    const t = e.match(/document\.cookie\s*=\s*"([^"]+)"/);
+    if (!t) return null;
+    const r = t[1].split(";");
+    if (0 === r.length) return null;
+    const a = r[0].trim(), o = a.indexOf("="), i = a.substring(0, o), s = a.substring(o + 1);
+    return new Cookie({
+        name: i,
+        value: s,
+        domain: "www.ikmmh.com"
+    });
+}
+
+function needPassValidator(e) {
+    var t = getValidatorCookie(e);
+    return null != t && (Network.setCookies(Ikm.baseUrl, [ t ]), !0);
+}

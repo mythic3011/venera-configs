@@ -587,3 +587,5 @@ Comick.comic_status = {
     南非荷兰文: "af",
     拉脱维亚文: "lv"
 };
+
+"use strict";

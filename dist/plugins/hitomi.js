@@ -1,3 +1,380 @@
+class Hitomi extends ComicSource {
+    constructor(...e) {
+        super(...e), this.name = "hitomi.la", this.key = "hitomi", this.version = "1.1.2",
+        this.minAppVersion = "1.4.6", this.url = resolvePluginUpdateUrl("hitomi.js"), this.galleryCache = [],
+        this.categoryResultCache = void 0, this.searchResultCaches = new Map, this.explore = [ {
+            title: "hitomi.la",
+            type: "multiPageComicList",
+            load: async e => {
+                e || (e = 1);
+                const t = await getSingleTagSearchPage({
+                    state: {
+                        area: "all",
+                        tag: "index",
+                        language: "all",
+                        orderby: "date",
+                        orderbykey: "added",
+                        orderbydirection: "desc"
+                    },
+                    page: e - 1
+                });
+                return {
+                    comics: (await get_galleryblocks(t.galleryids)).map(e => this._mapGalleryBlockInfoToComic(e)),
+                    maxPage: Math.ceil(t.count / 25)
+                };
+            },
+            loadNext(e) {}
+        } ], this.category = {
+            title: "hitomi.la",
+            parts: [ {
+                name: "语言",
+                type: "fixed",
+                categories: [ "汉语", "英语" ],
+                itemType: "category",
+                categoryParams: [ "language:chinese", "language:english" ]
+            }, {
+                name: "类别",
+                type: "fixed",
+                categories: [ "同人志", "漫画", "画师CG", "游戏CG", "图集", "动画" ],
+                itemType: "category",
+                categoryParams: [ "type:doujinshi", "type:manga", "type:artistcg", "type:gamecg", "type:imageset", "type:anime" ]
+            } ],
+            enableRankingPage: !0
+        }, this.categoryComics = {
+            load: async (e, t, a, r) => {
+                const s = t;
+                if (!s.includes(":")) throw new Error("不合法的标签，请使用namespace:tag的格式");
+                if (1 === r) {
+                    const e = {
+                        term: s,
+                        orderby: "date",
+                        orderbykey: "added",
+                        orderbydirection: "desc"
+                    };
+                    switch (parseInt(a[0])) {
+                      case 1:
+                        e.orderbykey = "published";
+                        break;
+
+                      case 2:
+                        e.orderby = "popular", e.orderbykey = "today";
+                        break;
+
+                      case 3:
+                        e.orderby = "popular", e.orderbykey = "week";
+                        break;
+
+                      case 4:
+                        e.orderby = "popular", e.orderbykey = "month";
+                        break;
+
+                      case 5:
+                        e.orderby = "popular", e.orderbykey = "year";
+                        break;
+
+                      case 6:
+                        e.orderbydirection = "random";
+                    }
+                    const t = await search(e);
+                    if ("single" === t.type) {
+                        const e = (await get_galleryblocks(t.gids)).map(e => this._mapGalleryBlockInfoToComic(e));
+                        return this.categoryResultCache = {
+                            type: "single",
+                            state: t.state,
+                            count: t.count
+                        }, {
+                            comics: e,
+                            maxPage: Math.ceil(t.count / 25)
+                        };
+                    }
+                    {
+                        const e = (await get_galleryblocks(t.gids.slice(25 * r - 25, 25 * r))).map(e => this._mapGalleryBlockInfoToComic(e));
+                        return this.categoryResultCache = {
+                            type: "all",
+                            gids: t.gids,
+                            count: t.count
+                        }, {
+                            comics: e,
+                            maxPage: Math.ceil(t.count / 25)
+                        };
+                    }
+                }
+                if ("single" === this.categoryResultCache.type) {
+                    const e = await getSingleTagSearchPage({
+                        state: this.categoryResultCache.state,
+                        page: r - 1
+                    });
+                    return {
+                        comics: (await get_galleryblocks(e.galleryids)).map(e => this._mapGalleryBlockInfoToComic(e)),
+                        maxPage: Math.ceil(this.categoryResultCache.count / 25)
+                    };
+                }
+                return {
+                    comics: (await get_galleryblocks(this.categoryResultCache.gids.slice(25 * r - 25, 25 * r))).map(e => this._mapGalleryBlockInfoToComic(e)),
+                    maxPage: Math.ceil(this.categoryResultCache.count / 25)
+                };
+            },
+            optionList: [ {
+                options: [ "0-Date Added", "1-Date Published", "2-Popular:Today", "3-Popular:Week", "4-Popular:Month", "5-Popular:Year", "6-Random" ],
+                notShowWhen: null,
+                showWhen: null
+            } ],
+            ranking: {
+                options: [ "today-Today", "week-Week", "month-Month", "year-Year" ],
+                load: async (e, t) => {
+                    t || (t = 1);
+                    const a = await getSingleTagSearchPage({
+                        state: {
+                            area: "all",
+                            tag: "index",
+                            language: "all",
+                            orderby: "popular",
+                            orderbykey: e,
+                            orderbydirection: "desc"
+                        },
+                        page: t - 1
+                    });
+                    return {
+                        comics: (await get_galleryblocks(a.galleryids)).map(e => this._mapGalleryBlockInfoToComic(e)),
+                        maxPage: Math.ceil(a.count / 25)
+                    };
+                }
+            }
+        }, this.search = {
+            load: async (e, t, a) => {
+                const r = (e || "") + "|" + t.join(",");
+                if (1 === a) {
+                    const s = {
+                        term: e,
+                        orderby: "date",
+                        orderbykey: "added",
+                        orderbydirection: "desc"
+                    };
+                    switch (parseInt(t[0])) {
+                      case 1:
+                        s.orderbykey = "published";
+                        break;
+
+                      case 2:
+                        s.orderby = "popular", s.orderbykey = "today";
+                        break;
+
+                      case 3:
+                        s.orderby = "popular", s.orderbykey = "week";
+                        break;
+
+                      case 4:
+                        s.orderby = "popular", s.orderbykey = "month";
+                        break;
+
+                      case 5:
+                        s.orderby = "popular", s.orderbykey = "year";
+                        break;
+
+                      case 6:
+                        s.orderbydirection = "random";
+                    }
+                    const n = await search(s);
+                    if ("single" === n.type) {
+                        const e = (await get_galleryblocks(n.gids)).map(e => this._mapGalleryBlockInfoToComic(e));
+                        return this.searchResultCaches.set(r, {
+                            type: "single",
+                            state: n.state,
+                            count: n.count
+                        }), {
+                            comics: e,
+                            maxPage: Math.ceil(n.count / 25)
+                        };
+                    }
+                    {
+                        const e = (await get_galleryblocks(n.gids.slice(25 * a - 25, 25 * a))).map(e => this._mapGalleryBlockInfoToComic(e));
+                        return this.searchResultCaches.set(r, {
+                            type: "all",
+                            gids: n.gids,
+                            count: n.count
+                        }), {
+                            comics: e,
+                            maxPage: Math.ceil(n.count / 25)
+                        };
+                    }
+                }
+                {
+                    const e = this.searchResultCaches.get(r);
+                    if ("single" === e.type) {
+                        const t = await getSingleTagSearchPage({
+                            state: e.state,
+                            page: a - 1
+                        });
+                        return {
+                            comics: (await get_galleryblocks(t.galleryids)).map(e => this._mapGalleryBlockInfoToComic(e)),
+                            maxPage: Math.ceil(e.count / 25)
+                        };
+                    }
+                    return {
+                        comics: (await get_galleryblocks(e.gids.slice(25 * a - 25, 25 * a))).map(e => this._mapGalleryBlockInfoToComic(e)),
+                        maxPage: Math.ceil(e.count / 25)
+                    };
+                }
+            },
+            loadNext: async (e, t, a) => {},
+            optionList: [ {
+                type: "select",
+                options: [ "0-Date Added", "1-Date Published", "2-Popular:Today", "3-Popular:Week", "4-Popular:Month", "5-Popular:Year", "6-Random" ],
+                label: "sort",
+                default: null
+            } ],
+            enableTagsSuggestions: !0,
+            onTagSuggestionSelected: (e, t) => {
+                let a;
+                switch (e) {
+                  case "reclass":
+                    a = "type";
+                    break;
+
+                  case "parody":
+                    a = "series";
+                    break;
+
+                  case "other":
+                  case "mixed":
+                  case "temp":
+                  case "cosplayer":
+                    a = "tag";
+                    break;
+
+                  default:
+                    a = e;
+                }
+                return `${a}:${t.replaceAll(" ", "_")}`;
+            }
+        }, this.comic = {
+            loadInfo: async e => {
+                const t = await get_gallery_detail(e), a = new Map;
+                let r;
+                return "type" in t && t.type && a.set("type", [ t.type ]), t.groups.length && a.set("groups", t.groups),
+                t.artists.length && a.set("artists", t.artists), "language" in t && t.language && a.set("language", [ t.language ]),
+                t.series.length && a.set("series", t.series), t.characters.length && a.set("characters", t.characters),
+                t.females.length && a.set("females", t.females), t.males.length && a.set("males", t.males),
+                t.others.length && a.set("others", t.others), t.related_gids.length && (r = (await get_galleryblocks(t.related_gids)).map(e => this._mapGalleryBlockInfoToComic(e))),
+                this.galleryCache = t, new ComicDetails({
+                    title: t.title,
+                    cover: get_thumbnail_url_from_hash(t.thumbnail_hash, !0),
+                    tags: a,
+                    maxPage: t.files.length,
+                    thumbnails: t.files.map(e => get_thumbnail_url_from_hash(e.hash)),
+                    uploadTime: formatDate(t.posted_time),
+                    url: t.url,
+                    recommend: r
+                });
+            },
+            loadEp: async (e, t) => {
+                const a = this.galleryCache;
+                if ("anime" === a.type) throw new Error("不支持视频浏览");
+                return {
+                    images: await get_image_srcs(a.files)
+                };
+            },
+            onImageLoad: (e, t, a) => ({
+                url: e,
+                headers: {
+                    referer: refererUrl
+                }
+            }),
+            onThumbnailLoad: e => ({
+                url: e,
+                headers: {
+                    referer: refererUrl
+                }
+            }),
+            onClickTag: (e, t) => {
+                let a;
+                switch (e) {
+                  case "type":
+                    a = "type";
+                    break;
+
+                  case "groups":
+                    a = "group";
+                    break;
+
+                  case "artists":
+                    a = "artist";
+                    break;
+
+                  case "language":
+                    a = "language";
+                    break;
+
+                  case "series":
+                    a = "series";
+                    break;
+
+                  case "characters":
+                    a = "character";
+                    break;
+
+                  case "females":
+                    a = "female";
+                    break;
+
+                  case "males":
+                    a = "male";
+                    break;
+
+                  case "others":
+                    a = "tag";
+                }
+                if (!a) throw new Error("不支持的标签命名空间: " + e);
+                return {
+                    page: "search",
+                    attributes: {
+                        keyword: a + ":" + t.replaceAll(" ", "_")
+                    }
+                };
+            },
+            link: {
+                domains: [ "hitomi.la" ],
+                linkToId: e => {
+                    const t = /https:\/\/hitomi\.la\/\w+\/[^\/]+-(\d+)\.html/.exec(e);
+                    if (t) return t[1];
+                    throw new Error("Invalid gallery url of hitomi.la");
+                }
+            },
+            enableTagsTranslate: !0
+        };
+    }
+    _mapGalleryBlockInfoToComic(e) {
+        return new Comic({
+            id: e.gid,
+            title: e.title,
+            subTitle: e.artists.length ? e.artists.join(" ") : "",
+            cover: get_thumbnail_url_from_hash(e.thumbnail_hashs[0], !0),
+            tags: [ ...e.series, ...e.females.map(e => "f:" + e), ...e.males.map(e => "m:" + e), ...e.others.map(e => "f:" + e) ],
+            language: e.language,
+            description: e.type ? e.type + "\n" + formatDate(e.posted_time) : e.posted_time
+        });
+    }
+    init() {}
+}
+
+function __veneraGetRuntimeGlobal() {
+    return "object" == typeof globalThis && null !== globalThis ? globalThis : {};
+}
+
+function __veneraNormalizeAuthorityPart(e, t, a) {
+    const r = String(null == e ? "" : e).trim() || t;
+    return a ? r.replace(/^\/+|\/+$/g, "") : r;
+}
+
+function resolvePluginUpdateUrl(e) {
+    const t = __veneraGetRuntimeGlobal(), a = t.__VENERA_RELEASE_AUTHORITY__ && "object" == typeof t.__VENERA_RELEASE_AUTHORITY__ ? t.__VENERA_RELEASE_AUTHORITY__ : {}, r = __veneraNormalizeAuthorityPart(a.cdnOrigin, "https://cdn.jsdelivr.net", !1).replace(/\/+$/, ""), s = __veneraNormalizeAuthorityPart(a.providerPath, "gh", !0), n = __veneraNormalizeAuthorityPart(a.repository, "mythic3011/venera-configs", !0), o = __veneraNormalizeAuthorityPart(a.releaseRef, "main", !1), i = __veneraNormalizeAuthorityPart(a.artifactPathPrefix, "dist/plugins", !0), l = String(e || "").replace(/^\/+/, "");
+    if (!l) return `${r}/${s}/${n}@${o}`;
+    const c = i ? `${i}/${l}` : l;
+    return `${r}/${s}/${n}@${o}/${l.startsWith(`${i}/`) ? l : c}`;
+}
+
+"use strict";
+
 const domain2 = "gold-usergeneratedcontent.net", domain = "ltn." + domain2, nozomiextension = ".nozomi", separator = "-", extension = ".html", galleriesdir = "galleries", index_dir = "tagindex", galleries_index_dir = "galleriesindex", languages_index_dir = "languagesindex", nozomiurl_index_dir = "nozomiurlindex", max_node_size = 464, B = 16, compressed_nozomi_prefix = "n", tag_index_domain = "tagindex.hitomi.la", namespaces = [ "artist", "character", "female", "group", "language", "male", "series", "tag", "type" ], refererUrl = "https://hitomi.la/";
 
 let gg, galleries_index_version = "";
@@ -463,379 +840,4 @@ function parseGalleryDetail(e) {
         translations: c,
         related_gids: g
     };
-}
-
-class Hitomi extends ComicSource {
-    constructor(...e) {
-        super(...e), this.name = "hitomi.la", this.key = "hitomi", this.version = "1.1.2",
-        this.minAppVersion = "1.4.6", this.url = resolvePluginUpdateUrl("hitomi.js"), this.galleryCache = [],
-        this.categoryResultCache = void 0, this.searchResultCaches = new Map, this.explore = [ {
-            title: "hitomi.la",
-            type: "multiPageComicList",
-            load: async e => {
-                e || (e = 1);
-                const t = await getSingleTagSearchPage({
-                    state: {
-                        area: "all",
-                        tag: "index",
-                        language: "all",
-                        orderby: "date",
-                        orderbykey: "added",
-                        orderbydirection: "desc"
-                    },
-                    page: e - 1
-                });
-                return {
-                    comics: (await get_galleryblocks(t.galleryids)).map(e => this._mapGalleryBlockInfoToComic(e)),
-                    maxPage: Math.ceil(t.count / 25)
-                };
-            },
-            loadNext(e) {}
-        } ], this.category = {
-            title: "hitomi.la",
-            parts: [ {
-                name: "语言",
-                type: "fixed",
-                categories: [ "汉语", "英语" ],
-                itemType: "category",
-                categoryParams: [ "language:chinese", "language:english" ]
-            }, {
-                name: "类别",
-                type: "fixed",
-                categories: [ "同人志", "漫画", "画师CG", "游戏CG", "图集", "动画" ],
-                itemType: "category",
-                categoryParams: [ "type:doujinshi", "type:manga", "type:artistcg", "type:gamecg", "type:imageset", "type:anime" ]
-            } ],
-            enableRankingPage: !0
-        }, this.categoryComics = {
-            load: async (e, t, a, r) => {
-                const s = t;
-                if (!s.includes(":")) throw new Error("不合法的标签，请使用namespace:tag的格式");
-                if (1 === r) {
-                    const e = {
-                        term: s,
-                        orderby: "date",
-                        orderbykey: "added",
-                        orderbydirection: "desc"
-                    };
-                    switch (parseInt(a[0])) {
-                      case 1:
-                        e.orderbykey = "published";
-                        break;
-
-                      case 2:
-                        e.orderby = "popular", e.orderbykey = "today";
-                        break;
-
-                      case 3:
-                        e.orderby = "popular", e.orderbykey = "week";
-                        break;
-
-                      case 4:
-                        e.orderby = "popular", e.orderbykey = "month";
-                        break;
-
-                      case 5:
-                        e.orderby = "popular", e.orderbykey = "year";
-                        break;
-
-                      case 6:
-                        e.orderbydirection = "random";
-                    }
-                    const t = await search(e);
-                    if ("single" === t.type) {
-                        const e = (await get_galleryblocks(t.gids)).map(e => this._mapGalleryBlockInfoToComic(e));
-                        return this.categoryResultCache = {
-                            type: "single",
-                            state: t.state,
-                            count: t.count
-                        }, {
-                            comics: e,
-                            maxPage: Math.ceil(t.count / 25)
-                        };
-                    }
-                    {
-                        const e = (await get_galleryblocks(t.gids.slice(25 * r - 25, 25 * r))).map(e => this._mapGalleryBlockInfoToComic(e));
-                        return this.categoryResultCache = {
-                            type: "all",
-                            gids: t.gids,
-                            count: t.count
-                        }, {
-                            comics: e,
-                            maxPage: Math.ceil(t.count / 25)
-                        };
-                    }
-                }
-                if ("single" === this.categoryResultCache.type) {
-                    const e = await getSingleTagSearchPage({
-                        state: this.categoryResultCache.state,
-                        page: r - 1
-                    });
-                    return {
-                        comics: (await get_galleryblocks(e.galleryids)).map(e => this._mapGalleryBlockInfoToComic(e)),
-                        maxPage: Math.ceil(this.categoryResultCache.count / 25)
-                    };
-                }
-                return {
-                    comics: (await get_galleryblocks(this.categoryResultCache.gids.slice(25 * r - 25, 25 * r))).map(e => this._mapGalleryBlockInfoToComic(e)),
-                    maxPage: Math.ceil(this.categoryResultCache.count / 25)
-                };
-            },
-            optionList: [ {
-                options: [ "0-Date Added", "1-Date Published", "2-Popular:Today", "3-Popular:Week", "4-Popular:Month", "5-Popular:Year", "6-Random" ],
-                notShowWhen: null,
-                showWhen: null
-            } ],
-            ranking: {
-                options: [ "today-Today", "week-Week", "month-Month", "year-Year" ],
-                load: async (e, t) => {
-                    t || (t = 1);
-                    const a = await getSingleTagSearchPage({
-                        state: {
-                            area: "all",
-                            tag: "index",
-                            language: "all",
-                            orderby: "popular",
-                            orderbykey: e,
-                            orderbydirection: "desc"
-                        },
-                        page: t - 1
-                    });
-                    return {
-                        comics: (await get_galleryblocks(a.galleryids)).map(e => this._mapGalleryBlockInfoToComic(e)),
-                        maxPage: Math.ceil(a.count / 25)
-                    };
-                }
-            }
-        }, this.search = {
-            load: async (e, t, a) => {
-                const r = (e || "") + "|" + t.join(",");
-                if (1 === a) {
-                    const s = {
-                        term: e,
-                        orderby: "date",
-                        orderbykey: "added",
-                        orderbydirection: "desc"
-                    };
-                    switch (parseInt(t[0])) {
-                      case 1:
-                        s.orderbykey = "published";
-                        break;
-
-                      case 2:
-                        s.orderby = "popular", s.orderbykey = "today";
-                        break;
-
-                      case 3:
-                        s.orderby = "popular", s.orderbykey = "week";
-                        break;
-
-                      case 4:
-                        s.orderby = "popular", s.orderbykey = "month";
-                        break;
-
-                      case 5:
-                        s.orderby = "popular", s.orderbykey = "year";
-                        break;
-
-                      case 6:
-                        s.orderbydirection = "random";
-                    }
-                    const n = await search(s);
-                    if ("single" === n.type) {
-                        const e = (await get_galleryblocks(n.gids)).map(e => this._mapGalleryBlockInfoToComic(e));
-                        return this.searchResultCaches.set(r, {
-                            type: "single",
-                            state: n.state,
-                            count: n.count
-                        }), {
-                            comics: e,
-                            maxPage: Math.ceil(n.count / 25)
-                        };
-                    }
-                    {
-                        const e = (await get_galleryblocks(n.gids.slice(25 * a - 25, 25 * a))).map(e => this._mapGalleryBlockInfoToComic(e));
-                        return this.searchResultCaches.set(r, {
-                            type: "all",
-                            gids: n.gids,
-                            count: n.count
-                        }), {
-                            comics: e,
-                            maxPage: Math.ceil(n.count / 25)
-                        };
-                    }
-                }
-                {
-                    const e = this.searchResultCaches.get(r);
-                    if ("single" === e.type) {
-                        const t = await getSingleTagSearchPage({
-                            state: e.state,
-                            page: a - 1
-                        });
-                        return {
-                            comics: (await get_galleryblocks(t.galleryids)).map(e => this._mapGalleryBlockInfoToComic(e)),
-                            maxPage: Math.ceil(e.count / 25)
-                        };
-                    }
-                    return {
-                        comics: (await get_galleryblocks(e.gids.slice(25 * a - 25, 25 * a))).map(e => this._mapGalleryBlockInfoToComic(e)),
-                        maxPage: Math.ceil(e.count / 25)
-                    };
-                }
-            },
-            loadNext: async (e, t, a) => {},
-            optionList: [ {
-                type: "select",
-                options: [ "0-Date Added", "1-Date Published", "2-Popular:Today", "3-Popular:Week", "4-Popular:Month", "5-Popular:Year", "6-Random" ],
-                label: "sort",
-                default: null
-            } ],
-            enableTagsSuggestions: !0,
-            onTagSuggestionSelected: (e, t) => {
-                let a;
-                switch (e) {
-                  case "reclass":
-                    a = "type";
-                    break;
-
-                  case "parody":
-                    a = "series";
-                    break;
-
-                  case "other":
-                  case "mixed":
-                  case "temp":
-                  case "cosplayer":
-                    a = "tag";
-                    break;
-
-                  default:
-                    a = e;
-                }
-                return `${a}:${t.replaceAll(" ", "_")}`;
-            }
-        }, this.comic = {
-            loadInfo: async e => {
-                const t = await get_gallery_detail(e), a = new Map;
-                let r;
-                return "type" in t && t.type && a.set("type", [ t.type ]), t.groups.length && a.set("groups", t.groups),
-                t.artists.length && a.set("artists", t.artists), "language" in t && t.language && a.set("language", [ t.language ]),
-                t.series.length && a.set("series", t.series), t.characters.length && a.set("characters", t.characters),
-                t.females.length && a.set("females", t.females), t.males.length && a.set("males", t.males),
-                t.others.length && a.set("others", t.others), t.related_gids.length && (r = (await get_galleryblocks(t.related_gids)).map(e => this._mapGalleryBlockInfoToComic(e))),
-                this.galleryCache = t, new ComicDetails({
-                    title: t.title,
-                    cover: get_thumbnail_url_from_hash(t.thumbnail_hash, !0),
-                    tags: a,
-                    maxPage: t.files.length,
-                    thumbnails: t.files.map(e => get_thumbnail_url_from_hash(e.hash)),
-                    uploadTime: formatDate(t.posted_time),
-                    url: t.url,
-                    recommend: r
-                });
-            },
-            loadEp: async (e, t) => {
-                const a = this.galleryCache;
-                if ("anime" === a.type) throw new Error("不支持视频浏览");
-                return {
-                    images: await get_image_srcs(a.files)
-                };
-            },
-            onImageLoad: (e, t, a) => ({
-                url: e,
-                headers: {
-                    referer: refererUrl
-                }
-            }),
-            onThumbnailLoad: e => ({
-                url: e,
-                headers: {
-                    referer: refererUrl
-                }
-            }),
-            onClickTag: (e, t) => {
-                let a;
-                switch (e) {
-                  case "type":
-                    a = "type";
-                    break;
-
-                  case "groups":
-                    a = "group";
-                    break;
-
-                  case "artists":
-                    a = "artist";
-                    break;
-
-                  case "language":
-                    a = "language";
-                    break;
-
-                  case "series":
-                    a = "series";
-                    break;
-
-                  case "characters":
-                    a = "character";
-                    break;
-
-                  case "females":
-                    a = "female";
-                    break;
-
-                  case "males":
-                    a = "male";
-                    break;
-
-                  case "others":
-                    a = "tag";
-                }
-                if (!a) throw new Error("不支持的标签命名空间: " + e);
-                return {
-                    page: "search",
-                    attributes: {
-                        keyword: a + ":" + t.replaceAll(" ", "_")
-                    }
-                };
-            },
-            link: {
-                domains: [ "hitomi.la" ],
-                linkToId: e => {
-                    const t = /https:\/\/hitomi\.la\/\w+\/[^\/]+-(\d+)\.html/.exec(e);
-                    if (t) return t[1];
-                    throw new Error("Invalid gallery url of hitomi.la");
-                }
-            },
-            enableTagsTranslate: !0
-        };
-    }
-    _mapGalleryBlockInfoToComic(e) {
-        return new Comic({
-            id: e.gid,
-            title: e.title,
-            subTitle: e.artists.length ? e.artists.join(" ") : "",
-            cover: get_thumbnail_url_from_hash(e.thumbnail_hashs[0], !0),
-            tags: [ ...e.series, ...e.females.map(e => "f:" + e), ...e.males.map(e => "m:" + e), ...e.others.map(e => "f:" + e) ],
-            language: e.language,
-            description: e.type ? e.type + "\n" + formatDate(e.posted_time) : e.posted_time
-        });
-    }
-    init() {}
-}
-
-function __veneraGetRuntimeGlobal() {
-    return "object" == typeof globalThis && null !== globalThis ? globalThis : {};
-}
-
-function __veneraNormalizeAuthorityPart(e, t, a) {
-    const r = String(null == e ? "" : e).trim() || t;
-    return a ? r.replace(/^\/+|\/+$/g, "") : r;
-}
-
-function resolvePluginUpdateUrl(e) {
-    const t = __veneraGetRuntimeGlobal(), a = t.__VENERA_RELEASE_AUTHORITY__ && "object" == typeof t.__VENERA_RELEASE_AUTHORITY__ ? t.__VENERA_RELEASE_AUTHORITY__ : {}, r = __veneraNormalizeAuthorityPart(a.cdnOrigin, "https://cdn.jsdelivr.net", !1).replace(/\/+$/, ""), s = __veneraNormalizeAuthorityPart(a.providerPath, "gh", !0), n = __veneraNormalizeAuthorityPart(a.repository, "mythic3011/venera-configs", !0), o = __veneraNormalizeAuthorityPart(a.releaseRef, "main", !1), i = __veneraNormalizeAuthorityPart(a.artifactPathPrefix, "dist/plugins", !0), l = String(e || "").replace(/^\/+/, "");
-    if (!l) return `${r}/${s}/${n}@${o}`;
-    const c = i ? `${i}/${l}` : l;
-    return `${r}/${s}/${n}@${o}/${l.startsWith(`${i}/`) ? l : c}`;
 }

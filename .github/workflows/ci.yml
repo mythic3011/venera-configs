@@ -1,6 +1,7 @@
 name: CI
 
 on:
+  workflow_dispatch:
   pull_request:
   push:
     branches:
@@ -9,9 +10,17 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: "22"
+
 jobs:
-  test:
+  verify:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
 
     steps:
       - name: Checkout code
@@ -20,25 +29,21 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "22"
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
 
       - name: Install dependencies
         run: npm ci
 
-      - name: Validate release authority config
-        run: npm run validate:release-authority
+      - name: Run full verification pipeline
+        run: npm run pipeline:verify
 
-      - name: Generate plugin artifacts
-        run: npm run generate
-
-      - name: Verify generated outputs
-        run: npm run check-generated -- --ci
-
-      - name: Run tests
-        run: npm run test
-
-      - name: Run runtime compatibility tests
-        run: npm run test:runtime
-
-      - name: Audit unsafe runtime code
-        run: npm run audit:unsafe-runtime-code
+      - name: Upload generated artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: generated-artifacts-${{ github.sha }}
+          path: |
+            .generated/build-manifest.json
+            index.json
+            dist/plugins/*.js

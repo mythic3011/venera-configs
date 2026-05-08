@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-05-08T16:23:40.464Z",
+  "generatedAt": "2026-05-08T16:50:41.875Z",
   "releaseAuthorityPath": "scripts/config/release-authority.json",
   "releaseAuthority": {
     "provider": "jsdelivr",
@@ -79,8 +79,8 @@
       "outputPath": "dist/plugins/baozi.js",
       "publicUrl": "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/dist/plugins/baozi.js",
       "checksums": {
-        "sha256": "1afa02fbff722cd3fc1a034a083571f40e72d94b366747f49c41cce6a097eee3",
-        "bytes": 14088
+        "sha256": "2081ba821fb8fcf0bc9dcf5bc14360fd1f35a73534d43dfd3744663441a2a6b4",
+        "bytes": 14103
       }
     },
     {
@@ -110,8 +110,8 @@
       "outputPath": "dist/plugins/ccc.js",
       "publicUrl": "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/dist/plugins/ccc.js",
       "checksums": {
-        "sha256": "f7c9612185dd2c7a8b802c22e56739d31d484238db3e1aa7137d712ea7ea9c27",
-        "bytes": 19774
+        "sha256": "4ff283e539dad2f04b6f3ff20ae7050b98f4b2d2a6a0beec8b94785195b33ad9",
+        "bytes": 19789
       }
     },
     {
@@ -141,8 +141,8 @@
       "outputPath": "dist/plugins/comic_walker.js",
       "publicUrl": "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/dist/plugins/comic_walker.js",
       "checksums": {
-        "sha256": "e25a8bebff1609bfb3e40e1bc201a5b5b149f9547f086fb4132e81d0513d78aa",
-        "bytes": 10888
+        "sha256": "68734028bb57caf5b18a1986cdac36bb9c21259707f99ac26f39bc3e14f9556f",
+        "bytes": 10903
       }
     },
     {
@@ -172,8 +172,8 @@
       "outputPath": "dist/plugins/comick.js",
       "publicUrl": "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/dist/plugins/comick.js",
       "checksums": {
-        "sha256": "5aa42ba9cde2dc76d57d4e2f76cc03870283f38b62be49b8557f35add71c558d",
-        "bytes": 23063
+        "sha256": "f365a217e18bcfea137fa8a5344d479365d87120c11065eccbfa5f237a1e2212",
+        "bytes": 23078
       }
     },
     {
@@ -210,8 +210,8 @@
       "outputPath": "dist/plugins/copy_manga.js",
       "publicUrl": "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/dist/plugins/copy_manga.js",
       "checksums": {
-        "sha256": "23828fc25c9db7581896ac2c2ad58c796a7ad94a9ea0dd0c846decee9e27ccf4",
-        "bytes": 45709
+        "sha256": "64664e7256ce993ca233687e79331b68723c4bd792ddeb32e5dbb79a517b5401",
+        "bytes": 45724
       }
     },
     {
@@ -289,8 +289,8 @@
       "outputPath": "dist/plugins/ehentai.js",
       "publicUrl": "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/dist/plugins/ehentai.js",
       "checksums": {
-        "sha256": "b265017ddd1636d42b3ad4ea0128e2c7a540755ead9c1ce76248768a8424c8f7",
-        "bytes": 69442
+        "sha256": "aec82bb3bb9b685c60aedff2fbb9f651f6b36723a9bd070afe39f7c0a9f4bf2d",
+        "bytes": 69457
       }
     },
     {
@@ -325,8 +325,8 @@
       "outputPath": "dist/plugins/goda.js",
       "publicUrl": "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/dist/plugins/goda.js",
       "checksums": {
-        "sha256": "82ad57935d5b0b6426758c33be6046d118c000493432a34bcc9adc7ebfcb3c5c",
-        "bytes": 19708
+        "sha256": "98833eeaffbdae4b72004be28aac677cdee59f863a551d1af2b7cd6b50a1a209",
+        "bytes": 19723
       }
     },
     {
@@ -356,8 +356,8 @@
       "outputPath": "dist/plugins/happy.js",
       "publicUrl": "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/dist/plugins/happy.js",
       "checksums": {
-        "sha256": "197699457f0b3da7eed18a53942e5f5d647494d4e0c911aa891fa3de1d8df5b5",
-        "bytes": 20857
+        "sha256": "8a28a675470c2ad2616d9b74335127db4cc49da2b78ec1c56a57131a4926235e",
+        "bytes": 20872
       }
     },
     {
@@ -387,8 +387,8 @@
       "outputPath": "dist/plugins/hcomic.js",
       "publicUrl": "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/dist/plugins/hcomic.js",
       "checksums": {
-        "sha256": "f141e57cd52f03bd01bbeae99551b56af650a40463be833edfde9e3aa9537869",
-        "bytes": 16324
+        "sha256": "d00c905c9b151a0a3e94b73a114261a6a704c03f7878cfe424cdef2b424459ae",
+        "bytes": 16339
       }
     },
     {
@@ -418,8 +418,8 @@
       "outputPath": "dist/plugins/hitomi.js",
       "publicUrl": "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/dist/plugins/hitomi.js",
       "checksums": {
-        "sha256": "6c576fb6a301339b4a3479475e25023b67966fff65e9ca5ee85e4d62b6e6c7df",
-        "bytes": 33683
+        "sha256": "3ecf71c2808ab9702e1d0bf204ceb6520d58117b32b5e5b481eabe53ecde0150",
+        "bytes": 33698
       }
     },
     {
@@ -456,8 +456,8 @@
       "outputPath": "dist/plugins/hot_manga.js",
       "publicUrl": "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/dist/plugins/hot_manga.js",
       "checksums": {
-        "sha256": "a4ec708d53467c3e19dea56c297e51a56807319aa18d5e14355001d515582989",
-        "bytes": 39079
+        "sha256": "9b55916875f93077ef577f1208cd9ec6667ab2e5a0bb091dbb92af3668e69199",
+        "bytes": 39094
       }
     },
     {
@@ -487,8 +487,8 @@
       "outputPath": "dist/plugins/ikmmh.js",
       "publicUrl": "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/dist/plugins/ikmmh.js",
       "checksums": {
-        "sha256": "c26e7bae259b9434e27014ff815cd36a7e676834d2e96c509a199dd177284eed",
-        "bytes": 15308
+        "sha256": "6784d44062081fd3e0d649366d0f0b76fab4836e1a2cbb199dab7e2806097656",
+        "bytes": 15323
       }
     },
     {
@@ -518,8 +518,8 @@
       "outputPath": "dist/plugins/jcomic.js",
       "publicUrl": "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/dist/plugins/jcomic.js",
       "checksums": {
-        "sha256": "e3cbc48d406865c671d9a112283b2af2a8089f4f55b0def2e36246b0271a2f19",
-        "bytes": 11460
+        "sha256": "381f517877b3aea7c9d7396fde85c6f7fcba4f178abebcf1204737e5a3481e06",
+        "bytes": 11475
       }
     },
     {
@@ -549,8 +549,8 @@
       "outputPath": "dist/plugins/jm.js",
       "publicUrl": "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/dist/plugins/jm.js",
       "checksums": {
-        "sha256": "b18e0cc1558921ffda7f7852f5b17e8beb809243325db8133c1c446dab5337e9",
-        "bytes": 25788
+        "sha256": "37e6aa31e17284b7b5d38becf2ed362dce40a03448e649348a69149aa194e9d8",
+        "bytes": 25803
       }
     },
     {
@@ -586,8 +586,8 @@
       "outputPath": "dist/plugins/kavita.js",
       "publicUrl": "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/dist/plugins/kavita.js",
       "checksums": {
-        "sha256": "f5cb41020877d3335eb39fe43f51a5b49ebe158a5d20333996b241afc6a995d2",
-        "bytes": 30827
+        "sha256": "4a49e70e8eb11aae38d3e95a05d146c2812c8dfd0df65979fc52562d917f8cfd",
+        "bytes": 30842
       }
     },
     {
@@ -623,8 +623,8 @@
       "outputPath": "dist/plugins/komga.js",
       "publicUrl": "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/dist/plugins/komga.js",
       "checksums": {
-        "sha256": "d1556b2a16313a24c3afb17f14abc4b318d5d38e3ceb4e523c33748c75c5f8bf",
-        "bytes": 36545
+        "sha256": "3806bad5fdc4acdbd77f3515c5b6c70988f07b30c5f7b32d1e84e9906f5f6fc2",
+        "bytes": 36560
       }
     },
     {
@@ -654,8 +654,8 @@
       "outputPath": "dist/plugins/komiic.js",
       "publicUrl": "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/dist/plugins/komiic.js",
       "checksums": {
-        "sha256": "7a6d65634ab2bef310f7987e28d7aba0a2c10b01ff9410bb39aa34dde03b6f7c",
-        "bytes": 21101
+        "sha256": "eee6f0d66f292f29cb9b06f432c135bc6a7ba6ea14b2dcc38bdc6bcd94577968",
+        "bytes": 21116
       }
     },
     {
@@ -692,8 +692,8 @@
       "outputPath": "dist/plugins/lanraragi.js",
       "publicUrl": "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/dist/plugins/lanraragi.js",
       "checksums": {
-        "sha256": "c94be5ed3ea64ccab55a99f1c097de2b40d3572ce5816b7a75e1c3d6d6cb1d45",
-        "bytes": 39542
+        "sha256": "822ae96d7dbb11499e72748c748fe505d9d0ca4f76232f5d0f97fb1066fa01f5",
+        "bytes": 39557
       }
     },
     {
@@ -723,8 +723,8 @@
       "outputPath": "dist/plugins/manga_dex.js",
       "publicUrl": "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/dist/plugins/manga_dex.js",
       "checksums": {
-        "sha256": "c74dde8c6e3d50bf4872cacedcc5cd7901f511b1854f4ecdcea1b1804f21caf7",
-        "bytes": 24867
+        "sha256": "08e91188215d1298568491d0a5f83841ab569db6b3a639942968c0ddb68dec74",
+        "bytes": 24882
       }
     },
     {
@@ -754,8 +754,8 @@
       "outputPath": "dist/plugins/manhuagui.js",
       "publicUrl": "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/dist/plugins/manhuagui.js",
       "checksums": {
-        "sha256": "170c50df3f927069fbd8ca4aed6fed4794fc805fa53775e621de8d51039d5c8e",
-        "bytes": 36152
+        "sha256": "4245f9fcc69e68b329cc0b27d525d02a673437fcce4a62c9637b197909257cf8",
+        "bytes": 36167
       }
     },
     {
@@ -785,8 +785,8 @@
       "outputPath": "dist/plugins/manhuaren.js",
       "publicUrl": "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/dist/plugins/manhuaren.js",
       "checksums": {
-        "sha256": "bc3f8bb31c16ebd1282c3ead474142724386b1e9280a56c0fdb3e1f7d189e7d5",
-        "bytes": 28242
+        "sha256": "1f564bbe45ab32c2ab787ade2964c629756b5eafcfe113554a4914bd183be14d",
+        "bytes": 28257
       }
     },
     {
@@ -816,8 +816,8 @@
       "outputPath": "dist/plugins/manwaba.js",
       "publicUrl": "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/dist/plugins/manwaba.js",
       "checksums": {
-        "sha256": "eab070f72b36b36317e90466c589a9c71bb8140490e2c5b669d77e8af411d6c9",
-        "bytes": 10005
+        "sha256": "2317fb743acb6f41e33d126396b241bc2fc08b4526bbff893636cad213876d5f",
+        "bytes": 10020
       }
     },
     {
@@ -850,8 +850,8 @@
       "outputPath": "dist/plugins/mh1234.js",
       "publicUrl": "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/dist/plugins/mh1234.js",
       "checksums": {
-        "sha256": "3d44864201905f2b76322f68d5ff1b6c83e2aa1fd61fd4ded87d66174f3265fd",
-        "bytes": 20408
+        "sha256": "779143cdd07d54601cdbd655df080b5e0a5d9a5632391c5e3b805c3f727d626a",
+        "bytes": 20423
       }
     },
     {
@@ -886,8 +886,8 @@
       "outputPath": "dist/plugins/mh18.js",
       "publicUrl": "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/dist/plugins/mh18.js",
       "checksums": {
-        "sha256": "ce44f99caee8eba4505e08b142944a0d4832605ba4c022c420a4ed03cf55a48d",
-        "bytes": 19592
+        "sha256": "871805313b0fda48fbe6e84862d81fa0f635048322f2969ea59540ae4780c38e",
+        "bytes": 19607
       }
     },
     {
@@ -917,8 +917,8 @@
       "outputPath": "dist/plugins/mxs.js",
       "publicUrl": "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/dist/plugins/mxs.js",
       "checksums": {
-        "sha256": "4b6d9adb2f81d5f3a7e6560d90963bcff342681d4888c813f5c2259b36c47138",
-        "bytes": 15847
+        "sha256": "440cc43b4f22290914c21729b1a7db6728a8a9d81b198a956b1e77e61b427285",
+        "bytes": 15862
       }
     },
     {
@@ -948,8 +948,8 @@
       "outputPath": "dist/plugins/nhentai.js",
       "publicUrl": "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/dist/plugins/nhentai.js",
       "checksums": {
-        "sha256": "529701464d49c97c7f5af8bad2f38ce98c98929d262a14321f0b6a65af87c471",
-        "bytes": 39784
+        "sha256": "783b9047f94e13555cca9dcd2b584b7db481ff8890dd2175ce0d167d56854756",
+        "bytes": 39799
       }
     },
     {
@@ -981,8 +981,8 @@
       "outputPath": "dist/plugins/picacg.js",
       "publicUrl": "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/dist/plugins/picacg.js",
       "checksums": {
-        "sha256": "5637dfe8ac327c13c3b3aaf75b54cf0dfc97cf4b406bff61239f328e9d1ea6ea",
-        "bytes": 30989
+        "sha256": "dfc71feb1f65e0bad8a98653abc8a289d496f47d57c6392b4910fe6f5c831529",
+        "bytes": 31004
       }
     },
     {
@@ -1012,8 +1012,8 @@
       "outputPath": "dist/plugins/shonen_jump_plus.js",
       "publicUrl": "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/dist/plugins/shonen_jump_plus.js",
       "checksums": {
-        "sha256": "8c70447ed06c0d5f74729c5af36a2e7f26e3fa950ea552d83b0fe8e336bd0e95",
-        "bytes": 15928
+        "sha256": "4fc5fd352565bda0bee5eaf00cc152fd0d709e764bfc503c01f63beb746f9fb8",
+        "bytes": 15943
       }
     },
     {
@@ -1043,8 +1043,8 @@
       "outputPath": "dist/plugins/wnacg.js",
       "publicUrl": "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/dist/plugins/wnacg.js",
       "checksums": {
-        "sha256": "3134c8e9ff3162d2618b4fb76391412a1e8a4d3f3e14a490fdb72c9d5b0c6444",
-        "bytes": 18524
+        "sha256": "b7d3d75c3b581a438219ea4cf2d1f62217ef2653639fe4d394ca838e3b88ce72",
+        "bytes": 18539
       }
     },
     {
@@ -1077,8 +1077,8 @@
       "outputPath": "dist/plugins/ykmh.js",
       "publicUrl": "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/dist/plugins/ykmh.js",
       "checksums": {
-        "sha256": "a61abe6a828ba5bbe8995c289ac846632607f6d284fbf309ee580c62d06120b6",
-        "bytes": 31795
+        "sha256": "219eeba4463873b7b17cf718ef333d436de5d53676ce437e92d79938c187fb23",
+        "bytes": 31810
       }
     },
     {
@@ -1108,8 +1108,8 @@
       "outputPath": "dist/plugins/zaimanhua.js",
       "publicUrl": "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/dist/plugins/zaimanhua.js",
       "checksums": {
-        "sha256": "84b5e47f0ab33e783e6c65153ce43dcbc3a6a36b2fecce69ee0b590de24a4c64",
-        "bytes": 14544
+        "sha256": "cd33ac14ef9867d0be1315f1cc8fcfc036902717bf1f995068decb5ad6bc25c0",
+        "bytes": 14559
       }
     }
   ]

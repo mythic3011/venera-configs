@@ -1,30 +1,3 @@
-const MH1234_IMAGE_BASE_URL = normalizeWebSourceBaseUrl("https://gmh1234.wszwhg.net"), MH1234_ROUTE_PATHS = {
-    LIST: "/list/",
-    SEARCH: "/search/",
-    COMIC: "/comic"
-};
-
-function normalizeMh1234EpisodeImagePath(e) {
-    return String(e || "").replaceAll("\\", "").replace(/^\/+/, "");
-}
-
-function buildMh1234ComicPath(e) {
-    return joinWebSourcePath(MH1234_ROUTE_PATHS.COMIC, [ `${e}.html` ]);
-}
-
-function buildMh1234EpisodePath(e, i) {
-    return joinWebSourcePath(MH1234_ROUTE_PATHS.COMIC, [ e, `${i}.html` ]);
-}
-
-function buildMh1234FilterQuery(e, i, n) {
-    const a = Array.isArray(i) ? i : [];
-    return {
-        filter: `${e}-${a[0]}-${a[1]}-${a[2]}`,
-        sort: a[3],
-        page: n
-    };
-}
-
 class MH1234 extends ComicSource {
     constructor(...e) {
         super(...e), this.name = "漫画1234", this.key = "mh1234", this.version = "1.0.0",
@@ -267,3 +240,32 @@ function resolvePluginUpdateUrl(e) {
     resolveMappedCategoryTagAction,
     createMappedCategoryTagActionResolver
 });
+
+"use strict";
+
+const MH1234_IMAGE_BASE_URL = normalizeWebSourceBaseUrl("https://gmh1234.wszwhg.net"), MH1234_ROUTE_PATHS = {
+    LIST: "/list/",
+    SEARCH: "/search/",
+    COMIC: "/comic"
+};
+
+function normalizeMh1234EpisodeImagePath(e) {
+    return String(e || "").replaceAll("\\", "").replace(/^\/+/, "");
+}
+
+function buildMh1234ComicPath(e) {
+    return joinWebSourcePath(MH1234_ROUTE_PATHS.COMIC, [ `${e}.html` ]);
+}
+
+function buildMh1234EpisodePath(e, i) {
+    return joinWebSourcePath(MH1234_ROUTE_PATHS.COMIC, [ e, `${i}.html` ]);
+}
+
+function buildMh1234FilterQuery(e, i, n) {
+    const a = Array.isArray(i) ? i : [];
+    return {
+        filter: `${e}-${a[0]}-${a[1]}-${a[2]}`,
+        sort: a[3],
+        page: n
+    };
+}

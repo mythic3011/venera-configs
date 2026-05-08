@@ -71,6 +71,23 @@ Do not hand-edit generated files under `dist/plugins`; commit generated outputs 
 
 `i18n/ehentai.json` is retained as legacy compatibility content and is not the canonical authoring source.
 
+## Shared JS Imports In Plugin Pipeline
+
+For `source.type: "concat"` plugins, module files can import shared runtime helpers.
+
+- Supported import forms:
+  - `import "shared/path/to/helper.js"`
+  - `import { helperA, helperB as localName } from "shared/path/to/helper.js"`
+- Supported specifiers:
+  - `shared/...`
+  - relative `./...` and `../...` paths ending with `.js`
+- Not supported:
+  - package/bare imports
+  - default imports
+  - namespace imports (`* as`)
+
+The build pipeline inlines imported module code and emits standalone plugin artifacts without `import`/`export` at runtime.
+
 ## Source compatibility rules
 
 Venera runs comic sources through `flutter_qjs`, not Node or Chrome V8. Source files should avoid relying on runtime support for modern syntax:
