@@ -6,7 +6,7 @@ const vm = require("node:vm");
 
 const REPO_ROOT = path.resolve(__dirname, "..");
 const INDEX_PATH = path.join(REPO_ROOT, "index.json");
-const CDN_BASE = "https://cdn.jsdelivr.net/gh/venera-app/venera-configs@main/";
+const CDN_BASE = "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/";
 const CHECK_MODE = process.argv.includes("--check");
 
 function readJson(filePath) {
