@@ -11,7 +11,6 @@ const DIST_PLUGINS_DIR_REL = "dist/plugins";
 const DIST_PLUGINS_DIR = path.join(REPO_ROOT, ...DIST_PLUGINS_DIR_REL.split("/"));
 const BUILD_MANIFEST_PATH = path.join(GENERATED_DIR, "build-manifest.json");
 const RELEASE_AUTHORITY_PATH = path.join(REPO_ROOT, "scripts", "config", "release-authority.json");
-const PUBLIC_INDEX_PATH = path.join(REPO_ROOT, "index.json");
 
 const pluginSourceSchema = z.discriminatedUnion("type", [
   z.object({
@@ -424,6 +423,22 @@ function toPluginOutputPath(fileName) {
     : path.posix.join(DIST_PLUGINS_DIR_REL, normalizedFileName);
 }
 
+function buildPublicIndexEntries(plugins) {
+  return plugins.map((plugin) => {
+    const entry = {
+      name: plugin.name,
+      fileName: plugin.artifact,
+      key: plugin.id,
+      version: plugin.version,
+      url: plugin.publicUrl,
+    };
+    if (plugin.description) {
+      entry.description = plugin.description;
+    }
+    return entry;
+  });
+}
+
 module.exports = {
   REPO_ROOT,
   PLUGINS_DIR,
@@ -431,7 +446,6 @@ module.exports = {
   DIST_PLUGINS_DIR_REL,
   DIST_PLUGINS_DIR,
   BUILD_MANIFEST_PATH,
-  PUBLIC_INDEX_PATH,
   RELEASE_AUTHORITY_PATH,
   pluginConfigSchema,
   ensureDir,
@@ -447,4 +461,5 @@ module.exports = {
   sha256Hex,
   normalizeOutputCode,
   toPluginOutputPath,
+  buildPublicIndexEntries,
 };

@@ -74,8 +74,6 @@ async function main() {
   manifest.generatedAt = new Date().toISOString();
   writeJson(BUILD_MANIFEST_PATH, manifest);
 
-  runScript(path.join("scripts", "build", "write-public-index.js"));
-
   console.log(
     args.pluginId
       ? `Generated plugin: ${args.pluginId}`

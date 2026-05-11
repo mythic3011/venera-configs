@@ -6,9 +6,9 @@ const { spawnSync } = require("node:child_process");
 const {
   REPO_ROOT,
   BUILD_MANIFEST_PATH,
-  PUBLIC_INDEX_PATH,
   readJson,
   sha256Hex,
+  buildPublicIndexEntries,
 } = require("./lib");
 
 const CI_MODE = process.argv.includes("--ci");
@@ -65,26 +65,12 @@ function checkClassFirstArtifacts(manifest) {
   return errors;
 }
 
-function checkIndexMatchesManifest(manifest) {
-  const current = readJson(PUBLIC_INDEX_PATH);
-  const expected = manifest.plugins.map((plugin) => {
-    const item = {
-      name: plugin.name,
-      fileName: plugin.artifact,
-      key: plugin.id,
-      version: plugin.version,
-      url: plugin.publicUrl,
-    };
-    if (plugin.description) {
-      item.description = plugin.description;
-    }
-    return item;
-  });
-
+function checkEmbeddedPublicIndex(manifest) {
+  const expected = buildPublicIndexEntries(manifest.plugins);
+  const current = Array.isArray(manifest.publicIndex) ? manifest.publicIndex : [];
   if (JSON.stringify(current) !== JSON.stringify(expected)) {
-    return ["index.json does not match build manifest"];
+    return ["publicIndex does not match plugins metadata in build-manifest"];
   }
-
   return [];
 }
 
@@ -97,7 +83,7 @@ function main() {
   const errors = [
     ...checkArtifactHashes(manifest),
     ...checkClassFirstArtifacts(manifest),
-    ...checkIndexMatchesManifest(manifest),
+    ...checkEmbeddedPublicIndex(manifest),
   ];
 
   if (errors.length > 0) {

@@ -12,27 +12,27 @@ Configuration file repository for venera
 
 ## Maintaining metadata
 
-**Do NOT manually edit CDN URLs in source files or index.json.**
+**Do NOT manually edit CDN URLs in source files or `.generated/build-manifest.json`.**
 
 Source and config code should not hardcode full public URLs. Keep authority as components (CDN origin + provider path + repository + release ref) and let builders compose the final public URL.
 
-All source metadata (name, key, version, url) is auto-generated from the class definitions:
+All source metadata (name, key, version, url) is auto-generated from source classes and plugin configs into one canonical file: `.generated/build-manifest.json`.
 
 ```bash
-# Update index.json from all source files
+# Update .generated/build-manifest.json
 node scripts/sync-index.js
 
-# Verify index.json is up to date
+# Verify .generated/build-manifest.json is up to date
 node scripts/sync-index.js --check
 ```
 
 When you:
 
-- Add a new source file, add its entry to `index.json` (only `fileName` is required; others are filled by sync)
+- Add or update `plugins/*/plugin.config.json`, then run `node scripts/sync-index.js`
 - Update `name`, `key`, or `version` in any source class, run `node scripts/sync-index.js`
-- Keep `description` in `index.json` for optional source-specific notes (not auto-replaced)
+- Keep optional `description` in each plugin config; it is propagated into `build-manifest.json#publicIndex`
 
-CDN URLs are built automatically from release authority components and the generated artifact output path:
+CDN URLs are built automatically from release authority components and the generated artifact output path inside the manifest (`plugins[].publicUrl` and `publicIndex[].url`):
 
 ```
 https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/dist/plugins/{fileName}
@@ -70,6 +70,28 @@ node --test
 Do not hand-edit generated files under `dist/plugins`; commit generated outputs with source changes.
 
 `i18n/ehentai.json` is retained as legacy compatibility content and is not the canonical authoring source.
+
+## JS checksum and integrity
+
+Each generated plugin artifact records:
+
+- `sha256`: SHA-256 of the final artifact text
+- `bytes`: UTF-8 byte length of the final artifact text
+
+Checksums are written into `.generated/build-manifest.json` during generation and validated during `check-generated`.
+
+Recommended flow:
+
+```bash
+npm run generate
+npm run check-generated
+```
+
+Manual check for one artifact:
+
+```bash
+node -e "const fs=require('fs');const c=require('crypto');const p='dist/plugins/ehentai.js';const s=fs.readFileSync(p,'utf8');console.log({sha256:c.createHash('sha256').update(s).digest('hex'),bytes:Buffer.byteLength(s,'utf8')});"
+```
 
 ## Shared JS Imports In Plugin Pipeline
 

@@ -4,11 +4,11 @@ const path = require("node:path");
 const {
   REPO_ROOT,
   BUILD_MANIFEST_PATH,
-  PUBLIC_INDEX_PATH,
   loadPluginConfigs,
   loadReleaseAuthority,
   buildPublicBaseUrl,
   toPluginOutputPath,
+  buildPublicIndexEntries,
   writeJson,
   readJson,
   discoverPluginConfigFiles,
@@ -67,11 +67,11 @@ function buildManifest() {
     .sort((a, b) => a.id.localeCompare(b.id));
 
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     generatedAt: new Date().toISOString(),
     releaseAuthorityPath: path.relative(REPO_ROOT, path.join("scripts", "config", "release-authority.json")),
     releaseAuthority: authority,
-    publicIndexPath: path.relative(REPO_ROOT, PUBLIC_INDEX_PATH),
+    publicIndex: buildPublicIndexEntries(plugins),
     pluginConfigFiles: discoverPluginConfigFiles().map((p) => path.relative(REPO_ROOT, p)),
     plugins,
   };
