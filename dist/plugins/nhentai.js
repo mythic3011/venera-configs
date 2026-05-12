@@ -1,430 +1,657 @@
 class Nhentai extends ComicSource {
-    constructor(...a) {
-        super(...a), this.name = "nhentai", this.key = "nhentai", this.version = "1.0.8",
-        this.minAppVersion = "1.0.0", this.url = resolvePluginUpdateUrl("nhentai.js"), this.baseUrl = "https://nhentai.net",
-        this.apiBaseUrl = "https://nhentai.net/api/v2", this.imageServer = "https://i3.nhentai.net",
-        this.thumbServer = "https://t3.nhentai.net", this.account = {
+    constructor() {
+        super(), this.url = resolvePluginUpdateUrl("nhentai.js"), this.URL_SCHEME = Nhentai.URL_SCHEME,
+        this.URL_PREFIX = Nhentai.URL_PREFIX, this.DOMAIN = Nhentai.DOMAIN, this.BASE_ORIGIN = Nhentai.BASE_ORIGIN,
+        this.baseUrl = Nhentai.BASE_URL, this.apiBaseUrl = Nhentai.API_BASE_URL, this.imageServer = Nhentai.IMAGE_SERVER_URL,
+        this.thumbServer = Nhentai.THUMB_SERVER_URL, this.DEFAULT_USER_AGENT = Nhentai.DEFAULT_USER_AGENT,
+        this.SELECTOR_GALLERY = Nhentai.SELECTOR_GALLERY, this.SELECTOR_TAG_CONTAINER = Nhentai.SELECTOR_TAG_CONTAINER,
+        this.SELECTOR_TAG_NAME = Nhentai.SELECTOR_TAG_NAME, this.SELECTOR_SCRIPT = Nhentai.SELECTOR_SCRIPT,
+        this.SELECTOR_CARD_LINK = Nhentai.SELECTOR_CARD_LINK, this.SELECTOR_CARD_IMAGE = Nhentai.SELECTOR_CARD_IMAGE,
+        this.SELECTOR_CARD_CAPTION = Nhentai.SELECTOR_CARD_CAPTION, this.SELECTOR_COVER_IMAGE = Nhentai.SELECTOR_COVER_IMAGE,
+        this.SELECTOR_MAIN_TITLE = Nhentai.SELECTOR_MAIN_TITLE, this.SELECTOR_SECONDARY_TITLE = Nhentai.SELECTOR_SECONDARY_TITLE,
+        this.SELECTOR_UPLOAD_TIME = Nhentai.SELECTOR_UPLOAD_TIME, this.SELECTOR_FAVORITE_TEXT = Nhentai.SELECTOR_FAVORITE_TEXT,
+        this.SELECTOR_GALLERY_THUMB_IMAGE = Nhentai.SELECTOR_GALLERY_THUMB_IMAGE, this.SELECTOR_CONTENT_HEADING = Nhentai.SELECTOR_CONTENT_HEADING,
+        this.SELECTOR_CONTENT_HEADING_TAG_LINK = Nhentai.SELECTOR_CONTENT_HEADING_TAG_LINK,
+        this.SELECTOR_INDEX_POPULAR_GALLERY = Nhentai.SELECTOR_INDEX_POPULAR_GALLERY, this.SELECTOR_INDEX_GALLERY = Nhentai.SELECTOR_INDEX_GALLERY,
+        this.IMAGE_FORMATS = Nhentai.IMAGE_FORMATS, this.IMAGE_FORMAT_REGEX = Nhentai.IMAGE_FORMAT_REGEX,
+        this.IMAGE_SINGLE_FORMAT_REGEX = Nhentai.IMAGE_SINGLE_FORMAT_REGEX, this.GALLERY_HREF_ID_REGEX = Nhentai.GALLERY_HREF_ID_REGEX,
+        this.LINK_GALLERY_ID_REGEX = Nhentai.LINK_GALLERY_ID_REGEX, this.TAG_CLASS_ID_REGEX = Nhentai.TAG_CLASS_ID_REGEX,
+        this.NUMBER_REGEX = Nhentai.NUMBER_REGEX, this.COVER_HOST_REGEX = Nhentai.COVER_HOST_REGEX,
+        this.IMAGE_SRC_ATTRS = Nhentai.IMAGE_SRC_ATTRS, this.SOURCE_TITLE = Nhentai.SOURCE_TITLE,
+        this.TRANSLATION_KEYS = Nhentai.TRANSLATION_KEYS, this.CATEGORY_PARAM_MAP = Nhentai.CATEGORY_PARAM_MAP,
+        this.TAG_NAMESPACE_MAP = Nhentai.TAG_NAMESPACE_MAP, this.TAG_LANGUAGE_MAP = Nhentai.TAG_LANGUAGE_MAP,
+        this.IMAGE_EXTENSION_MAP = Nhentai.IMAGE_EXTENSION_MAP, this.LANGUAGE_CATEGORIES = Nhentai.LANGUAGE_CATEGORIES,
+        this.CATEGORY_SORT_OPTIONS = Nhentai.CATEGORY_SORT_OPTIONS, this.SEARCH_SORT_OPTIONS = Nhentai.SEARCH_SORT_OPTIONS,
+        this.LINK_DOMAINS = Nhentai.LINK_DOMAINS, this.PATH_ROOT = Nhentai.PATH_ROOT, this.PATH_API_PREFIX = Nhentai.PATH_API_PREFIX,
+        this.PATH_GALLERY_PREFIX = Nhentai.PATH_GALLERY_PREFIX, this.PATH_GALLERIES_PREFIX = Nhentai.PATH_GALLERIES_PREFIX,
+        this.PATH_FAVORITES = Nhentai.PATH_FAVORITES, this.PATH_SEARCH = Nhentai.PATH_SEARCH,
+        this.PATH_GALLERIES_TAGGED = Nhentai.PATH_GALLERIES_TAGGED, this.PATH_LOGIN = Nhentai.PATH_LOGIN,
+        this.PATH_REGISTER = Nhentai.PATH_REGISTER, this.PATH_LEGACY_GALLERY_PREFIX = Nhentai.PATH_LEGACY_GALLERY_PREFIX,
+        this.TRANSLATION_DATA = Nhentai.TRANSLATION_DATA, this.NHENTAI_TAG_VALUES = Nhentai.nhentaiTagValues,
+        this.GALLERY_PAGE_HEADERS = Nhentai.GALLERY_PAGE_HEADERS, this.account = {
             loginWithWebview: {
-                url: "https://nhentai.net/login/?next=/",
-                checkStatus: (a, e) => "https://nhentai.net/" === a
+                url: this.loginUrl(),
+                checkStatus: (e, t) => e === this.siteUrl(this.PATH_ROOT)
             },
             logout: () => {
-                Network.deleteCookies("https://nhentai.net");
+                Network.deleteCookies(this.cookiesDomain());
             },
-            registerWebsite: "https://nhentai.net/register/"
-        }, this.explore = [ {
-            title: "nhentai",
+            registerWebsite: this.registerUrl()
+        }, this.explore = this.createExploreConfig(), this.category = this.createCategoryConfig(),
+        this.categoryComics = this.createCategoryComicsConfig(), this.search = this.createSearchConfig(),
+        this.favorites = this.createFavoritesConfig(), this.comic = this.createComicConfig(),
+        this.translation = this.mergeHeaders(this.TRANSLATION_DATA, {
+            en: {}
+        });
+    }
+    parseComic(e) {
+        let t = e.querySelector(this.SELECTOR_CARD_LINK), a = t ? t.querySelector(this.SELECTOR_CARD_IMAGE) : null, i = this.getImageSrc(a), r = this.textOf(e.querySelector(this.SELECTOR_CARD_CAPTION)), s = this.attrOf(t, "href"), n = this.galleryIdFromHref(s), o = this.attrOf(e, "data-tags"), l = o ? o.split(" ") : [], h = this.tagMetadataFromIds(l);
+        return new Comic({
+            id: n,
+            title: r,
+            subtitle: "",
+            cover: this.toAbsoluteMediaUrl(i, !0),
+            tags: h.tags,
+            description: n,
+            language: h.language
+        });
+    }
+    normalizeComicId(e) {
+        return 0 === (e = String(e || "")).indexOf("nhentai") ? e.slice(7) : 0 === e.indexOf("nh") ? e.slice(2) : e;
+    }
+    stripTrailingSlashes(e) {
+        let t = String(e || ""), a = t.length;
+        for (;a > 0 && 47 === t.charCodeAt(a - 1); ) a -= 1;
+        return a === t.length ? t : t.slice(0, a);
+    }
+    stripLeadingSlashes(e) {
+        let t = String(e || ""), a = 0;
+        for (;a < t.length && 47 === t.charCodeAt(a); ) a += 1;
+        return 0 === a ? t : t.slice(a);
+    }
+    joinUrl(e, t = "") {
+        let a = this.stripTrailingSlashes(e), i = String(t || "");
+        return i ? 0 === i.indexOf("?") || 0 === i.indexOf("#") ? a + i : a + "/" + this.stripLeadingSlashes(i) : a;
+    }
+    hasOwn(e, t) {
+        return Object.prototype.hasOwnProperty.call(e, t);
+    }
+    buildQuery(e) {
+        let t = [];
+        for (let a in e || {}) {
+            if (!this.hasOwn(e, a)) continue;
+            let i = e[a];
+            null != i && "" !== i && t.push(encodeURIComponent(a) + "=" + encodeURIComponent(String(i)));
+        }
+        return t.join("&");
+    }
+    parseComicElements(e) {
+        let t = [], a = e || [];
+        for (let e = 0; e < a.length; e += 1) t.push(this.parseComic(a[e]));
+        return t;
+    }
+    parseComicElementsRange(e, t) {
+        let a = [], i = e || [];
+        for (let e = t || 0; e < i.length; e += 1) a.push(this.parseComic(i[e]));
+        return a;
+    }
+    formatDateObject(e) {
+        return !e || isNaN(e.getTime()) ? "" : e.getFullYear() + "-" + (e.getMonth() + 1) + "-" + e.getDate() + " " + e.getHours() + ":" + e.getMinutes();
+    }
+    parseApiComicElements(e) {
+        let t = [], a = e || [];
+        for (let e = 0; e < a.length; e += 1) t.push(this.parseComicFromApi(a[e]));
+        return t;
+    }
+    imageUrlsFromPages(e, t, a) {
+        let i = [], r = e || [];
+        for (let e = 0; e < r.length; e += 1) {
+            let s = this.toAbsoluteMediaUrl(r[e][t], a);
+            s && i.push(s);
+        }
+        return i;
+    }
+    imageSrcsFromElements(e) {
+        let t = [], a = e || [];
+        for (let e = 0; e < a.length; e += 1) {
+            let i = this.getImageSrc(a[e]);
+            i && t.push(i);
+        }
+        return t;
+    }
+    textValuesFromElements(e) {
+        let t = [], a = e || [];
+        for (let e = 0; e < a.length; e += 1) t.push(a[e].text);
+        return t;
+    }
+    tagsMapFromApi(e) {
+        let t = new Map, a = e || [];
+        for (let e = 0; e < a.length; e += 1) {
+            let i = a[e], r = this.tagNamespace(i.type);
+            t.has(r) || t.set(r, []), t.get(r).push(i.name);
+        }
+        return t;
+    }
+    tagsMapFromDocument(e) {
+        let t = new Map, a = e.querySelectorAll(this.SELECTOR_TAG_CONTAINER);
+        for (let e = 0; e < a.length; e += 1) {
+            let i = a[e], r = this.replaceAllCompat(this.firstNodeTextOf(i), ":", "");
+            if ("Uploaded" === r) continue;
+            let s = this.textValuesFromElements(i.querySelectorAll(this.SELECTOR_TAG_NAME));
+            s.length > 0 && t.set(r, s);
+        }
+        return t;
+    }
+    commentsFromApi(e) {
+        let t = [], a = e || [];
+        for (let e = 0; e < a.length; e += 1) {
+            let i = a[e];
+            t.push(new Comment({
+                userName: i.poster.username,
+                avatar: this.toAbsoluteMediaUrl(i.poster.avatar_url, !1),
+                content: i.body,
+                time: "number" == typeof i.post_date ? new Date(1e3 * i.post_date).toISOString() : String(i.post_date)
+            }));
+        }
+        return t;
+    }
+    async loadComicInfoFromApi(e, t) {
+        let a = this.parseJsonBody(t, "gallery details"), i = a.title || {}, r = i.pretty || i.english || String(e), s = i.english || "", n = s && s !== r ? s : "", o = a.cover || {}, l = a.thumbnail || {}, h = this.toAbsoluteMediaUrl(o.path || l.path || "", !0), u = this.tagsMapFromApi(a.tags || []), g = this.imageUrlsFromPages(a.pages || [], "thumbnail", !0);
+        if (0 === g.length) {
+            let t = await Network.get(this.galleryPagesUrl(e), {});
+            if (200 === t.status) {
+                let e = this.parseJsonBody(t.body, "gallery pages");
+                g = this.imageUrlsFromPages(e.pages || [], "thumbnail", !0);
+            }
+        }
+        return new ComicDetails({
+            id: String(e),
+            title: r || String(e),
+            subtitle: n || "",
+            cover: h || "",
+            tags: u,
+            uploadTime: this.formatTimestamp(a.upload_date),
+            isFavorite: !!a.is_favorited,
+            thumbnails: g,
+            related: this.parseApiComicElements(a.related || []),
+            url: this.galleryUrl(e)
+        });
+    }
+    async loadComicInfoFromWeb(e) {
+        let t = new HtmlDocument(await this.getBodyOrThrow(this.galleryUrl(e), {})), a = t.querySelector(this.SELECTOR_COVER_IMAGE), i = this.getImageSrc(a), r = this.textOf(t.querySelector(this.SELECTOR_MAIN_TITLE)), s = this.textOf(t.querySelector(this.SELECTOR_SECONDARY_TITLE)) || r || String(e), n = r && r !== s ? r : "", o = this.attrOf(t.querySelector(this.SELECTOR_UPLOAD_TIME), "datetime"), l = o ? this.formatDateObject(new Date(Date.parse(o))) : "", h = this.csrfTokenFromDocument(t), u = new ComicDetails({
+            id: String(e),
+            title: s || String(e),
+            subtitle: n || "",
+            cover: i || "",
+            tags: this.tagsMapFromDocument(t),
+            uploadTime: l || "",
+            isFavorite: this.isLogged && "Favorite" !== this.textOf(t.querySelector(this.SELECTOR_FAVORITE_TEXT)),
+            thumbnails: this.imageSrcsFromElements(t.querySelectorAll(this.SELECTOR_GALLERY_THUMB_IMAGE)),
+            related: this.parseComicElements(t.querySelectorAll(this.SELECTOR_GALLERY)),
+            url: this.galleryUrl(e)
+        });
+        return u.csrfToken = h, u;
+    }
+    async loadEpisodeImagesFromApi(e) {
+        let t = await Network.get(this.galleryPagesUrl(e), {});
+        if (200 !== t.status) return [];
+        let a = this.parseJsonBody(t.body, "gallery pages");
+        return this.imageUrlsFromPages(a.pages || [], "path", !1);
+    }
+    extractGalleryDataFromDocument(e) {
+        let t = this.scriptTextContaining(e, "window._gallery");
+        if (!t) throw new Error("Gallery script not found");
+        let a = this.extractBetween(t, 'JSON.parse("', '");', "gallery JSON"), i = this.replaceAllCompat(this.replaceAllCompat(a, "\\u0022", '"'), "\\u005C", "\\");
+        return this.parseJsonBody(i, "gallery JSON");
+    }
+    imageUrlsFromGalleryData(e) {
+        let t = e.media_id, a = [], i = e.images && e.images.pages ? e.images.pages : [];
+        for (let e = 0; e < i.length; e += 1) {
+            let r = i[e], s = this.getImageExtension(r.t);
+            a.push(this.galleryImageUrl(t, a.length + 1, s));
+        }
+        return a;
+    }
+    async loadEpisodeImagesFromWeb(e) {
+        let t = new HtmlDocument(await this.getBodyOrThrow(this.webGalleryPageUrl(e), {})), a = this.extractGalleryDataFromDocument(t);
+        return this.imageUrlsFromGalleryData(a);
+    }
+    async addOrDelFavorite(e, t, a) {
+        e = this.normalizeComicId(e);
+        let i = this.favoriteUrl(e), r = this.xhrHeaders(), s = a ? await Network.post(i, r, null) : await this.deleteWithFallback(i, r);
+        return !!this.isSuccessStatus(s.status) || await this.addOrDelFavoriteLegacy(e, a, s.status);
+    }
+    async addOrDelFavoriteLegacy(e, t, a) {
+        let i = (await this.comic.loadInfo(e)).csrfToken, r = this.legacyFavoriteUrl(e, t ? "favorite" : "unfavorite"), s = await Network.post(r, this.csrfHeaders(i, this.galleryUrl(e)), null);
+        if (this.isSuccessStatus(s.status)) return !0;
+        this.throwStatusError(s.status || a, "legacy favorite");
+    }
+    async loadFavoriteComics(e, t) {
+        let a = this.favoritesUrl(e), i = await Network.get(a, {});
+        if (this.isSuccessStatus(i.status)) return this.parseComicListFromApi(this.parseJsonBody(i.body, "favorites API result"));
+        let r = this.webFavoritesUrl(e), s = await Network.get(r, {});
+        return this.isSuccessStatus(s.status) || this.throwStatusError(s.status, "loadComics"),
+        this.parseComicList(s.body);
+    }
+    async loadCategoryComics(e, t, a, i) {
+        if (t) {
+            let e = this.CATEGORY_PARAM_MAP[String(t).toLowerCase()];
+            e && (t = e);
+        }
+        e = this.normalizeCategorySlug(e);
+        let r = a && a.length ? a[0] : "popular", s = this.normalizeSortPath(r), n = this.siteUrl(this.categoryPath(t, e, s), {
+            page: i
+        }), o = await Network.get(n, {});
+        return this.parseComicList(o.body, "category");
+    }
+    async loadSearchComics(e, t, a) {
+        let i = t && t.length ? t[0] : "date", r = this.searchUrl(e, a, i);
+        return this.parseComicListFromApi(await this.getJsonOrThrow(r, {}, "search result"));
+    }
+    buildUrl(e, t = "", a = null) {
+        let i = this.joinUrl(e, t), r = this.buildQuery(a);
+        return r && (i += (i.indexOf("?") >= 0 ? "&" : "?") + r), i;
+    }
+    siteUrl(e = "", t = null) {
+        return this.buildUrl(this.baseUrl, e, t);
+    }
+    apiUrl(e = "", t = null) {
+        return this.buildUrl(this.apiBaseUrl, e, t);
+    }
+    galleryUrl(e) {
+        return this.siteUrl(this.PATH_GALLERY_PREFIX + e + "/");
+    }
+    galleryPagesUrl(e) {
+        return this.apiUrl(this.PATH_GALLERIES_PREFIX + e + "/pages");
+    }
+    galleryDetailsUrl(e) {
+        return this.apiUrl(this.PATH_GALLERIES_PREFIX + e, {
+            include: "related,favorite"
+        });
+    }
+    galleryCommentsUrl(e) {
+        return this.apiUrl(this.PATH_GALLERIES_PREFIX + e + "/comments");
+    }
+    favoriteUrl(e) {
+        return this.apiUrl(this.PATH_GALLERIES_PREFIX + e + "/favorite");
+    }
+    legacyFavoriteUrl(e, t) {
+        return this.siteUrl(this.PATH_LEGACY_GALLERY_PREFIX + e + "/" + t);
+    }
+    favoritesUrl(e) {
+        return this.apiUrl(this.PATH_FAVORITES, {
+            page: e
+        });
+    }
+    searchUrl(e, t, a) {
+        return this.apiUrl(this.PATH_SEARCH, {
+            query: e,
+            page: t,
+            sort: a
+        });
+    }
+    taggedGalleryUrl(e) {
+        return this.apiUrl(this.PATH_GALLERIES_TAGGED, {
+            tag_id: e
+        });
+    }
+    webFavoritesUrl(e) {
+        return this.siteUrl(this.PATH_FAVORITES, {
+            page: e
+        });
+    }
+    webGalleryPageUrl(e, t = 1) {
+        return this.siteUrl(this.PATH_GALLERY_PREFIX + e + "/" + t + "/");
+    }
+    loginUrl() {
+        return this.siteUrl(this.PATH_LOGIN);
+    }
+    registerUrl() {
+        return this.siteUrl(this.PATH_REGISTER);
+    }
+    cookiesDomain() {
+        return this.baseUrl;
+    }
+    galleryPageHeaders() {
+        return this.GALLERY_PAGE_HEADERS;
+    }
+    galleryImageUrl(e, t, a) {
+        return this.joinUrl(this.imageServer, this.PATH_GALLERIES_PREFIX + e + "/" + t + "." + a);
+    }
+    categoryPath(e, t, a) {
+        return "/" + e + "/" + encodeURIComponent(t) + a;
+    }
+    galleryIdFromHref(e) {
+        let t = this.GALLERY_HREF_ID_REGEX.exec(String(e || ""));
+        return t ? t[1] : "";
+    }
+    galleryIdFromLink(e) {
+        let t = this.LINK_GALLERY_ID_REGEX.exec(String(e || ""));
+        return t ? t[1] : null;
+    }
+    tagMetadataFromIds(e) {
+        let t = [], a = "Unknown", i = e || [];
+        for (let e = 0; e < i.length; e += 1) {
+            let r = String(i[e]), s = Nhentai.nhentaiTags[r];
+            null != s && t.push(s);
+            let n = this.TAG_LANGUAGE_MAP[r];
+            n && (a = n);
+        }
+        return {
+            tags: t,
+            language: a
+        };
+    }
+    totalFromHeadingText(e) {
+        this.NUMBER_REGEX.lastIndex = 0;
+        let t = (e || "").match(this.NUMBER_REGEX);
+        return t ? parseInt(t.join("")) : 0;
+    }
+    totalFromDocument(e, t) {
+        return this.totalFromHeadingText(this.textOf(e.querySelector(t)));
+    }
+    tagIdFromCategoryDocument(e) {
+        let t = e.querySelector(this.SELECTOR_CONTENT_HEADING_TAG_LINK), a = this.attrOf(t, "class").match(this.TAG_CLASS_ID_REGEX);
+        return a ? a[1] : "";
+    }
+    textOf(e) {
+        if (!e) return "";
+        let t = e.text || e.textContent || "";
+        return String(t).trim();
+    }
+    attrOf(e, t) {
+        return e && e.attributes && e.attributes[t] || "";
+    }
+    firstNodeTextOf(e) {
+        return e && e.nodes && 0 !== e.nodes.length ? this.textOf(e.nodes[0]) : "";
+    }
+    firstAttrOf(e, t) {
+        if (!e) return "";
+        for (let a = 0; a < t.length; a += 1) {
+            let i = this.attrOf(e, t[a]);
+            if (i) return i;
+        }
+        return "";
+    }
+    getImageSrc(e) {
+        return this.firstAttrOf(e, this.IMAGE_SRC_ATTRS);
+    }
+    replaceAllCompat(e, t, a) {
+        let i = String(e || "");
+        return i.indexOf(t) < 0 ? i : i.split(t).join(a);
+    }
+    normalizeCategorySlug(e) {
+        return this.replaceAllCompat(this.replaceAllCompat(e, " ", "-"), ".", "-");
+    }
+    normalizeSortPath(e) {
+        return this.replaceAllCompat(e || "popular", "@", "-");
+    }
+    scriptTextContaining(e, t) {
+        let a = e.querySelectorAll(this.SELECTOR_SCRIPT);
+        for (let e = 0; e < a.length; e += 1) {
+            let i = a[e].text || a[e].textContent || "";
+            if (i.indexOf(t) >= 0) return i;
+        }
+        return "";
+    }
+    extractBetween(e, t, a, i) {
+        let r = e.indexOf(t);
+        if (r < 0) throw new Error(i + " start token not found");
+        r += t.length;
+        let s = e.indexOf(a, r);
+        if (s < 0) throw new Error(i + " end token not found");
+        return e.slice(r, s);
+    }
+    csrfTokenFromDocument(e) {
+        try {
+            let t = this.scriptTextContaining(e, "csrf_token");
+            if (t) return this.extractBetween(t, 'csrf_token: "', '",', "csrf token");
+        } catch (e) {}
+        return "";
+    }
+    getImageExtension(e) {
+        return this.IMAGE_EXTENSION_MAP[e] || "jpg";
+    }
+    collapseRepeatedImageExtensions(e) {
+        return this.IMAGE_FORMAT_REGEX.lastIndex = 0, String(e || "").replace(this.IMAGE_FORMAT_REGEX, e => {
+            this.IMAGE_SINGLE_FORMAT_REGEX.lastIndex = 0;
+            let t = e.match(this.IMAGE_SINGLE_FORMAT_REGEX);
+            return t ? t[0] : e;
+        });
+    }
+    normalizeImageLoadUrl(e) {
+        return e ? ((e = this.collapseRepeatedImageExtensions(e)).indexOf("/cover.") >= 0 && (this.COVER_HOST_REGEX.lastIndex = 0,
+        e = e.replace(this.COVER_HOST_REGEX, this.thumbServer)), 0 === e.indexOf("//") ? this.URL_SCHEME + ":" + e : 0 !== e.indexOf("http") ? this.URL_PREFIX + this.stripLeadingSlashes(e) : e) : "";
+    }
+    _fixAndWrap(e) {
+        return {
+            url: this.normalizeImageLoadUrl(e),
+            headers: this.galleryPageHeaders()
+        };
+    }
+    toAbsoluteMediaUrl(e, t = !1) {
+        return e ? 0 === e.indexOf("http") ? e : 0 === e.indexOf("//") ? this.URL_SCHEME + ":" + e : (0 === e.indexOf("/") && (e = e.slice(1)),
+        (e.indexOf("cover") >= 0 || e.indexOf("thumb") >= 0) && (t = !0), this.joinUrl(t ? this.thumbServer : this.imageServer, e)) : e;
+    }
+    parseComicFromApi(e) {
+        let t = e.tag_ids || [], a = this.tagMetadataFromIds(t);
+        return new Comic({
+            id: String(e.id),
+            title: e.english_title || e.japanese_title || String(e.id),
+            subtitle: "",
+            cover: this.toAbsoluteMediaUrl(e.thumbnail, !0),
+            tags: a.tags,
+            description: String(e.id),
+            language: a.language
+        });
+    }
+    parseComicListFromApi(e) {
+        return {
+            comics: this.parseApiComicElements(e.result || []),
+            maxPage: e.num_pages || 1
+        };
+    }
+    formatTimestamp(e) {
+        return this.formatDateObject(new Date(1e3 * Number(e)));
+    }
+    tagNamespace(e) {
+        let t = String(e || "").toLowerCase();
+        return this.TAG_NAMESPACE_MAP[t] || (e ? String(e).charAt(0).toUpperCase() + String(e).slice(1) : "Tags");
+    }
+    async deleteWithFallback(e, t) {
+        return "function" == typeof Network.delete ? await Network.delete(e, t, null) : "function" == typeof Network.request ? await Network.request(e, "DELETE", t, null) : await Network.post(e, this.deleteOverrideHeaders(t), null);
+    }
+    mergeHeaders(e = {}, t = {}) {
+        let a, i = {};
+        for (a in e) this.hasOwn(e, a) && (i[a] = e[a]);
+        for (a in t) this.hasOwn(t, a) && (i[a] = t[a]);
+        return i;
+    }
+    xhrHeaders(e = {}) {
+        return this.mergeHeaders(e, {
+            "X-Requested-With": "XMLHttpRequest"
+        });
+    }
+    csrfHeaders(e, t, a = {}) {
+        return this.mergeHeaders(a, {
+            "X-CSRFToken": e,
+            Referer: t,
+            "X-Requested-With": "XMLHttpRequest"
+        });
+    }
+    deleteOverrideHeaders(e = {}) {
+        return this.mergeHeaders(e, {
+            "X-HTTP-Method-Override": "DELETE"
+        });
+    }
+    isSuccessStatus(e) {
+        return e >= 200 && e < 300;
+    }
+    throwStatusError(e, t = "") {
+        if (401 === e || 403 === e) throw "Login expired";
+        let a = "HTTP " + e;
+        throw t && (a += " (" + t + ")"), a;
+    }
+    async getResponseOrThrow(e, t = {}) {
+        let a = await Network.get(e, t);
+        return this.isSuccessStatus(a.status) || this.throwStatusError(a.status, e), a;
+    }
+    async getBodyOrThrow(e, t = {}) {
+        return (await this.getResponseOrThrow(e, t)).body;
+    }
+    parseJsonBody(e, t = "JSON response") {
+        try {
+            return JSON.parse(e || "null");
+        } catch (e) {
+            throw "Failed to parse " + t + ": " + String(e);
+        }
+    }
+    async getJsonOrThrow(e, t = {}, a = "JSON response") {
+        return this.parseJsonBody(await this.getBodyOrThrow(e, t), a);
+    }
+    async parseComicList(e, t = "search") {
+        let a = new HtmlDocument(e), i = a.querySelectorAll(this.SELECTOR_GALLERY), r = i.length, s = null;
+        switch (t) {
+          case "search":
+            r = this.totalFromDocument(a, this.SELECTOR_CONTENT_HEADING) || r;
+            break;
+
+          default:
+            let e = this.tagIdFromCategoryDocument(a);
+            if (!e) {
+                r = this.totalFromDocument(a, this.SELECTOR_CONTENT_HEADING) || r;
+                break;
+            }
+            let t = null;
+            try {
+                t = await this.getJsonOrThrow(this.taggedGalleryUrl(e), {}, "tagged galleries");
+            } catch (e) {
+                r = this.totalFromDocument(a, this.SELECTOR_CONTENT_HEADING) || r;
+            }
+            null != t && (t && null != t.num_pages && (s = t.num_pages), t && null != t.total && (r = t.total));
+        }
+        return {
+            comics: this.parseComicElements(i),
+            maxPage: s || Math.ceil(r / 25)
+        };
+    }
+    createExploreConfig() {
+        return [ {
+            title: this.SOURCE_TITLE,
             type: "mixed",
-            load: async a => {
-                let e = this.baseUrl;
-                a && 1 !== a && (e = `${e}?page=${a}`);
-                let t = await Network.get(e, {});
-                if (200 !== t.status) throw "Invalid Status Code: " + t.status;
-                let i = new HtmlDocument(t.body), o = [];
-                e === this.baseUrl && o.push({
-                    title: "Popular",
-                    comics: i.querySelectorAll("div.container.index-container.index-popular > div.gallery").map(a => this.parseComic(a))
-                });
-                let r = i.querySelectorAll("div.container.index-container > div.gallery").map(a => this.parseComic(a));
-                return e === this.baseUrl && (r = r.slice(o[0].comics.length)), o.push(r), {
-                    data: o,
+            load: async e => {
+                let t = this.siteUrl(this.PATH_ROOT, e && 1 !== e ? {
+                    page: e
+                } : null), a = new HtmlDocument(await this.getBodyOrThrow(t, {})), i = [], r = !e || 1 === e, s = 0;
+                if (r) {
+                    let e = a.querySelectorAll(this.SELECTOR_INDEX_POPULAR_GALLERY), t = this.parseComicElements(e);
+                    s = t.length, i.push({
+                        title: "Popular",
+                        comics: t
+                    });
+                }
+                let n = this.parseComicElementsRange(a.querySelectorAll(this.SELECTOR_INDEX_GALLERY), r ? s : 0);
+                return i.push(n), {
+                    data: i,
                     maxPage: 2e4
                 };
             }
-        } ], this.category = {
-            title: "nhentai",
+        } ];
+    }
+    async loadComicComments(e, t, a, i) {
+        e = this.normalizeComicId(e);
+        let r = await this.getJsonOrThrow(this.galleryCommentsUrl(e), {}, "comments");
+        return {
+            comments: this.commentsFromApi(r || []),
+            maxPage: 1
+        };
+    }
+    createCategoryConfig() {
+        return {
+            title: this.SOURCE_TITLE,
             parts: [ {
                 name: "Language",
                 type: "fixed",
-                categories: [ "chinese", "english", "japanese" ],
+                categories: this.LANGUAGE_CATEGORIES,
                 itemType: "category",
                 groupParam: "language"
             }, {
                 name: "Tags",
                 type: "random",
                 randomNumber: 20,
-                categories: Object.values(Nhentai.nhentaiTags),
+                categories: this.NHENTAI_TAG_VALUES,
                 itemType: "search"
             } ],
             enableRankingPage: !1
-        }, this.categoryComics = {
-            load: async (a, e, t, i) => {
-                if (e) switch (e.toLowerCase()) {
-                  case "tags":
-                    e = "tag";
-                    break;
-
-                  case "languages":
-                    e = "language";
-                    break;
-
-                  case "artists":
-                    e = "artist";
-                    break;
-
-                  case "characters":
-                    e = "character";
-                    break;
-
-                  case "parodies":
-                    e = "parody";
-                    break;
-
-                  case "groups":
-                    e = "group";
-                    break;
-
-                  case "categories":
-                    e = "category";
-                }
-                a = a.replaceAll(" ", "-");
-                let o = (t[0] || "popular").replaceAll("@", "-");
-                a = a.replaceAll(".", "-");
-                let r = `${this.baseUrl}/${e}/${encodeURIComponent(a)}${o}?page=${i}`, s = await Network.get(r, {});
-                return this.parseComicList(s.body, "category");
-            },
+        };
+    }
+    createCategoryComicsConfig() {
+        return {
+            load: async (e, t, a, i) => await this.loadCategoryComics(e, t, a, i),
             optionList: [ {
-                options: [ "/-Recent", "/popular@today-Popular Today", "/popular@week-Popular Week", "/popular@month-Popular Month", "/popular-Popular All" ]
+                options: this.CATEGORY_SORT_OPTIONS
             } ]
-        }, this.search = {
-            load: async (a, e, t) => {
-                let i = e[0] || "date", o = `${this.apiBaseUrl}/search?query=${encodeURIComponent(a)}&page=${t}&sort=${i}`, r = await Network.get(o, {});
-                if (200 !== r.status) throw "Invalid Status Code: " + r.status;
-                return this.parseComicListFromApi(JSON.parse(r.body));
-            },
+        };
+    }
+    createSearchConfig() {
+        return {
+            load: async (e, t, a) => await this.loadSearchComics(e, t, a),
             optionList: [ {
-                options: [ "date-Recent", "popular-today-Popular Today", "popular-week-Popular Week", "popular-month-Popular Month", "popular-Popular All" ],
+                options: this.SEARCH_SORT_OPTIONS,
                 label: "sort"
             } ],
             enableTagsSuggestions: !0
-        }, this.favorites = {
+        };
+    }
+    createFavoritesConfig() {
+        return {
             multiFolder: !1,
-            addOrDelFavorite: async (a, e, t) => {
-                a = this.normalizeComicId(a);
-                let i = `${this.apiBaseUrl}/galleries/${a}/favorite`, o = {
-                    "X-Requested-With": "XMLHttpRequest"
-                }, r = t ? await Network.post(i, o, null) : await this.deleteWithFallback(i, o);
-                if (200 !== r.status) {
-                    let e = (await this.comic.loadInfo(a)).csrfToken, i = `${this.baseUrl}/api/gallery/${a}/${t ? "favorite" : "unfavorite"}`, o = await Network.post(i, {
-                        "X-CSRFToken": e,
-                        Referer: `${this.baseUrl}/g/${a}/`,
-                        "X-Requested-With": "XMLHttpRequest"
-                    }, null);
-                    if (200 === o.status) return !0;
-                    if (401 === o.status) throw "Login expired";
-                    throw "Invalid Status Code: " + o.status;
-                }
-                if (200 === r.status) return !0;
-                throw "Failed";
-            },
-            loadComics: async (a, e) => {
-                let t = `${this.apiBaseUrl}/favorites?page=${a}`, i = await Network.get(t, {});
-                if (200 === i.status) return this.parseComicListFromApi(JSON.parse(i.body));
-                let o = `${this.baseUrl}/favorites?page=${a}`, r = await Network.get(o, {});
-                if (200 !== r.status) {
-                    if (401 === i.status || 401 === r.status) throw "Login expired";
-                    throw "Invalid Status Code: " + r.status;
-                }
-                return this.parseComicList(r.body);
-            }
-        }, this.comic = {
-            onThumbnailLoad: a => this._fixAndWrap(a),
-            onImageLoad: a => this._fixAndWrap(a),
-            loadInfo: async a => {
-                var e, t, i, o, r, s;
-                a = this.normalizeComicId(a);
-                let n = await Network.get(`${this.apiBaseUrl}/galleries/${a}?include=related,favorite`, {});
-                if (200 === n.status) {
-                    var l, u, h, m, g;
-                    let e = JSON.parse(n.body), t = (null == e || null == (l = e.title) ? void 0 : l.pretty) || (null == e || null == (u = e.title) ? void 0 : u.english) || String(a), i = (null == e || null == (h = e.title) ? void 0 : h.english) || "", o = i && i !== t ? i : "", r = this.toAbsoluteMediaUrl((null == e || null == (m = e.cover) ? void 0 : m.path) || (null == e || null == (g = e.thumbnail) ? void 0 : g.path) || "", !0), s = new Map;
-                    for (let a of e.tags || []) {
-                        let e = this.tagNamespace(a.type);
-                        s.has(e) || s.set(e, []), s.get(e).push(a.name);
-                    }
-                    let c = (e.pages || []).map(a => this.toAbsoluteMediaUrl(a.thumbnail, !0)).filter(Boolean);
-                    if (0 === c.length) {
-                        let e = await Network.get(`${this.apiBaseUrl}/galleries/${a}/pages`, {});
-                        200 === e.status && (c = (JSON.parse(e.body).pages || []).map(a => this.toAbsoluteMediaUrl(a.thumbnail, !0)).filter(Boolean));
-                    }
-                    let d = (e.related || []).map(a => this.parseComicFromApi(a)), p = new ComicDetails({
-                        id: String(a),
-                        title: t || String(a),
-                        subtitle: o || "",
-                        cover: r || "",
-                        tags: s,
-                        uploadTime: this.formatTimestamp(null == e ? void 0 : e.upload_date),
-                        isFavorite: !(null == e || !e.is_favorited),
-                        thumbnails: c,
-                        related: d,
-                        url: `${this.baseUrl}/g/${a}/`
-                    });
-                    return p.csrfToken = "", p;
-                }
-                let c = await Network.get(`${this.baseUrl}/g/${a}/`, {});
-                if (200 !== c.status) throw "Invalid Status Code: " + c.status;
-                let d = new HtmlDocument(c.body), p = d.querySelector("div#cover > a > img"), k = (null == p || null == (e = p.attributes) ? void 0 : e["data-src"]) || (null == p || null == (t = p.attributes) ? void 0 : t.src) || "", b = (null == (i = d.querySelector("h1.title")) ? void 0 : i.text) || "", y = (null == (o = d.querySelector("h2.title")) ? void 0 : o.text) || b || String(a), f = b && b !== y ? b : "";
-                f || (f = "");
-                let v = new Map, w = (null == (r = d.querySelector("time")) || null == (r = r.attributes) ? void 0 : r.datetime) || "", $ = "";
-                if (w) {
-                    let a = new Date(Date.parse(w));
-                    Number.isNaN(a.getTime()) || ($ = `${a.getFullYear()}-${a.getMonth() + 1}-${a.getDate()} ${a.getHours()}:${a.getMinutes()}`);
-                }
-                for (let a of d.querySelectorAll("div.tag-container")) {
-                    let e = a.nodes[0].text.trim().replaceAll(":", "");
-                    if ("Uploaded" === e) continue;
-                    let t = a.querySelectorAll("span.name").map(a => a.text);
-                    t.length > 0 && v.set(e, t);
-                }
-                let S = this.isLogged && "Favorite" !== (null == (s = d.querySelector("button#favorite > span.text")) ? void 0 : s.text), z = d.querySelectorAll("a.gallerythumb > img").map(a => {
-                    var e, t;
-                    return (null == (e = a.attributes) ? void 0 : e["data-src"]) || (null == (t = a.attributes) ? void 0 : t.src) || "";
-                }).filter(Boolean), j = d.querySelectorAll("div.gallery").map(a => this.parseComic(a)), A = "";
-                try {
-                    A = d.querySelectorAll("script").find(a => a.text.includes("csrf_token")).text.split('csrf_token: "')[1].split('",')[0];
-                } catch (a) {}
-                let N = new ComicDetails({
-                    id: String(a),
-                    title: y || String(a),
-                    subtitle: f || "",
-                    cover: k || "",
-                    tags: v,
-                    uploadTime: $ || "",
-                    isFavorite: S,
-                    thumbnails: z,
-                    related: j,
-                    url: `${this.baseUrl}/g/${a}/`
-                });
-                return N.csrfToken = A, N;
-            },
-            loadEp: async (a, e) => {
-                a = this.normalizeComicId(a);
-                let t = await Network.get(`${this.apiBaseUrl}/galleries/${a}/pages`, {});
+            addOrDelFavorite: async (e, t, a) => await this.addOrDelFavorite(e, t, a),
+            loadComics: async (e, t) => await this.loadFavoriteComics(e, t)
+        };
+    }
+    createComicConfig() {
+        return {
+            onThumbnailLoad: e => this._fixAndWrap(e),
+            onImageLoad: e => this._fixAndWrap(e),
+            loadInfo: async e => {
+                e = this.normalizeComicId(e);
+                let t = await Network.get(this.galleryDetailsUrl(e), {});
                 if (200 === t.status) {
-                    let a = (JSON.parse(t.body).pages || []).map(a => this.toAbsoluteMediaUrl(a.path, !1));
-                    if (a.length > 0) return {
-                        images: a
+                    let a = await this.loadComicInfoFromApi(e, t.body);
+                    return a.csrfToken = "", a;
+                }
+                return await this.loadComicInfoFromWeb(e);
+            },
+            loadEp: async (e, t) => {
+                e = this.normalizeComicId(e);
+                let a = await this.loadEpisodeImagesFromApi(e);
+                if (a.length > 0) return {
+                    images: a
+                };
+                try {
+                    return {
+                        images: await this.loadEpisodeImagesFromWeb(e)
                     };
+                } catch (e) {
+                    throw "Failed to extract gallery images: " + String(e);
                 }
-                let i = await Network.get(`${this.baseUrl}/g/${a}/1/`, {});
-                if (200 !== i.status) throw "Invalid Status Code: " + i.status;
-                let o = new HtmlDocument(i.body).querySelectorAll("script").find(a => a.text.includes("window._gallery")).text.split('JSON.parse("')[1].split('");')[0].replaceAll("\\u0022", '"').replaceAll("\\u005C", "\\"), r = JSON.parse(o), s = r.media_id, n = [];
-                for (let a of r.images.pages) {
-                    let e = "jpg";
-                    switch (a.t) {
-                      case "p":
-                        e = "png";
-                        break;
-
-                      case "g":
-                        e = "gif";
-                        break;
-
-                      case "w":
-                        e = "webp";
-                    }
-                    n.push(`https://i3.nhentai.net/galleries/${s}/${n.length + 1}.${e}`);
-                }
-                return {
-                    images: n
-                };
             },
-            loadComments: async (a, e, t, i) => {
-                a = this.normalizeComicId(a);
-                let o = await Network.get(`${this.apiBaseUrl}/galleries/${a}/comments`, {});
-                if (200 !== o.status) throw "Invalid Status Code: " + o.status;
-                return {
-                    comments: JSON.parse(o.body).map(a => new Comment({
-                        userName: a.poster.username,
-                        avatar: this.toAbsoluteMediaUrl(a.poster.avatar_url, !1),
-                        content: a.body,
-                        time: "number" == typeof a.post_date ? new Date(1e3 * a.post_date).toISOString() : String(a.post_date)
-                    })),
-                    maxPage: 1
-                };
-            },
-            sendComment: async (a, e, t, i) => {
+            loadComments: async (e, t, a, i) => await this.loadComicComments(e, t, a, i),
+            sendComment: async (e, t, a, i) => {
                 throw "Not implemented";
             },
             idMatch: "^(\\d+|nh\\d+|nhentai\\d+)$",
-            onClickTag: (a, e) => ({
+            onClickTag: (e, t) => ({
                 action: "category",
-                keyword: e,
-                param: a
+                keyword: t,
+                param: e
             }),
             link: {
-                domains: [ "nhentai.net" ],
-                linkToId: a => {
-                    let e = /\/g\/(\d+)\/?$/g.exec(a);
-                    return e ? e[1] : null;
-                }
+                domains: this.LINK_DOMAINS,
+                linkToId: e => this.galleryIdFromLink(e)
             },
             enableTagsTranslate: !0
-        }, this.translation = {
-            zh_CN: {
-                Tags: "标签",
-                Language: "语言",
-                Recent: "最近",
-                "Popular Today": "今日热门",
-                "Popular Week": "本周热门",
-                "Popular Month": "本月热门",
-                "Popular All": "热门",
-                sort: "排序",
-                Languages: "语言",
-                Artists: "画师",
-                Characters: "角色",
-                Groups: "团队",
-                Parodies: "原作",
-                Categories: "分类"
-            },
-            zh_TW: {
-                Tags: "標籤",
-                Language: "語言",
-                Recent: "最近",
-                "Popular Today": "今日熱門",
-                "Popular Week": "本週熱門",
-                "Popular Month": "本月熱門",
-                "Popular All": "熱門",
-                sort: "排序",
-                Languages: "語言",
-                Artists: "畫師",
-                Characters: "角色",
-                Groups: "團隊",
-                Parodies: "原作",
-                Categories: "分類"
-            },
-            en: {}
-        };
-    }
-    parseComic(a) {
-        var e, t, i, o;
-        let r = a.querySelector("a > img"), s = (null == r || null == (e = r.attributes) ? void 0 : e["data-src"]) || (null == r || null == (t = r.attributes) ? void 0 : t.src) || "", n = (null == (i = a.querySelector("div.caption")) ? void 0 : i.text) || "", l = ((null == (o = a.querySelector("a")) || null == (o = o.attributes) ? void 0 : o.href) || "").match(/\d+/g), u = l ? l.join("") : "", h = "Unknown", m = a.attributes["data-tags"] || "";
-        m.includes("12227") ? h = "English" : m.includes("6346") ? h = "日本語" : m.includes("29963") && (h = "中文");
-        let g = [];
-        for (let a of m.split(" ")) null != Nhentai.nhentaiTags[a] && g.push(Nhentai.nhentaiTags[a]);
-        return new Comic({
-            id: u,
-            title: n,
-            subtitle: "",
-            cover: this.toAbsoluteMediaUrl(s, !0),
-            tags: g,
-            description: u,
-            language: h
-        });
-    }
-    normalizeComicId(a) {
-        return a.startsWith("nhentai") ? a.replace("nhentai", "") : a.startsWith("nh") ? a.replace("nh", "") : a;
-    }
-    _fixAndWrap(a) {
-        return a ? ((a = a.replace(/(\.(jpg|png|webp|gif))+/g, a => a.match(/\.(jpg|png|webp|gif)/g)[0])).includes("/cover.") && (a = a.replace(/https?:\/\/[it]\d\.nhentai\.net/, "https://t3.nhentai.net")),
-        a.startsWith("//") && (a = "https:" + a), a.startsWith("http") || (a = "https://" + a.replace(/^\/+/, "")),
-        {
-            url: a,
-            headers: {
-                Referer: "https://nhentai.net/",
-                "User-Agent": "Mozilla/5.0"
-            }
-        }) : {
-            url: ""
-        };
-    }
-    toAbsoluteMediaUrl(a, e = !1) {
-        return a ? a.startsWith("http") ? a : a.startsWith("//") ? "https:" + a : (a.startsWith("/") && (a = a.slice(1)),
-        (a.includes("cover") || a.includes("thumb")) && (e = !0), `${e ? this.thumbServer : this.imageServer}/${a}`) : a;
-    }
-    parseComicFromApi(a) {
-        let e = "Unknown", t = a.tag_ids || [];
-        t.includes(12227) ? e = "English" : t.includes(6346) ? e = "日本語" : t.includes(29963) && (e = "中文");
-        let i = [];
-        for (let a of t) {
-            let e = Nhentai.nhentaiTags[String(a)];
-            null != e && i.push(e);
-        }
-        return new Comic({
-            id: String(a.id),
-            title: a.english_title || a.japanese_title || String(a.id),
-            subtitle: "",
-            cover: this.toAbsoluteMediaUrl(a.thumbnail, !0),
-            tags: i,
-            description: String(a.id),
-            language: e
-        });
-    }
-    parseComicListFromApi(a) {
-        return {
-            comics: (a.result || []).map(a => this.parseComicFromApi(a)),
-            maxPage: a.num_pages || 1
-        };
-    }
-    formatTimestamp(a) {
-        let e = new Date(1e3 * Number(a));
-        return Number.isNaN(e.getTime()) ? "" : `${e.getFullYear()}-${e.getMonth() + 1}-${e.getDate()} ${e.getHours()}:${e.getMinutes()}`;
-    }
-    tagNamespace(a) {
-        switch ((a || "").toLowerCase()) {
-          case "language":
-            return "Languages";
-
-          case "artist":
-            return "Artists";
-
-          case "character":
-            return "Characters";
-
-          case "group":
-            return "Groups";
-
-          case "parody":
-            return "Parodies";
-
-          case "category":
-            return "Categories";
-
-          case "tag":
-            return "Tags";
-
-          default:
-            return a ? a.charAt(0).toUpperCase() + a.slice(1) : "Tags";
-        }
-    }
-    async deleteWithFallback(a, e) {
-        if ("function" == typeof Network.delete) return await Network.delete(a, e, null);
-        if ("function" == typeof Network.request) return await Network.request(a, "DELETE", e, null);
-        let t = {
-            ...e,
-            "X-HTTP-Method-Override": "DELETE"
-        };
-        return await Network.post(a, t, null);
-    }
-    async parseComicList(a, e = "search") {
-        var t, i, o;
-        let r = new HtmlDocument(a), s = r.querySelectorAll("div.gallery"), n = "0", l = s.length, u = null;
-        switch (e) {
-          case "search":
-            n = ((null == (t = r.querySelector("div#content > h1")) ? void 0 : t.text) || "").match(/\d+/g),
-            n && (l = parseInt(n.join("")));
-            break;
-
-          default:
-            let a = r.querySelector("div#content > h1 > a"), e = null == a || null == (i = a.attributes) ? void 0 : i.class, s = null == e || null == (o = e.match(/tag-(\d+)/)) ? void 0 : o[1];
-            if (!s) {
-                var h;
-                n = ((null == (h = r.querySelector("div#content > h1")) ? void 0 : h.text) || "").match(/\d+/g),
-                n && (l = parseInt(n.join("")));
-                break;
-            }
-            let g = await Network.get(`${this.apiBaseUrl}/galleries/tagged?tag_id=${s}`, {});
-            if (200 !== g.status) {
-                var m;
-                n = ((null == (m = r.querySelector("div#content > h1")) ? void 0 : m.text) || "").match(/\d+/g),
-                n && (l = parseInt(n.join("")));
-            } else {
-                let a = JSON.parse(g.body);
-                null != (null == a ? void 0 : a.num_pages) && (u = a.num_pages), null != (null == a ? void 0 : a.total) && (l = a.total);
-            }
-        }
-        return {
-            comics: s.map(a => this.parseComic(a)),
-            maxPage: u || Math.ceil(l / 25)
         };
     }
 }
@@ -433,19 +660,109 @@ function __veneraGetRuntimeGlobal() {
     return "object" == typeof globalThis && null !== globalThis ? globalThis : {};
 }
 
-function __veneraNormalizeAuthorityPart(a, e, t) {
-    const i = String(null == a ? "" : a).trim() || e;
-    return t ? i.replace(/^\/+|\/+$/g, "") : i;
+function __veneraNormalizeAuthorityPart(e, t, a) {
+    const i = String(null == e ? "" : e).trim() || t;
+    return a ? i.replace(/^\/+|\/+$/g, "") : i;
 }
 
-function resolvePluginUpdateUrl(a) {
-    const e = __veneraGetRuntimeGlobal(), t = e.__VENERA_RELEASE_AUTHORITY__ && "object" == typeof e.__VENERA_RELEASE_AUTHORITY__ ? e.__VENERA_RELEASE_AUTHORITY__ : {}, i = __veneraNormalizeAuthorityPart(t.cdnOrigin, "https://cdn.jsdelivr.net", !1).replace(/\/+$/, ""), o = __veneraNormalizeAuthorityPart(t.providerPath, "gh", !0), r = __veneraNormalizeAuthorityPart(t.repository, "mythic3011/venera-configs", !0), s = __veneraNormalizeAuthorityPart(t.releaseRef, "main", !1), n = __veneraNormalizeAuthorityPart(t.artifactPathPrefix, "dist/plugins", !0), l = String(a || "").replace(/^\/+/, "");
-    if (!l) return `${i}/${o}/${r}@${s}`;
-    const u = n ? `${n}/${l}` : l;
-    return `${i}/${o}/${r}@${s}/${l.startsWith(`${n}/`) ? l : u}`;
+function resolvePluginUpdateUrl(e) {
+    const t = __veneraGetRuntimeGlobal(), a = t.__VENERA_RELEASE_AUTHORITY__ && "object" == typeof t.__VENERA_RELEASE_AUTHORITY__ ? t.__VENERA_RELEASE_AUTHORITY__ : {}, i = __veneraNormalizeAuthorityPart(a.cdnOrigin, "https://cdn.jsdelivr.net", !1).replace(/\/+$/, ""), r = __veneraNormalizeAuthorityPart(a.providerPath, "gh", !0), s = __veneraNormalizeAuthorityPart(a.repository, "mythic3011/venera-configs", !0), n = __veneraNormalizeAuthorityPart(a.releaseRef, "main", !1), o = __veneraNormalizeAuthorityPart(a.artifactPathPrefix, "dist/plugins", !0), l = String(e || "").replace(/^\/+/, "");
+    if (!l) return `${i}/${r}/${s}@${n}`;
+    const h = o ? `${o}/${l}` : l;
+    return `${i}/${r}/${s}@${n}/${l.startsWith(`${o}/`) ? l : h}`;
 }
 
-Nhentai.nhentaiTags = {
+Nhentai.URL_SCHEME = "https", Nhentai.URL_PREFIX = Nhentai.URL_SCHEME + "://", Nhentai.DOMAIN = "nhentai.net",
+Nhentai.BASE_ORIGIN = Nhentai.URL_PREFIX + Nhentai.DOMAIN, Nhentai.BASE_URL = Nhentai.BASE_ORIGIN,
+Nhentai.PATH_API_PREFIX = "/api/v2", Nhentai.API_BASE_URL = Nhentai.BASE_ORIGIN + Nhentai.PATH_API_PREFIX,
+Nhentai.IMAGE_SERVER_HOST = "i3." + Nhentai.DOMAIN, Nhentai.THUMB_SERVER_HOST = "t3." + Nhentai.DOMAIN,
+Nhentai.IMAGE_SERVER_URL = Nhentai.URL_PREFIX + Nhentai.IMAGE_SERVER_HOST, Nhentai.THUMB_SERVER_URL = Nhentai.URL_PREFIX + Nhentai.THUMB_SERVER_HOST,
+Nhentai.LINK_DOMAINS = Object.freeze([ Nhentai.DOMAIN ]), Nhentai.PATH_ROOT = "/",
+Nhentai.PATH_GALLERY_PREFIX = "/g/", Nhentai.PATH_GALLERIES_PREFIX = "/galleries/",
+Nhentai.PATH_FAVORITES = "/favorites", Nhentai.PATH_SEARCH = "/search", Nhentai.PATH_GALLERIES_TAGGED = "/galleries/tagged",
+Nhentai.PATH_LOGIN = "/login/?next=/", Nhentai.PATH_REGISTER = "/register/", Nhentai.PATH_LEGACY_GALLERY_PREFIX = "/api/gallery/",
+Nhentai.DEFAULT_USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+Nhentai.GALLERY_PAGE_HEADERS = Object.freeze({
+    Referer: Nhentai.BASE_URL + "/",
+    "User-Agent": Nhentai.DEFAULT_USER_AGENT
+}), Nhentai.SELECTOR_GALLERY = "div.gallery", Nhentai.SELECTOR_TAG_CONTAINER = "div.tag-container",
+Nhentai.SELECTOR_TAG_NAME = "span.name", Nhentai.SELECTOR_SCRIPT = "script", Nhentai.SOURCE_TITLE = "nhentai",
+Nhentai.SELECTOR_CARD_LINK = "a", Nhentai.SELECTOR_CARD_IMAGE = "img", Nhentai.SELECTOR_CARD_CAPTION = "div.caption",
+Nhentai.SELECTOR_COVER_IMAGE = "div#cover > a > img", Nhentai.SELECTOR_MAIN_TITLE = "h1.title",
+Nhentai.SELECTOR_SECONDARY_TITLE = "h2.title", Nhentai.SELECTOR_UPLOAD_TIME = "time",
+Nhentai.SELECTOR_FAVORITE_TEXT = "button#favorite > span.text", Nhentai.SELECTOR_GALLERY_THUMB_IMAGE = "a.gallerythumb > img",
+Nhentai.SELECTOR_CONTENT_HEADING = "div#content > h1", Nhentai.SELECTOR_CONTENT_HEADING_TAG_LINK = "div#content > h1 > a",
+Nhentai.SELECTOR_INDEX_POPULAR_GALLERY = "div.container.index-container.index-popular > div.gallery",
+Nhentai.SELECTOR_INDEX_GALLERY = "div.container.index-container > div.gallery",
+Nhentai.IMAGE_FORMATS = "jpg|png|webp|gif", Nhentai.IMAGE_FORMAT_REGEX = /(\.(jpg|png|webp|gif))+/g,
+Nhentai.IMAGE_SINGLE_FORMAT_REGEX = /\.(jpg|png|webp|gif)/g, Nhentai.GALLERY_HREF_ID_REGEX = /\/g\/(\d+)/,
+Nhentai.LINK_GALLERY_ID_REGEX = /\/g\/(\d+)\/?$/, Nhentai.TAG_CLASS_ID_REGEX = /tag-(\d+)/,
+Nhentai.NUMBER_REGEX = /\d+/g, Nhentai.COVER_HOST_REGEX = /https?:\/\/[it]\d\.nhentai\.net/g,
+Nhentai.IMAGE_SRC_ATTRS = Object.freeze([ "data-src", "data-original", "src" ]),
+Nhentai.TRANSLATION_KEYS = Object.freeze([ "Tags", "Language", "Recent", "Popular Today", "Popular Week", "Popular Month", "Popular All", "sort", "Languages", "Artists", "Characters", "Groups", "Parodies", "Categories" ]),
+Nhentai.CATEGORY_PARAM_MAP = Object.freeze({
+    tags: "tag",
+    languages: "language",
+    artists: "artist",
+    characters: "character",
+    parodies: "parody",
+    groups: "group",
+    categories: "category"
+}), Nhentai.TAG_NAMESPACE_MAP = Object.freeze({
+    language: "Languages",
+    artist: "Artists",
+    character: "Characters",
+    group: "Groups",
+    parody: "Parodies",
+    category: "Categories",
+    tag: "Tags"
+}), Nhentai.TAG_LANGUAGE_MAP = Object.freeze({
+    12227: "English",
+    6346: "日本語",
+    29963: "中文"
+}), Nhentai.IMAGE_EXTENSION_MAP = Object.freeze({
+    p: "png",
+    g: "gif",
+    w: "webp"
+}), Nhentai.LANGUAGE_CATEGORIES = Object.freeze([ "chinese", "english", "japanese" ]),
+Nhentai.CATEGORY_SORT_OPTIONS = Object.freeze([ "/-Recent", "/popular@today-Popular Today", "/popular@week-Popular Week", "/popular@month-Popular Month", "/popular-Popular All" ]),
+Nhentai.SEARCH_SORT_OPTIONS = Object.freeze([ "date-Recent", "popular-today-Popular Today", "popular-week-Popular Week", "popular-month-Popular Month", "popular-Popular All" ]),
+Nhentai.TRANSLATION_DATA = {
+    zh_CN: {
+        Tags: "标签",
+        Language: "语言",
+        Recent: "最近",
+        "Popular Today": "今日热门",
+        "Popular Week": "本周热门",
+        "Popular Month": "本月热门",
+        "Popular All": "热门",
+        sort: "排序",
+        Languages: "语言",
+        Artists: "画师",
+        Characters: "角色",
+        Groups: "团队",
+        Parodies: "原作",
+        Categories: "分类"
+    },
+    zh_TW: {
+        Tags: "標籤",
+        Language: "語言",
+        Recent: "最近",
+        "Popular Today": "今日熱門",
+        "Popular Week": "本週熱門",
+        "Popular Month": "本月熱門",
+        "Popular All": "熱門",
+        sort: "排序",
+        Languages: "語言",
+        Artists: "畫師",
+        Characters: "角色",
+        Groups: "團隊",
+        Parodies: "原作",
+        Categories: "分類"
+    }
+}, Nhentai.TRANSLATION_DATA.zh_CN = Object.freeze(Nhentai.TRANSLATION_DATA.zh_CN),
+Nhentai.TRANSLATION_DATA.zh_TW = Object.freeze(Nhentai.TRANSLATION_DATA.zh_TW),
+Nhentai.TRANSLATION_DATA = Object.freeze(Nhentai.TRANSLATION_DATA), Nhentai.nhentaiTags = {
     2937: "big breasts",
     35762: "sole female",
     35763: "sole male",
@@ -1166,6 +1483,10 @@ Nhentai.nhentaiTags = {
     52132: "riko sakurauchi",
     32114: "onpu segawa",
     11924: "kagerou imaizumi"
-};
+}, Nhentai.nhentaiTags = Object.freeze(Nhentai.nhentaiTags), Nhentai.nhentaiTagValues = Object.freeze(function() {
+    let e = [];
+    for (let t in Nhentai.nhentaiTags || {}) Object.prototype.hasOwnProperty.call(Nhentai.nhentaiTags, t) && e.push(Nhentai.nhentaiTags[t]);
+    return e;
+}());
 
 "use strict";

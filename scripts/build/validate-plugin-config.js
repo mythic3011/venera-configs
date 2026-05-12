@@ -2,37 +2,27 @@
 
 const fs = require("node:fs");
 const path = require("node:path");
-const {
-  REPO_ROOT,
-  loadPluginConfigs,
-  extractSourceMetadataFromFile,
-  extractSourceMetadataFromCode,
-} = require("./lib");
-const { readConcatSourceFromModuleOrder } = require("./bundle-plugin");
+const { REPO_ROOT, loadPluginConfigs } = require("./lib");
 
 function readSourceMetadata(config) {
-  const runtimeSharedPaths = Array.isArray(config.runtimeShared)
-    ? config.runtimeShared
-    : [];
-
-  if (config.source.type === "single") {
-    const sourcePath = path.join(REPO_ROOT, config.source.entry);
-    return extractSourceMetadataFromFile(sourcePath, { runtimeSharedPaths });
-  }
-
-  const joined = readConcatSourceFromModuleOrder(
-    config.source.moduleOrder,
-    config.id,
-  );
-  return extractSourceMetadataFromCode(joined, `${config.id}.concat.js`, {
-    runtimeSharedPaths,
-  });
+  // Config is the single source of truth for plugin metadata.
+  // Plugin.config.json defines id, name, version, minAppVersion.
+  // JS source should not duplicate these values.
+  return {
+    key: config.id,
+    name: config.name,
+    version: config.version,
+    minAppVersion: config.minAppVersion,
+    url: undefined, // URL is set dynamically at runtime via resolvePluginUpdateUrl()
+  };
 }
 
 function main() {
   const configs = loadPluginConfigs();
   if (configs.length === 0) {
-    throw new Error("No plugin configs found under plugins/*/plugin.config.json");
+    throw new Error(
+      "No plugin configs found under plugins/*/plugin.config.json",
+    );
   }
 
   const seenIds = new Map();
@@ -56,31 +46,15 @@ function main() {
     if (config.aliases) {
       const dedup = new Set(config.aliases);
       if (dedup.size !== config.aliases.length) {
-        throw new Error(`Duplicate aliases in ${path.relative(REPO_ROOT, configPath)}`);
+        throw new Error(
+          `Duplicate aliases in ${path.relative(REPO_ROOT, configPath)}`,
+        );
       }
     }
 
     const metadata = readSourceMetadata(config);
-    if (String(metadata.key) !== String(config.id)) {
-      throw new Error(
-        `Config id mismatch in ${path.relative(REPO_ROOT, configPath)}: expected ${metadata.key}, got ${config.id}`,
-      );
-    }
-    if (String(metadata.name) !== String(config.name)) {
-      throw new Error(
-        `Config name mismatch in ${path.relative(REPO_ROOT, configPath)}: expected ${metadata.name}, got ${config.name}`,
-      );
-    }
-    if (String(metadata.version) !== String(config.version)) {
-      throw new Error(
-        `Config version mismatch in ${path.relative(REPO_ROOT, configPath)}: expected ${metadata.version}, got ${config.version}`,
-      );
-    }
-    if (String(metadata.minAppVersion) !== String(config.minAppVersion)) {
-      throw new Error(
-        `Config minAppVersion mismatch in ${path.relative(REPO_ROOT, configPath)}: expected ${metadata.minAppVersion}, got ${config.minAppVersion}`,
-      );
-    }
+    // Config is the single source of truth; no need to validate against JS
+    // (JS metadata has been removed to avoid duplication)
 
     if (config.runtimeShared) {
       for (const sharedPath of config.runtimeShared) {
@@ -93,7 +67,10 @@ function main() {
       }
     }
 
-    if (config.deprecation && (!config.aliases || config.aliases.length === 0)) {
+    if (
+      config.deprecation &&
+      (!config.aliases || config.aliases.length === 0)
+    ) {
       throw new Error(
         `Deprecation declared without aliases in ${path.relative(REPO_ROOT, configPath)}`,
       );

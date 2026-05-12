@@ -2,14 +2,12 @@
   "id": "nhentai",
   "artifact": "nhentai.js",
   "name": "nhentai",
-  "version": "1.0.8",
+  "version": "1.0.9",
   "minAppVersion": "1.0.0",
   "aliases": [],
   "source": {
     "type": "concat",
-    "moduleOrder": [
-      "plugins/nhentai/src/index.js"
-    ]
+    "moduleOrder": ["plugins/nhentai/src/index.js"]
   },
   "pipeline": {
     "mode": "standard"

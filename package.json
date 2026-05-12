@@ -2,6 +2,7 @@
   "name": "venera-configs",
   "version": "1.0.0",
   "description": "Configuration files for venera",
+  "license": "SEE LICENSE IN LICENSE",
   "scripts": {
     "build:plugin": "node scripts/build-source.js",
     "build:ehentai": "npm run build:plugin -- ehentai",

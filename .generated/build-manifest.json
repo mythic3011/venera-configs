@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-05-09T03:08:45.755Z",
+  "generatedAt": "2026-05-12T00:44:54.694Z",
   "releaseAuthorityPath": "scripts/config/release-authority.json",
   "releaseAuthority": {
     "provider": "jsdelivr",
@@ -200,7 +200,7 @@
       "name": "nhentai",
       "fileName": "nhentai.js",
       "key": "nhentai",
-      "version": "1.0.8",
+      "version": "1.0.9",
       "url": "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/dist/plugins/nhentai.js"
     },
     {
@@ -1147,7 +1147,7 @@
       "id": "nhentai",
       "artifact": "nhentai.js",
       "name": "nhentai",
-      "version": "1.0.8",
+      "version": "1.0.9",
       "minAppVersion": "1.0.0",
       "description": null,
       "aliases": [],
@@ -1170,8 +1170,8 @@
       "outputPath": "dist/plugins/nhentai.js",
       "publicUrl": "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/dist/plugins/nhentai.js",
       "checksums": {
-        "sha256": "783b9047f94e13555cca9dcd2b584b7db481ff8890dd2175ce0d167d56854756",
-        "bytes": 39799
+        "sha256": "ea63971430c9efa5cafc9071862cd99fa691a7240781db8a8daffa68e2990222",
+        "bytes": 52978
       }
     },
     {
