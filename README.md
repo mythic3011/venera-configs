@@ -6,10 +6,10 @@
 >
 > It is not a runtime loader. Downstream consumers must validate plugin
 > configs, public index entries, and artifact integrity before execution.
-
-[![Plugin Configs](https://img.shields.io/badge/plugin%20configs-canonical-blue)](#what-this-repo-contains)
-[![Build Manifest](https://img.shields.io/badge/build-manifest-generated-purple)](#generated-output)
-[![Verification](https://img.shields.io/badge/verification-enabled-brightgreen)](#build-and-verify)
+> [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/mythic3011/venera-configs)
+> [![Plugin Configs](https://img.shields.io/badge/plugin%20configs-canonical-blue)](#what-this-repo-contains)
+> [![Build Manifest](https://img.shields.io/badge/build-manifest-generated-purple)](#generated-output)
+> [![Verification](https://img.shields.io/badge/verification-enabled-brightgreen)](#build-and-verify)
 
 A schema-validated source catalog for Venera plugin configs and generated build metadata.
 
@@ -39,7 +39,7 @@ Primary authoring inputs:
 
 - `plugins/*/plugin.config.json`
 - `plugins/*/src`
-- `shared/families/*`
+- `support/*`
 - `scripts/config/release-authority.json`
 
 Primary generated outputs:
@@ -93,16 +93,19 @@ Generated artifacts are automatically:
 Do not hand-edit generated files under `dist/plugins`; commit generated outputs
 with source changes.
 
-For `source.type: "concat"` plugins, module files can import shared runtime
-helpers.
+For `source.type: "concat"` plugins, module files can import repo-local support
+helpers only through domain indexes.
 
 - Supported import forms:
-  - `import "shared/path/to/helper.js"`
-  - `import { helperA, helperB as localName } from "shared/path/to/helper.js"`
+  - `import "support/<domain>/index.js"`
+  - `import { helperA, helperB as localName } from "support/<domain>/index.js"`
 - Supported specifiers:
-  - `shared/...`
+  - `support/<domain>/index.js`
   - relative `./...` and `../...` paths ending with `.js`
 - Not supported:
+  - deep support imports such as `support/http/request-client.js`
+  - plugin imports from `support/testing`
+  - `shared/...`
   - package/bare imports
   - default imports
   - namespace imports (`* as`)
@@ -169,7 +172,7 @@ Contributions should be actionable.
 
 Include:
 
-- the affected plugin or shared family
+- the affected plugin or support domain
 - reproduction steps or the expected output change
 - whether the change affects generated artifacts or release authority
 - validation output from the relevant `npm run ...` checks
@@ -228,8 +231,9 @@ artifacts，`.generated/build-manifest.json` 會同時記錄 public index 與 in
 2. Parser-friendly，檔案開頭必須是 `class <Source> extends ComicSource`
 3. 不要手動編輯 `dist/plugins` 下的生成檔
 
-`source.type: "concat"` 的 plugins 可以匯入 shared runtime helpers，但只支援 `shared/...`
-與以 `.js` 結尾的相對路徑，不支援 package/bare imports、default imports、namespace imports。
+`source.type: "concat"` 的 plugins 只可以匯入 `support/<domain>/index.js`
+或以 `.js` 結尾的相對路徑；不支援 deep support import、`support/testing`、`shared/...`、
+package/bare imports、default imports、namespace imports。
 
 source files 也應避免依賴 `flutter_qjs` 不友善的語法：
 
@@ -282,7 +286,7 @@ npm run check:manifest
 
 請提供：
 
-- 受影響的 plugin 或 shared family
+- 受影響的 plugin 或 support domain
 - 重現步驟或預期輸出變更
 - 變更是否影響 generated artifacts 或 release authority
 - 相關 `npm run ...` 驗證結果

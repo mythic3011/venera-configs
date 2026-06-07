@@ -5,13 +5,23 @@
   "version": "1.2.0",
   "minAppVersion": "1.5.3",
   "aliases": [],
+  "allowedOrigins": [
+    "https://e-hentai.org",
+    "https://exhentai.org",
+    "https://forums.e-hentai.org",
+    "https://api.e-hentai.org"
+  ],
+  "runtimeShared": [
+    "support/http/index.js"
+  ],
   "source": {
     "type": "concat",
     "moduleOrder": [
-      "plugins/ehentai/src/source-shell.js",
       "plugins/ehentai/src/index.js",
       "plugins/ehentai/src/query.js",
       "plugins/ehentai/src/urls.js",
+      "plugins/ehentai/src/source-runtime.js",
+      "plugins/ehentai/src/account-runtime.js",
       "plugins/ehentai/src/api-payloads.js",
       "plugins/ehentai/src/form-payloads.js",
       "plugins/ehentai/src/cache-keys.js",

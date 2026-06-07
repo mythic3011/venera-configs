@@ -5,7 +5,10 @@ const fs = require("node:fs");
 const path = require("node:path");
 
 function evalFileInContext(filePath, ctx, exportedNames = []) {
-  const code = fs.readFileSync(filePath, "utf8");
+  const code = fs
+    .readFileSync(filePath, "utf8")
+    .replace(/^\s*export\s+(?=(function|class|const|let|var)\b)/gm, "")
+    .replace(/^\s*export\s*\{[^}]*\}\s*;?\s*$/gm, "");
   const exportSnip = exportedNames.length
     ? `\nthis.__EXPORT__ = { ${exportedNames
         .map((n) => `${n}: (typeof ${n} !== 'undefined' ? ${n} : undefined)`)
@@ -77,6 +80,18 @@ const cacheKeysCtx = evalFileInContext(
 );
 Object.assign(contextBase, cacheKeysCtx);
 
+const supportCooldownCtx = evalFileInContext(
+  path.join(projectRoot, "support/http/cooldown.js"),
+  { ...contextBase },
+);
+Object.assign(contextBase, supportCooldownCtx);
+
+const supportRequestCtx = evalFileInContext(
+  path.join(projectRoot, "support/http/request-client.js"),
+  { ...contextBase },
+);
+Object.assign(contextBase, supportRequestCtx);
+
 const rcCtx = evalFileInContext(
   path.join(projectRoot, "plugins/ehentai/src/request-client.js"),
   { ...contextBase },
@@ -89,13 +104,18 @@ const imgCtx = evalFileInContext(
   ["ImageLoadingSessionManager"],
 );
 
+function setRequestClientNetwork(network) {
+  rcCtx.Network = network;
+  supportRequestCtx.Network = network;
+}
+
 // export constructors onto a shared holder for tests
 const RequestClientCtor = rcCtx.EhentaiRequestClient;
 const ImageSessionCtor = imgCtx.ImageLoadingSessionManager;
 
 test("GET same url should dedup", async () => {
   const calls = [];
-  rcCtx.Network = {
+  setRequestClientNetwork({
     get: async (url, headers) => {
       calls.push({ url, headers });
       return { status: 200, body: "ok" };
@@ -103,7 +123,7 @@ test("GET same url should dedup", async () => {
     post: async () => {
       throw new Error("unexpected post");
     },
-  };
+  });
 
   const source = makeFakeSource();
   const Client = RequestClientCtor || contextBase.EhentaiRequestClient;
@@ -121,7 +141,7 @@ test("GET same url should dedup", async () => {
 
 test("POST same url different body should not dedup by default", async () => {
   const calls = [];
-  rcCtx.Network = {
+  setRequestClientNetwork({
     post: async (url, headers, body) => {
       calls.push(String(body));
       return { status: 200, body: JSON.stringify({ body }) };
@@ -129,7 +149,7 @@ test("POST same url different body should not dedup by default", async () => {
     get: async () => {
       throw new Error("unexpected get");
     },
-  };
+  });
 
   const source = makeFakeSource();
   const Client = RequestClientCtor || contextBase.EhentaiRequestClient;
@@ -148,7 +168,7 @@ test("POST same url different body should not dedup by default", async () => {
 test("POST image dispatch page 1 and page 2 should return different URL", async () => {
   const calls = [];
   // mock the request-client VM network directly so the request-client sees it
-  rcCtx.Network = {
+  setRequestClientNetwork({
     post: async (url, headers, body) => {
       calls.push(body);
       const parsed = body || {};
@@ -162,7 +182,7 @@ test("POST image dispatch page 1 and page 2 should return different URL", async 
         }),
       };
     },
-  };
+  });
 
   const source = makeFakeSource();
   source.parseUrl = (v) => ({ id: "123", token: "abcd" });
@@ -182,10 +202,10 @@ test("POST image dispatch page 1 and page 2 should return different URL", async 
 });
 
 test("empty body should not trigger cooldown", async () => {
-  rcCtx.Network = {
+  setRequestClientNetwork({
     get: async () => ({ status: 200, body: "" }),
     post: async () => ({ status: 200, body: "" }),
-  };
+  });
 
   const source = makeFakeSource();
   const Client = RequestClientCtor || contextBase.EhentaiRequestClient;
@@ -197,9 +217,9 @@ test("empty body should not trigger cooldown", async () => {
 });
 
 test("403 should trigger cooldown", async () => {
-  rcCtx.Network = {
+  setRequestClientNetwork({
     get: async () => ({ status: 403, body: "forbidden" }),
-  };
+  });
   const source = makeFakeSource();
   const Client = RequestClientCtor || contextBase.EhentaiRequestClient;
   const client = new Client(source);
@@ -213,9 +233,9 @@ test("403 should trigger cooldown", async () => {
 });
 
 test("429 should trigger cooldown", async () => {
-  rcCtx.Network = {
+  setRequestClientNetwork({
     get: async () => ({ status: 429, body: "too many" }),
-  };
+  });
   const source = makeFakeSource();
   const Client = RequestClientCtor || contextBase.EhentaiRequestClient;
   const client = new Client(source);
@@ -230,9 +250,9 @@ test("429 should trigger cooldown", async () => {
 
 test("invalid JSON should throw invalid JSON response", async () => {
   // request-client should see this network and return a body that's not JSON
-  rcCtx.Network = {
+  setRequestClientNetwork({
     post: async () => ({ status: 200, body: "not-json" }),
-  };
+  });
   const source = makeFakeSource();
   source.parseUrl = (v) => ({ id: "123", token: "abcd" });
   source.parseJsonResponse = (action, response) => {

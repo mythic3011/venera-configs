@@ -12,12 +12,9 @@
     ]
   },
   "runtimeShared": [
-    "shared/errors/runtime.js",
-    "shared/http/runtime.js",
-    "shared/url/runtime.js",
-    "shared/parser/copy_like.js",
-    "shared/features/copy_like/index.js",
-    "shared/families/copy_like/index.js"
+    "support/runtime/index.js",
+    "support/http/index.js",
+    "support/plugin/index.js"
   ],
   "pipeline": {
     "mode": "standard"

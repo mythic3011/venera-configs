@@ -2,27 +2,36 @@ const fs = require("node:fs");
 const path = require("node:path");
 const esbuild = require("esbuild");
 const { REPO_ROOT } = require("./lib");
+const {
+  resolveSupportSpecifierPath,
+  isSupportFile,
+  toPosixRelative,
+} = require("./support-boundaries");
 const RUNTIME_RELEASE_AUTHORITY_PATH = path.join(
   REPO_ROOT,
-  "shared",
+  "support",
   "runtime",
-  "release-authority.js",
+  "settings.js",
 );
 
-function resolveModuleImport(fromFilePath, specifier, pluginId) {
+function resolveModuleImport(fromFilePath, specifier, pluginId, options = {}) {
   if (typeof specifier !== "string" || specifier.trim() === "") {
     throw new Error(`Invalid import specifier in ${pluginId}: ${fromFilePath}`);
   }
   const trimmed = specifier.trim();
   let resolved = null;
 
-  if (trimmed.startsWith("shared/")) {
-    resolved = path.join(REPO_ROOT, trimmed);
+  if (trimmed.startsWith("support/")) {
+    resolved = resolveSupportSpecifierPath(trimmed, fromFilePath, {
+      allowTesting: options.allowTesting === true,
+    });
+  } else if (trimmed.startsWith("shared/")) {
+    throw new Error("shared/ has been replaced by support/.");
   } else if (trimmed.startsWith("./") || trimmed.startsWith("../")) {
     resolved = path.resolve(path.dirname(fromFilePath), trimmed);
   } else {
     throw new Error(
-      `Unsupported import "${specifier}" in ${path.relative(REPO_ROOT, fromFilePath)} (${pluginId}). Only relative paths or shared/* are allowed.`,
+      `Unsupported import "${specifier}" in ${path.relative(REPO_ROOT, fromFilePath)} (${pluginId}). Only relative paths or support/* are allowed.`,
     );
   }
 
@@ -78,22 +87,29 @@ function parseNamedImports(importClause, sourcePath) {
     });
 }
 
-function collectModuleAndImports(filePath, pluginId) {
+function collectModuleAndImports(filePath, pluginId, options = {}) {
   const source = fs.readFileSync(filePath, "utf8").trimEnd();
   const imports = [];
   const aliasPairs = [];
   const importRegex =
-    /^\s*import(?:\s+([^'";]+?)\s+from\s+)?["']([^"']+)["']\s*;?\s*$/gm;
+    /^\s*import(?:\s+([^'";]+?)\s+from\s+)?\s*["']([^"']+)["']\s*;?\s*$/gm;
 
-  const strippedSource = source.replace(importRegex, (_, importClause, specifier) => {
-    const resolved = resolveModuleImport(filePath, specifier, pluginId);
-    imports.push(resolved);
-    const named = parseNamedImports(importClause, filePath);
-    for (const pair of named) {
-      aliasPairs.push(pair);
-    }
-    return "";
-  });
+  const strippedSource = source.replace(
+    importRegex,
+    (_, importClause, specifier) => {
+      const allowTesting =
+        options.allowTesting === true && !isSupportFile(filePath);
+      const resolved = resolveModuleImport(filePath, specifier, pluginId, {
+        allowTesting,
+      });
+      imports.push(resolved);
+      const named = parseNamedImports(importClause, filePath);
+      for (const pair of named) {
+        aliasPairs.push(pair);
+      }
+      return "";
+    },
+  );
 
   const normalized = strippedSource
     // Keep module code executable in script mode after inlining.
@@ -108,10 +124,14 @@ function collectModuleAndImports(filePath, pluginId) {
   };
 }
 
-function readConcatSourceFromModuleOrder(moduleOrder, pluginId) {
+function collectFlattenedModules(entryPaths, pluginId, options = {}) {
   const appendedByPath = new Set();
   const appendedModules = [];
   const aliasPairs = [];
+  const entryMode =
+    options && options.entryMode === "imports-first"
+      ? "imports-first"
+      : "entry-first";
 
   function visit(filePath, isEntry) {
     const normalizedPath = path.resolve(filePath);
@@ -122,14 +142,23 @@ function readConcatSourceFromModuleOrder(moduleOrder, pluginId) {
     const { code, imports, aliasPairs: localAliases } = collectModuleAndImports(
       normalizedPath,
       pluginId,
+      options,
     );
 
-    // Keep configured entry modules first to preserve parser expectations.
+    // Keep configured plugin entry modules first to preserve parser expectations.
+    // runtimeShared facades can opt into imports-first so index modules can aggregate
+    // imported helpers without relying on declaration-only shells.
     if (isEntry) {
-      appendedModules.push(code);
-      appendedByPath.add(normalizedPath);
+      if (entryMode === "entry-first") {
+        appendedModules.push(code);
+        appendedByPath.add(normalizedPath);
+      }
       for (const importedPath of imports) {
         visit(importedPath, false);
+      }
+      if (entryMode === "imports-first") {
+        appendedModules.push(code);
+        appendedByPath.add(normalizedPath);
       }
       for (const pair of localAliases) {
         aliasPairs.push(pair);
@@ -147,14 +176,24 @@ function readConcatSourceFromModuleOrder(moduleOrder, pluginId) {
     }
   }
 
-  for (const relativePath of moduleOrder) {
-    const fullPath = path.join(REPO_ROOT, relativePath);
+  for (const entryPath of entryPaths) {
+    const fullPath = path.isAbsolute(entryPath)
+      ? entryPath
+      : path.join(REPO_ROOT, entryPath);
     if (!fs.existsSync(fullPath)) {
-      throw new Error(`Missing module ${relativePath} for ${pluginId}`);
+      throw new Error(`Missing module ${toPosixRelative(fullPath)} for ${pluginId}`);
     }
     visit(fullPath, true);
   }
 
+  return {
+    appendedModules,
+    aliasPairs,
+    appendedPaths: Array.from(appendedByPath),
+  };
+}
+
+function finalizeFlattenedModules(appendedModules, aliasPairs) {
   const aliasLines = aliasPairs
     .filter((pair) => pair.imported && pair.local && pair.imported !== pair.local)
     .map((pair) => `const ${pair.local} = ${pair.imported};`);
@@ -162,24 +201,45 @@ function readConcatSourceFromModuleOrder(moduleOrder, pluginId) {
   return `${[...appendedModules, ...aliasLines].filter(Boolean).join("\n\n")}\n`;
 }
 
+function readConcatSourceFromModuleOrder(moduleOrder, pluginId, options = {}) {
+  const { appendedModules, aliasPairs } = collectFlattenedModules(
+    moduleOrder,
+    pluginId,
+    options,
+  );
+  return finalizeFlattenedModules(appendedModules, aliasPairs);
+}
+
 async function bundlePlugin(plugin) {
   const injectRuntimeReleaseAuthority =
     !plugin.pipeline || plugin.pipeline.injectRuntimeReleaseAuthority !== false;
-  const runtimeReleaseAuthorityCode = injectRuntimeReleaseAuthority
-    ? fs.readFileSync(RUNTIME_RELEASE_AUTHORITY_PATH, "utf8").trimEnd()
-    : "";
   const runtimeSharedFiles = Array.isArray(plugin.runtimeShared)
     ? plugin.runtimeShared.slice()
     : [];
-  const runtimeSharedCode = runtimeSharedFiles
-    .map((relativePath) => {
-      const fullPath = path.join(REPO_ROOT, relativePath);
-      if (!fs.existsSync(fullPath)) {
-        throw new Error(`Missing runtime shared helper ${relativePath} for ${plugin.id}`);
-      }
-      return fs.readFileSync(fullPath, "utf8").trimEnd();
-    })
-    .join("\n\n");
+  const runtimeSharedFlattened = collectRuntimeSharedModules(
+    runtimeSharedFiles,
+    plugin.id,
+  );
+  const includesRuntimeSettings =
+    runtimeSharedFlattened?.appendedPaths?.some(
+      (filePath) =>
+        path.resolve(filePath) === path.resolve(RUNTIME_RELEASE_AUTHORITY_PATH),
+    ) || false;
+  const runtimeReleaseAuthorityCode =
+    injectRuntimeReleaseAuthority && !includesRuntimeSettings
+      ? collectModuleAndImports(
+          RUNTIME_RELEASE_AUTHORITY_PATH,
+          plugin.id,
+          { allowTesting: false },
+        ).code
+      : "";
+  const runtimeSharedCode =
+    runtimeSharedFlattened
+      ? finalizeFlattenedModules(
+          runtimeSharedFlattened.appendedModules,
+          runtimeSharedFlattened.aliasPairs,
+        ).trimEnd()
+      : "";
   const runtimePreludeCode = [runtimeSharedCode, runtimeReleaseAuthorityCode]
     .filter((part) => part && part.trim() !== "")
     .join("\n\n");
@@ -199,6 +259,9 @@ async function bundlePlugin(plugin) {
   const baseJoined = readConcatSourceFromModuleOrder(
     plugin.source.moduleOrder,
     plugin.id,
+    {
+      allowTesting: false,
+    },
   );
   const joined = runtimePreludeCode
     ? `${baseJoined}\n${runtimePreludeCode}\n`
@@ -217,6 +280,16 @@ async function bundlePlugin(plugin) {
     stage: "concat",
     code: joined,
   };
+}
+
+function collectRuntimeSharedModules(runtimeSharedFiles, pluginId) {
+  if (!runtimeSharedFiles.length) {
+    return null;
+  }
+  return collectFlattenedModules(runtimeSharedFiles, pluginId, {
+    allowTesting: false,
+    entryMode: "imports-first",
+  });
 }
 
 module.exports = {

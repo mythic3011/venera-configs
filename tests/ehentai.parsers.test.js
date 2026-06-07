@@ -27,6 +27,7 @@ function loadParsers() {
   }
 
   const context = {
+    ComicSource: class {},
     Comic,
     Comment,
     Map,

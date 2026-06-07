@@ -12,8 +12,7 @@
     ]
   },
   "runtimeShared": [
-    "shared/url/web_source_url.js",
-    "shared/features/tag_action_helpers.js"
+    "support/plugin/index.js"
   ],
   "pipeline": {
     "mode": "standard"

@@ -46,6 +46,8 @@ const pluginConfigSchema = z.object({
   minAppVersion: z.string().min(1),
   description: z.string().min(1).optional(),
   aliases: z.array(z.string().min(1)).optional().default([]),
+  allowedOrigins: z.array(z.string().min(1)).optional().default([]),
+  allowedUrls: z.array(z.string().min(1)).optional().default([]),
   deprecation: z
     .object({
       note: z.string().min(1),

@@ -50,6 +50,8 @@ function buildManifest() {
         minAppVersion: config.minAppVersion,
         description: config.description || null,
         aliases: config.aliases || [],
+        allowedOrigins: config.allowedOrigins || [],
+        allowedUrls: config.allowedUrls || [],
         deprecation: config.deprecation || null,
         pipeline: config.pipeline || { mode: "standard" },
         runtimeShared: config.runtimeShared || [],
