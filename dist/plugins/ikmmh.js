@@ -251,6 +251,8 @@ Ikm.webHeaders = {
         ..._Ikm.webHeaders,
         referer: _Ikm.baseUrl
     }
+}), "undefined" != typeof module && module && module.exports && (module.exports = {
+    resolvePluginUpdateUrl
 });
 
 "use strict";

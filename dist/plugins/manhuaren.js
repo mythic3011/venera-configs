@@ -47,13 +47,13 @@ class ManHuaRen extends ComicSource {
                             let t = e.querySelector(".manga-list-2-title");
                             t && (a = t.text.trim());
                         }
-                        let l = e.querySelector("img"), o = l ? l.attributes["data-src"] || l.attributes.src : "", c = e.querySelector(".manga-list-1-tip") || e.querySelector(".manga-list-2-tip"), h = c ? c.text.trim() : "", u = e.querySelector(".manga-list-1-cover-logo-font"), m = u ? u.text.trim() : "";
+                        let l = e.querySelector("img"), o = l ? l.attributes["data-src"] || l.attributes.src : "", c = e.querySelector(".manga-list-1-tip") || e.querySelector(".manga-list-2-tip"), u = c ? c.text.trim() : "", h = e.querySelector(".manga-list-1-cover-logo-font"), m = h ? h.text.trim() : "";
                         r && (r.startsWith("http") || (r = this.baseUrl + r), o && !o.startsWith("http") && (o = o.startsWith("//") ? "https:" + o : this.baseUrl + o),
                         s.push(new Comic({
                             id: r,
                             title: a || "",
                             cover: o || "",
-                            description: h,
+                            description: u,
                             tags: m ? [ m ] : []
                         })));
                     }
@@ -83,17 +83,17 @@ class ManHuaRen extends ComicSource {
             load: async (t, e, i, r) => {
                 let a = e || "", l = i && i[0] ? i[0].split("-")[0] : "", s = i && i[1] ? i[1].split("-")[0] : "", o = "manhua-list";
                 a && (o += `-tag${a}`), l && (o += `-${l}`), s && (o += `-${s}`);
-                let n = `${this.baseUrl}/${o}/dm5.ashx`, c = Math.max(0, parseInt(r) || 1), h = 0;
+                let n = `${this.baseUrl}/${o}/dm5.ashx`, c = Math.max(0, parseInt(r) || 1), u = 0;
                 if (l && l.startsWith("st")) {
                     let t = l.match(/st(\d+)/);
-                    t && (h = parseInt(t[1]));
-                }
-                let u = 0;
-                if (s && s.startsWith("s")) {
-                    let t = s.match(/s(\d+)/);
                     t && (u = parseInt(t[1]));
                 }
-                let m = a && a.length > 0 ? a : "0", d = `action=getclasscomics&pageindex=${c}&pagesize=21&categoryid=0&tagid=${encodeURIComponent(m)}&status=${h}&usergroup=0&pay=-1&areaid=0&sort=${u}&iscopyright=0`, p = {
+                let h = 0;
+                if (s && s.startsWith("s")) {
+                    let t = s.match(/s(\d+)/);
+                    t && (h = parseInt(t[1]));
+                }
+                let m = a && a.length > 0 ? a : "0", d = `action=getclasscomics&pageindex=${c}&pagesize=21&categoryid=0&tagid=${encodeURIComponent(m)}&status=${u}&usergroup=0&pay=-1&areaid=0&sort=${h}&iscopyright=0`, p = {
                     accept: "application/json, text/javascript, */*; q=0.01",
                     "accept-encoding": "gzip, deflate, br, zstd",
                     "accept-language": "zh-CN,zh;q=0.9,en;q=0.8",
@@ -157,15 +157,15 @@ class ManHuaRen extends ComicSource {
                     i.startsWith("http") || (i = this.baseUrl + i);
                     let r = null == (o = t.querySelector(".book-list-info-title")) || null == (o = o.text) ? void 0 : o.trim(), a = t.querySelector(".book-list-cover-img"), s = null == a ? void 0 : a.attributes.src;
                     s && (s.startsWith("//") ? s = "https:" + s : s.startsWith("http") || (s = this.baseUrl + s));
-                    let h = null == (n = t.querySelector(".book-list-info-desc")) || null == (n = n.text) ? void 0 : n.trim(), u = [], m = t.querySelectorAll(".book-list-info-bottom-item");
-                    for (let t of m) u.push(t.text.trim());
+                    let u = null == (n = t.querySelector(".book-list-info-desc")) || null == (n = n.text) ? void 0 : n.trim(), h = [], m = t.querySelectorAll(".book-list-info-bottom-item");
+                    for (let t of m) h.push(t.text.trim());
                     let d = null == (c = t.querySelector(".book-list-info-bottom-right-font")) || null == (c = c.text) ? void 0 : c.trim();
-                    d && u.push(d), l.push(new Comic({
+                    d && h.push(d), l.push(new Comic({
                         id: i,
                         title: r,
                         cover: s,
-                        description: h,
-                        tags: u
+                        description: u,
+                        tags: h
                     }));
                 }
                 return {
@@ -181,15 +181,15 @@ class ManHuaRen extends ComicSource {
                 if (!t || "string" != typeof t) throw "ID不能为空";
                 let c = t;
                 c.startsWith("http") || (c = c.startsWith("/") ? this.baseUrl + c : this.baseUrl + "/" + c);
-                let h = await Network.get(c, this._buildHeaders());
-                if (200 !== h.status) throw `请求失败，状态码: ${h.status}，URL: ${c}`;
-                let u = h.body || "";
+                let u = await Network.get(c, this._buildHeaders());
+                if (200 !== u.status) throw `请求失败，状态码: ${u.status}，URL: ${c}`;
+                let h = u.body || "";
                 this.comic.id = t;
                 let m = t => {
                     if (!t) return "";
                     let e = t.trim();
                     return e.startsWith("http") ? e : e.startsWith("//") ? "https:" + e : e.startsWith("/") ? this.baseUrl + e : this.baseUrl + "/" + e;
-                }, d = new HtmlDocument(u), p = (null == (e = d.querySelector("p.detail-main-info-title")) || null == (e = e.text) ? void 0 : e.trim()) || (null == (i = d.querySelector("span.normal-top-title")) || null == (i = i.text) ? void 0 : i.trim()) || (null == (r = d.querySelector("title")) || null == (r = r.text) || null == (r = r.trim()) ? void 0 : r.replace(/漫画.*$/i, "")) || "未知标题", g = d.querySelector(".detail-main-cover img") || d.querySelector(".detail-main-cover .cover-img img"), f = m((null == g || null == (a = g.attributes) ? void 0 : a.src) || (null == g || null == (l = g.attributes) ? void 0 : l["data-src"]) || ""), b = d.querySelector(".detail-main-info-author"), y = "未知作者";
+                }, d = new HtmlDocument(h), p = (null == (e = d.querySelector("p.detail-main-info-title")) || null == (e = e.text) ? void 0 : e.trim()) || (null == (i = d.querySelector("span.normal-top-title")) || null == (i = i.text) ? void 0 : i.trim()) || (null == (r = d.querySelector("title")) || null == (r = r.text) || null == (r = r.trim()) ? void 0 : r.replace(/漫画.*$/i, "")) || "未知标题", g = d.querySelector(".detail-main-cover img") || d.querySelector(".detail-main-cover .cover-img img"), f = m((null == g || null == (a = g.attributes) ? void 0 : a.src) || (null == g || null == (l = g.attributes) ? void 0 : l["data-src"]) || ""), b = d.querySelector(".detail-main-info-author"), y = "未知作者";
                 if (b) {
                     let t = [], e = b.querySelectorAll("a") || [];
                     for (let i = 0; i < e.length; i++) {
@@ -207,21 +207,21 @@ class ManHuaRen extends ComicSource {
                     let t = null == (S = d.querySelector('meta[name="Author"]')) || null == (S = S.attributes) ? void 0 : S.content;
                     t && (y = t.includes(":") ? t.split(":").pop().trim() : t.trim());
                 }
-                let C = (null == (s = d.querySelector(".detail-list-title-1")) || null == (s = s.text) ? void 0 : s.trim()) || "未知状态", P = d.querySelector(".detail-desc"), q = (null == P || null == (o = P.text) ? void 0 : o.trim()) || "";
-                var x;
-                q || (q = (null == (x = d.querySelector('meta[name="Description"]')) || null == (x = x.attributes) ? void 0 : x.content) || "");
+                let C = (null == (s = d.querySelector(".detail-list-title-1")) || null == (s = s.text) ? void 0 : s.trim()) || "未知状态", P = d.querySelector(".detail-desc"), x = (null == P || null == (o = P.text) ? void 0 : o.trim()) || "";
+                var q;
+                x || (x = (null == (q = d.querySelector('meta[name="Description"]')) || null == (q = q.attributes) ? void 0 : q.content) || "");
                 let A = [], $ = d.querySelectorAll(".detail-main-info-class a") || [];
                 for (let t = 0; t < $.length; t++) {
-                    var I;
-                    let e = null == (I = $[t].text) ? void 0 : I.trim();
+                    var U;
+                    let e = null == (U = $[t].text) ? void 0 : U.trim();
                     e && A.push(e);
                 }
-                let _ = (null == (n = d.querySelector(".detail-list-title-3")) || null == (n = n.text) ? void 0 : n.trim()) || "", U = null, k = d.querySelector(".detail-main-info-star");
+                let I = (null == (n = d.querySelector(".detail-list-title-3")) || null == (n = n.text) ? void 0 : n.trim()) || "", _ = null, k = d.querySelector(".detail-main-info-star");
                 if (k && k.attributes && k.attributes.class) {
                     let t = k.attributes.class.match(/star-(\d+)/i);
                     if (t && t[1]) {
                         let e = parseInt(t[1], 10);
-                        isNaN(e) || (U = e);
+                        isNaN(e) || (_ = e);
                     }
                 }
                 let N = new Map, M = d.querySelectorAll(".detail-selector .detail-selector-item");
@@ -268,11 +268,11 @@ class ManHuaRen extends ComicSource {
                         })), a++);
                     }
                     return i;
-                })(u), E = u.match(/mid["\s:]*(\d+)/i) || u.match(/var mid = (\d+)/i) || u.match(/mid=(\d+)/i) || u.match(/var DM5_MID = (\d+)/i) || u.match(/var COMIC_MID=(\d+)/i);
+                })(h), E = h.match(/mid["\s:]*(\d+)/i) || h.match(/var mid = (\d+)/i) || h.match(/mid=(\d+)/i) || h.match(/var DM5_MID = (\d+)/i) || h.match(/var COMIC_MID=(\d+)/i);
                 return E && (this.comic.mid = parseInt(E[1])), new ComicDetails({
                     title: p,
                     cover: f,
-                    description: q || "暂无描述",
+                    description: x || "暂无描述",
                     tags: {
                         作者: [ y || "未知作者" ],
                         状态: [ C || "未知状态" ],
@@ -280,8 +280,8 @@ class ManHuaRen extends ComicSource {
                     },
                     chapters: N,
                     recommend: R,
-                    updateTime: _,
-                    stars: U,
+                    updateTime: I,
+                    stars: _,
                     subId: this.comic.mid ? this.comic.mid.toString() : "73225"
                 });
             },
@@ -296,11 +296,11 @@ class ManHuaRen extends ComicSource {
                 if (!s) throw "无法显示付费内容/章节不存在";
                 let o = s.indexOf("}('") + 3, n = s.substring(o).match(/',(\d+),(\d+),'/);
                 if (!n) throw new Error("无法解析脚本参数边界");
-                let c = n.index + o, h = s.substring(o, c), u = parseInt(n[1]), m = parseInt(n[2]), d = c + n[0].length, p = s.indexOf("'.split", d), g = ((t, e, i, r) => {
+                let c = n.index + o, u = s.substring(o, c), h = parseInt(n[1]), m = parseInt(n[2]), d = c + n[0].length, p = s.indexOf("'.split", d), g = ((t, e, i, r) => {
                     let a = t => (t < e ? "" : a(parseInt(t / e))) + ((t %= e) > 35 ? String.fromCharCode(t + 29) : t.toString(36)), l = {};
                     for (;i--; ) l[a(i)] = r[i] || a(i);
                     return t.replace(/\b\w+\b/g, t => l[t] || t);
-                })(h, u, m, s.substring(d, p).split("|")), f = g.match(/\[(.*?)\]/);
+                })(u, h, m, s.substring(d, p).split("|")), f = g.match(/\[(.*?)\]/);
                 if (!f) throw new Error("无法从解密后的脚本中提取图片数组");
                 let b = f[1].split(",").map(t => t.trim().replace(/^\\?['"]|\\?['"]$/g, "")).filter(t => t && t.startsWith("http"));
                 return {
@@ -352,10 +352,10 @@ class ManHuaRen extends ComicSource {
                     "x-requested-with": "XMLHttpRequest"
                 }, c = await Network.get(s, n);
                 if (200 !== c.status) throw new Error(`加载评论失败，状态码: ${c.status}`);
-                let h = JSON.parse(c.body), u = [], m = 0;
+                let u = JSON.parse(c.body), h = [], m = 0;
                 if (r) {
-                    let t = h.find(t => t.Id.toString() === l);
-                    t && t.ToPostShowDataItems && (u = t.ToPostShowDataItems.map(t => new Comment({
+                    let t = u.find(t => t.Id.toString() === l);
+                    t && t.ToPostShowDataItems && (h = t.ToPostShowDataItems.map(t => new Comment({
                         id: t.Id.toString(),
                         userName: t.Poster,
                         content: t.PostContent,
@@ -365,7 +365,7 @@ class ManHuaRen extends ComicSource {
                         isLiked: t.IsPraise,
                         replyCount: 0
                     })));
-                } else u = h.map(t => new Comment({
+                } else h = u.map(t => new Comment({
                     id: `${t.Id}//${i}`,
                     userName: t.Poster,
                     content: t.PostContent,
@@ -374,9 +374,9 @@ class ManHuaRen extends ComicSource {
                     likeCount: t.PraiseCount,
                     isLiked: t.IsPraise,
                     replyCount: t.ToPostShowDataItems ? t.ToPostShowDataItems.length : 0
-                })), m = u == [] ? i : null;
+                })), m = h == [] ? i : null;
                 return {
-                    comments: u,
+                    comments: h,
                     maxPage: r ? 1 : m
                 };
             },
@@ -409,22 +409,22 @@ class ManHuaRen extends ComicSource {
                     "sec-fetch-site": "same-origin",
                     "user-agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1",
                     "x-requested-with": "XMLHttpRequest"
-                }, h = await Network.get(n, c);
-                if (200 !== h.status) return {
+                }, u = await Network.get(n, c);
+                if (200 !== u.status) return {
                     comments: [],
                     maxPage: i
                 };
-                let u = [];
+                let h = [];
                 try {
-                    u = JSON.parse(h.body);
+                    h = JSON.parse(u.body);
                 } catch (t) {}
-                if (!Array.isArray(u)) return {
+                if (!Array.isArray(h)) return {
                     comments: [],
                     maxPage: i
                 };
                 let m = [], d = 0;
                 if (r) {
-                    let t = u.find(t => t.Id.toString() === o);
+                    let t = h.find(t => t.Id.toString() === o);
                     t && t.ToPostShowDataItems && (m = t.ToPostShowDataItems.map(t => new Comment({
                         id: t.Id.toString(),
                         userName: t.Poster,
@@ -435,7 +435,7 @@ class ManHuaRen extends ComicSource {
                         isLiked: t.IsPraise,
                         replyCount: 0
                     })));
-                } else m = u.map(t => new Comment({
+                } else m = h.map(t => new Comment({
                     id: `${t.Id}//${i}`,
                     userName: t.Poster,
                     content: t.PostContent,
@@ -513,5 +513,9 @@ function resolvePluginUpdateUrl(t) {
     const c = o ? `${o}/${n}` : n;
     return `${r}/${a}/${l}@${s}/${n.startsWith(`${o}/`) ? n : c}`;
 }
+
+"undefined" != typeof module && module && module.exports && (module.exports = {
+    resolvePluginUpdateUrl
+});
 
 "use strict";

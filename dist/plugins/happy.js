@@ -167,12 +167,12 @@ class Happy extends ComicSource {
         }, this.formatUpdateTime = e => /^\d{2}-\d{2}$/.test(e) ? `${(new Date).getFullYear()}-${e}` : e,
         this.parseHtmlComic = e => {
             var t, a, i, s, n, o;
-            const r = e.querySelector("a").attributes.href.split("/").pop(), c = null == (t = e.querySelector(".manga-title")) ? void 0 : t.text.trim(), l = e.querySelector("mip-img").attributes.src, h = null == (a = e.querySelector(".manga-chapter")) ? void 0 : a.text.replace("更新至：", "").trim(), u = null == (i = e.querySelector(".rank-number-small")) ? void 0 : i.text.trim(), m = e.querySelectorAll(".manga-category"), g = null == (s = m[0]) ? void 0 : s.text.split(/[|、]/).map(e => e.trim()).filter(e => e), p = null == (n = m[1]) ? void 0 : n.text.trim(), d = null == (o = this.formatAuthor(p)) ? void 0 : o.join(" | "), b = m.slice(2).map(e => e.text.trim()).filter(e => e).join(" | ");
+            const r = e.querySelector("a").attributes.href.split("/").pop(), l = null == (t = e.querySelector(".manga-title")) ? void 0 : t.text.trim(), c = e.querySelector("mip-img").attributes.src, h = null == (a = e.querySelector(".manga-chapter")) ? void 0 : a.text.replace("更新至：", "").trim(), u = null == (i = e.querySelector(".rank-number-small")) ? void 0 : i.text.trim(), m = e.querySelectorAll(".manga-category"), g = null == (s = m[0]) ? void 0 : s.text.split(/[|、]/).map(e => e.trim()).filter(e => e), p = null == (n = m[1]) ? void 0 : n.text.trim(), d = null == (o = this.formatAuthor(p)) ? void 0 : o.join(" | "), b = m.slice(2).map(e => e.text.trim()).filter(e => e).join(" | ");
             return {
                 id: r,
-                title: u ? `${u}. ${c}` : c,
+                title: u ? `${u}. ${l}` : l,
                 subTitle: d,
-                cover: l,
+                cover: c,
                 tags: g,
                 description: h || b || d
             };
@@ -211,10 +211,10 @@ class Happy extends ComicSource {
             {
                 const i = this.loadSetting("commentOrder"), n = t ? `&ch_id=${t}` : "", o = `${this.baseUrl}/v2.0/apis/comment?code=${e}${n}&pn=${a}&order=${i}&from=${s}`, r = await Network.get(o);
                 if (200 !== r.status) throw `评论接口请求失败: ${r.status}`;
-                const c = JSON.parse(r.body);
+                const l = JSON.parse(r.body);
                 return {
-                    comments: c.data.items.map(this.parseComment),
-                    maxPage: c.data.isEnd ? a : null
+                    comments: l.data.items.map(this.parseComment),
+                    maxPage: l.data.isEnd ? a : null
                 };
             }
         }, this.loadChaptersWithCache = async e => {
@@ -224,16 +224,16 @@ class Happy extends ComicSource {
                 return JSON.parse(i.body).data;
             }, a = await t(1), i = a.total, s = `chapters_${e}`, n = this.loadData(s);
             if (n && n.total === i) return n.chapters;
-            const o = a.items, r = o.length, c = Math.ceil(i / r);
-            let l = 1, h = {};
-            if (n && n.total > r && n.total < i) l = Math.floor(n.total / r), h = {
+            const o = a.items, r = o.length, l = Math.ceil(i / r);
+            let c = 1, h = {};
+            if (n && n.total > r && n.total < i) c = Math.floor(n.total / r), h = {
                 ...n.chapters
             }; else for (const e of o) h[e.id] = e.chapterName;
-            const u = c - l;
+            const u = l - c;
             if (u > 0) {
                 const e = Array.from({
                     length: u
-                }, (e, t) => l + t + 1), a = await Promise.all(e.map(e => t(e)));
+                }, (e, t) => c + t + 1), a = await Promise.all(e.map(e => t(e)));
                 for (const e of a) for (const t of e.items) h[t.id] = t.chapterName;
             }
             return this.saveCache(s, {
@@ -323,8 +323,8 @@ class Happy extends ComicSource {
                 var t, a, i, s, n;
                 const o = `${this.baseUrl}/manga/${e}`, r = await Network.get(o);
                 if (200 !== r.status) throw `漫画详情页请求失败: ${r.status}`;
-                const c = new HtmlDocument(r.body), l = null == (t = r.body.match(/<mip-data>\s*<script type="application\/json">\s*([\s\S]*?)<\/script>\s*<\/mip-data>/i)) ? void 0 : t[1], h = JSON.parse(l), u = null == (a = c.querySelector(".mg-title")) ? void 0 : a.text.trim(), m = null == (i = c.querySelector(".mg-sub-title")) ? void 0 : i.text.replace(/,/g, "／").trim(), g = c.querySelector("mip-img").attributes.src, p = c.querySelectorAll(".mg-sub-title a").map(e => e.text.trim()).join(","), d = this.formatAuthor(p), b = d.join(" | "), y = c.querySelectorAll(".mg-cate a").map(e => e.text.trim()).filter(e => e), f = null == (s = c.querySelector("mip-showmore")) ? void 0 : s.text.trim(), $ = m ? [ f, `别名：${m}` ].filter(e => e).join("\n\n") : f, x = null == (n = c.querySelector(".update-time .time")) ? void 0 : n.text.trim(), v = this.formatUpdateTime(x), _ = c.querySelectorAll(".manga-cover").map(this.parseHtmlComic), w = parseFloat(h.score) || null, k = h.serie_status ? "完结" : "连载中", U = await this.loadChaptersWithCache(e);
-                return c.dispose(), new ComicDetails({
+                const l = new HtmlDocument(r.body), c = null == (t = r.body.match(/<mip-data>\s*<script type="application\/json">\s*([\s\S]*?)<\/script>\s*<\/mip-data>/i)) ? void 0 : t[1], h = JSON.parse(c), u = null == (a = l.querySelector(".mg-title")) ? void 0 : a.text.trim(), m = null == (i = l.querySelector(".mg-sub-title")) ? void 0 : i.text.replace(/,/g, "／").trim(), g = l.querySelector("mip-img").attributes.src, p = l.querySelectorAll(".mg-sub-title a").map(e => e.text.trim()).join(","), d = this.formatAuthor(p), b = d.join(" | "), y = l.querySelectorAll(".mg-cate a").map(e => e.text.trim()).filter(e => e), f = null == (s = l.querySelector("mip-showmore")) ? void 0 : s.text.trim(), $ = m ? [ f, `别名：${m}` ].filter(e => e).join("\n\n") : f, x = null == (n = l.querySelector(".update-time .time")) ? void 0 : n.text.trim(), v = this.formatUpdateTime(x), _ = l.querySelectorAll(".manga-cover").map(this.parseHtmlComic), w = parseFloat(h.score) || null, k = h.serie_status ? "完结" : "连载中", U = await this.loadChaptersWithCache(e);
+                return l.dispose(), new ComicDetails({
                     title: u,
                     subTitle: b,
                     cover: g,
@@ -435,10 +435,14 @@ function __veneraNormalizeAuthorityPart(e, t, a) {
 }
 
 function resolvePluginUpdateUrl(e) {
-    const t = __veneraGetRuntimeGlobal(), a = t.__VENERA_RELEASE_AUTHORITY__ && "object" == typeof t.__VENERA_RELEASE_AUTHORITY__ ? t.__VENERA_RELEASE_AUTHORITY__ : {}, i = __veneraNormalizeAuthorityPart(a.cdnOrigin, "https://cdn.jsdelivr.net", !1).replace(/\/+$/, ""), s = __veneraNormalizeAuthorityPart(a.providerPath, "gh", !0), n = __veneraNormalizeAuthorityPart(a.repository, "mythic3011/venera-configs", !0), o = __veneraNormalizeAuthorityPart(a.releaseRef, "main", !1), r = __veneraNormalizeAuthorityPart(a.artifactPathPrefix, "dist/plugins", !0), c = String(e || "").replace(/^\/+/, "");
-    if (!c) return `${i}/${s}/${n}@${o}`;
-    const l = r ? `${r}/${c}` : c;
-    return `${i}/${s}/${n}@${o}/${c.startsWith(`${r}/`) ? c : l}`;
+    const t = __veneraGetRuntimeGlobal(), a = t.__VENERA_RELEASE_AUTHORITY__ && "object" == typeof t.__VENERA_RELEASE_AUTHORITY__ ? t.__VENERA_RELEASE_AUTHORITY__ : {}, i = __veneraNormalizeAuthorityPart(a.cdnOrigin, "https://cdn.jsdelivr.net", !1).replace(/\/+$/, ""), s = __veneraNormalizeAuthorityPart(a.providerPath, "gh", !0), n = __veneraNormalizeAuthorityPart(a.repository, "mythic3011/venera-configs", !0), o = __veneraNormalizeAuthorityPart(a.releaseRef, "main", !1), r = __veneraNormalizeAuthorityPart(a.artifactPathPrefix, "dist/plugins", !0), l = String(e || "").replace(/^\/+/, "");
+    if (!l) return `${i}/${s}/${n}@${o}`;
+    const c = r ? `${r}/${l}` : l;
+    return `${i}/${s}/${n}@${o}/${l.startsWith(`${r}/`) ? l : c}`;
 }
+
+"undefined" != typeof module && module && module.exports && (module.exports = {
+    resolvePluginUpdateUrl
+});
 
 "use strict";

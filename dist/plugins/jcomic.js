@@ -81,7 +81,7 @@ class JComic extends ComicSource {
                 let l = 1;
                 const u = /\((\d+)\)/.exec(c);
                 u && (l = parseInt(u[1], 10) || 1);
-                const m = a.querySelector("img.comic-thumb"), p = m ? m.attributes.src : "", h = a.querySelectorAll('a[href^="/author/"] button'), f = Array.from(h).map(t => t.text.trim()), d = a.querySelectorAll('a[href^="/cat/"] button'), g = Array.from(d).map(t => t.text.trim()), y = a.querySelector("p.comic-date"), E = y ? y.text.trim() : "", C = i.querySelectorAll('a[href^="/page/"]');
+                const m = a.querySelector("img.comic-thumb"), p = m ? m.attributes.src : "", h = a.querySelectorAll('a[href^="/author/"] button'), d = Array.from(h).map(t => t.text.trim()), f = a.querySelectorAll('a[href^="/cat/"] button'), g = Array.from(f).map(t => t.text.trim()), y = a.querySelector("p.comic-date"), E = y ? y.text.trim() : "", C = i.querySelectorAll('a[href^="/page/"]');
                 let _ = [];
                 C.forEach(e => {
                     const r = e.attributes.href;
@@ -101,7 +101,7 @@ class JComic extends ComicSource {
                     }
                 });
                 const R = new Map;
-                f.length && R.set("authors", f), g.length && R.set("categories", g);
+                d.length && R.set("authors", d), g.length && R.set("categories", g);
                 const b = new Map;
                 return _.forEach(t => {
                     b.set(t.id, t.title);
@@ -109,7 +109,7 @@ class JComic extends ComicSource {
                     id: t,
                     title: s,
                     cover: p,
-                    authors: f,
+                    authors: d,
                     categories: g,
                     eps: _
                 }, new ComicDetails({
@@ -187,6 +187,10 @@ function resolvePluginUpdateUrl(t) {
     const l = c ? `${c}/${s}` : s;
     return `${o}/${i}/${a}@${n}/${s.startsWith(`${c}/`) ? s : l}`;
 }
+
+"undefined" != typeof module && module && module.exports && (module.exports = {
+    resolvePluginUpdateUrl
+});
 
 "use strict";
 

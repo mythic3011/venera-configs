@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-05-12T00:44:54.694Z",
+  "generatedAt": "2026-06-07T21:19:06.669Z",
   "releaseAuthorityPath": "scripts/config/release-authority.json",
   "releaseAuthority": {
     "provider": "jsdelivr",
@@ -282,6 +282,8 @@
       "minAppVersion": "1.0.0",
       "description": null,
       "aliases": [],
+      "allowedOrigins": [],
+      "allowedUrls": [],
       "deprecation": null,
       "pipeline": {
         "mode": "standard",
@@ -301,8 +303,8 @@
       "outputPath": "dist/plugins/baozi.js",
       "publicUrl": "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/dist/plugins/baozi.js",
       "checksums": {
-        "sha256": "2081ba821fb8fcf0bc9dcf5bc14360fd1f35a73534d43dfd3744663441a2a6b4",
-        "bytes": 14103
+        "sha256": "9c14010bf0133e5ae7251df2d2d3f74338bf91d0476544cc597705e3aebd479c",
+        "bytes": 14215
       }
     },
     {
@@ -313,6 +315,8 @@
       "minAppVersion": "1.6.0",
       "description": null,
       "aliases": [],
+      "allowedOrigins": [],
+      "allowedUrls": [],
       "deprecation": null,
       "pipeline": {
         "mode": "standard",
@@ -332,8 +336,8 @@
       "outputPath": "dist/plugins/ccc.js",
       "publicUrl": "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/dist/plugins/ccc.js",
       "checksums": {
-        "sha256": "4ff283e539dad2f04b6f3ff20ae7050b98f4b2d2a6a0beec8b94785195b33ad9",
-        "bytes": 19789
+        "sha256": "654fa752fda8719a46ede4df84377ace5f09cda02f5f99a2de38e2ecec5a5cf0",
+        "bytes": 19901
       }
     },
     {
@@ -344,6 +348,8 @@
       "minAppVersion": "1.6.0",
       "description": null,
       "aliases": [],
+      "allowedOrigins": [],
+      "allowedUrls": [],
       "deprecation": null,
       "pipeline": {
         "mode": "standard",
@@ -363,8 +369,8 @@
       "outputPath": "dist/plugins/comic_walker.js",
       "publicUrl": "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/dist/plugins/comic_walker.js",
       "checksums": {
-        "sha256": "68734028bb57caf5b18a1986cdac36bb9c21259707f99ac26f39bc3e14f9556f",
-        "bytes": 10903
+        "sha256": "493bca55b293ddf8d578c6fddedfbb0dc170c738e019dd05fd36c601fc21fe52",
+        "bytes": 11015
       }
     },
     {
@@ -375,6 +381,8 @@
       "minAppVersion": "1.4.0",
       "description": null,
       "aliases": [],
+      "allowedOrigins": [],
+      "allowedUrls": [],
       "deprecation": null,
       "pipeline": {
         "mode": "standard",
@@ -394,8 +402,8 @@
       "outputPath": "dist/plugins/comick.js",
       "publicUrl": "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/dist/plugins/comick.js",
       "checksums": {
-        "sha256": "f365a217e18bcfea137fa8a5344d479365d87120c11065eccbfa5f237a1e2212",
-        "bytes": 23078
+        "sha256": "cda6d79c8efbecf7ba27ffa10b64513a89399ef6a2ee11c87fa0578ecda816fb",
+        "bytes": 23189
       }
     },
     {
@@ -406,18 +414,17 @@
       "minAppVersion": "1.6.0",
       "description": null,
       "aliases": [],
+      "allowedOrigins": [],
+      "allowedUrls": [],
       "deprecation": null,
       "pipeline": {
         "mode": "standard",
         "injectRuntimeReleaseAuthority": true
       },
       "runtimeShared": [
-        "shared/errors/runtime.js",
-        "shared/http/runtime.js",
-        "shared/url/runtime.js",
-        "shared/parser/copy_like.js",
-        "shared/features/copy_like/index.js",
-        "shared/families/copy_like/index.js"
+        "support/runtime/index.js",
+        "support/http/index.js",
+        "support/plugin/index.js"
       ],
       "source": {
         "type": "concat",
@@ -432,8 +439,8 @@
       "outputPath": "dist/plugins/copy_manga.js",
       "publicUrl": "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/dist/plugins/copy_manga.js",
       "checksums": {
-        "sha256": "64664e7256ce993ca233687e79331b68723c4bd792ddeb32e5dbb79a517b5401",
-        "bytes": 45724
+        "sha256": "84610807434a3431484de7a5eefea8947735e93a57e38a98189fccd3165b3f82",
+        "bytes": 103580
       }
     },
     {
@@ -444,19 +451,29 @@
       "minAppVersion": "1.5.3",
       "description": null,
       "aliases": [],
+      "allowedOrigins": [
+        "https://e-hentai.org",
+        "https://exhentai.org",
+        "https://forums.e-hentai.org",
+        "https://api.e-hentai.org"
+      ],
+      "allowedUrls": [],
       "deprecation": null,
       "pipeline": {
         "mode": "standard",
         "injectRuntimeReleaseAuthority": true
       },
-      "runtimeShared": [],
+      "runtimeShared": [
+        "support/http/index.js"
+      ],
       "source": {
         "type": "concat",
         "moduleOrder": [
-          "plugins/ehentai/src/source-shell.js",
           "plugins/ehentai/src/index.js",
           "plugins/ehentai/src/query.js",
           "plugins/ehentai/src/urls.js",
+          "plugins/ehentai/src/source-runtime.js",
+          "plugins/ehentai/src/account-runtime.js",
           "plugins/ehentai/src/api-payloads.js",
           "plugins/ehentai/src/form-payloads.js",
           "plugins/ehentai/src/cache-keys.js",
@@ -481,10 +498,11 @@
         ]
       },
       "sourceEntries": [
-        "plugins/ehentai/src/source-shell.js",
         "plugins/ehentai/src/index.js",
         "plugins/ehentai/src/query.js",
         "plugins/ehentai/src/urls.js",
+        "plugins/ehentai/src/source-runtime.js",
+        "plugins/ehentai/src/account-runtime.js",
         "plugins/ehentai/src/api-payloads.js",
         "plugins/ehentai/src/form-payloads.js",
         "plugins/ehentai/src/cache-keys.js",
@@ -511,8 +529,8 @@
       "outputPath": "dist/plugins/ehentai.js",
       "publicUrl": "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/dist/plugins/ehentai.js",
       "checksums": {
-        "sha256": "aec82bb3bb9b685c60aedff2fbb9f651f6b36723a9bd070afe39f7c0a9f4bf2d",
-        "bytes": 69457
+        "sha256": "e32b13e2dda95f12d7a2029116a847ea39d385cf505d6958489bf20309353cdf",
+        "bytes": 77962
       }
     },
     {
@@ -523,16 +541,17 @@
       "minAppVersion": "1.4.0",
       "description": null,
       "aliases": [],
+      "allowedOrigins": [],
+      "allowedUrls": [],
       "deprecation": null,
       "pipeline": {
         "mode": "standard",
         "injectRuntimeReleaseAuthority": true
       },
       "runtimeShared": [
-        "shared/errors/runtime.js",
-        "shared/http/runtime.js",
-        "shared/features/mh_like/index.js",
-        "shared/families/mh_like/index.js"
+        "support/runtime/index.js",
+        "support/http/index.js",
+        "support/plugin/index.js"
       ],
       "source": {
         "type": "concat",
@@ -547,8 +566,8 @@
       "outputPath": "dist/plugins/goda.js",
       "publicUrl": "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/dist/plugins/goda.js",
       "checksums": {
-        "sha256": "98833eeaffbdae4b72004be28aac677cdee59f863a551d1af2b7cd6b50a1a209",
-        "bytes": 19723
+        "sha256": "73b98d5b0b8edc9b864930e4041942dc1d551a3b56b86d92fc9fd1fc550d4219",
+        "bytes": 84495
       }
     },
     {
@@ -559,6 +578,8 @@
       "minAppVersion": "1.6.0",
       "description": "中国大陆及日韩IP无法访问，遇到403可以尝试切换其他地区网络",
       "aliases": [],
+      "allowedOrigins": [],
+      "allowedUrls": [],
       "deprecation": null,
       "pipeline": {
         "mode": "standard",
@@ -578,8 +599,8 @@
       "outputPath": "dist/plugins/happy.js",
       "publicUrl": "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/dist/plugins/happy.js",
       "checksums": {
-        "sha256": "8a28a675470c2ad2616d9b74335127db4cc49da2b78ec1c56a57131a4926235e",
-        "bytes": 20872
+        "sha256": "3baee10c56983b314816203f99a42f4366b5f08d31b052a17403416278467b52",
+        "bytes": 20984
       }
     },
     {
@@ -590,6 +611,8 @@
       "minAppVersion": "1.6.0",
       "description": null,
       "aliases": [],
+      "allowedOrigins": [],
+      "allowedUrls": [],
       "deprecation": null,
       "pipeline": {
         "mode": "standard",
@@ -609,8 +632,8 @@
       "outputPath": "dist/plugins/hcomic.js",
       "publicUrl": "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/dist/plugins/hcomic.js",
       "checksums": {
-        "sha256": "d00c905c9b151a0a3e94b73a114261a6a704c03f7878cfe424cdef2b424459ae",
-        "bytes": 16339
+        "sha256": "71924fb15c3846fa856a952a716c62d6858b7448ef12d5608b9d3f981ec5bed9",
+        "bytes": 16451
       }
     },
     {
@@ -621,6 +644,8 @@
       "minAppVersion": "1.4.6",
       "description": null,
       "aliases": [],
+      "allowedOrigins": [],
+      "allowedUrls": [],
       "deprecation": null,
       "pipeline": {
         "mode": "standard",
@@ -640,8 +665,8 @@
       "outputPath": "dist/plugins/hitomi.js",
       "publicUrl": "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/dist/plugins/hitomi.js",
       "checksums": {
-        "sha256": "3ecf71c2808ab9702e1d0bf204ceb6520d58117b32b5e5b481eabe53ecde0150",
-        "bytes": 33698
+        "sha256": "7004d0c1855a7108a32d08e3df8b87b04f263e1ccf65fb4c2b02e3e2b4c887ce",
+        "bytes": 33810
       }
     },
     {
@@ -652,18 +677,17 @@
       "minAppVersion": "1.6.0",
       "description": null,
       "aliases": [],
+      "allowedOrigins": [],
+      "allowedUrls": [],
       "deprecation": null,
       "pipeline": {
         "mode": "standard",
         "injectRuntimeReleaseAuthority": true
       },
       "runtimeShared": [
-        "shared/errors/runtime.js",
-        "shared/http/runtime.js",
-        "shared/url/runtime.js",
-        "shared/parser/copy_like.js",
-        "shared/features/copy_like/index.js",
-        "shared/families/copy_like/index.js"
+        "support/runtime/index.js",
+        "support/http/index.js",
+        "support/plugin/index.js"
       ],
       "source": {
         "type": "concat",
@@ -678,8 +702,8 @@
       "outputPath": "dist/plugins/hot_manga.js",
       "publicUrl": "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/dist/plugins/hot_manga.js",
       "checksums": {
-        "sha256": "9b55916875f93077ef577f1208cd9ec6667ab2e5a0bb091dbb92af3668e69199",
-        "bytes": 39094
+        "sha256": "e646b6137c010b1c1be43d956ba8ffcb21129daba763a4ce15a8d529a3b23ea4",
+        "bytes": 96950
       }
     },
     {
@@ -690,6 +714,8 @@
       "minAppVersion": "1.0.0",
       "description": null,
       "aliases": [],
+      "allowedOrigins": [],
+      "allowedUrls": [],
       "deprecation": null,
       "pipeline": {
         "mode": "standard",
@@ -709,8 +735,8 @@
       "outputPath": "dist/plugins/ikmmh.js",
       "publicUrl": "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/dist/plugins/ikmmh.js",
       "checksums": {
-        "sha256": "6784d44062081fd3e0d649366d0f0b76fab4836e1a2cbb199dab7e2806097656",
-        "bytes": 15323
+        "sha256": "3fd80e0ad67f7061e3785e2ea1bb13bf7fe00cd183e623e2cd262fb55b4e9da4",
+        "bytes": 15434
       }
     },
     {
@@ -721,6 +747,8 @@
       "minAppVersion": "1.4.6",
       "description": null,
       "aliases": [],
+      "allowedOrigins": [],
+      "allowedUrls": [],
       "deprecation": null,
       "pipeline": {
         "mode": "standard",
@@ -740,8 +768,8 @@
       "outputPath": "dist/plugins/jcomic.js",
       "publicUrl": "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/dist/plugins/jcomic.js",
       "checksums": {
-        "sha256": "381f517877b3aea7c9d7396fde85c6f7fcba4f178abebcf1204737e5a3481e06",
-        "bytes": 11475
+        "sha256": "f2f383e07778a60b3c4118ed22f6b956a2c5c25d61d04cbf94989c74e6ac2773",
+        "bytes": 11587
       }
     },
     {
@@ -752,6 +780,8 @@
       "minAppVersion": "1.5.0",
       "description": "禁漫天堂漫畫源, 不能使用時請嘗試切換分流",
       "aliases": [],
+      "allowedOrigins": [],
+      "allowedUrls": [],
       "deprecation": null,
       "pipeline": {
         "mode": "standard",
@@ -771,8 +801,8 @@
       "outputPath": "dist/plugins/jm.js",
       "publicUrl": "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/dist/plugins/jm.js",
       "checksums": {
-        "sha256": "37e6aa31e17284b7b5d38becf2ed362dce40a03448e649348a69149aa194e9d8",
-        "bytes": 25803
+        "sha256": "456bebb19604411b06990c9f04cf4db4c8718b85a7eb9abb69c304587fd70cd2",
+        "bytes": 25914
       }
     },
     {
@@ -783,17 +813,17 @@
       "minAppVersion": "1.4.0",
       "description": null,
       "aliases": [],
+      "allowedOrigins": [],
+      "allowedUrls": [],
       "deprecation": null,
       "pipeline": {
         "mode": "standard",
         "injectRuntimeReleaseAuthority": true
       },
       "runtimeShared": [
-        "shared/families/self_hosted_library/index.js",
-        "shared/url/self_hosted_url.js",
-        "shared/http/self_hosted_json.js",
-        "shared/features/self_hosted/reference_cache.js",
-        "shared/features/self_hosted/category_parts.js"
+        "support/http/index.js",
+        "support/security/index.js",
+        "support/plugin/index.js"
       ],
       "source": {
         "type": "concat",
@@ -808,8 +838,8 @@
       "outputPath": "dist/plugins/kavita.js",
       "publicUrl": "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/dist/plugins/kavita.js",
       "checksums": {
-        "sha256": "4a49e70e8eb11aae38d3e95a05d146c2812c8dfd0df65979fc52562d917f8cfd",
-        "bytes": 30842
+        "sha256": "bd5f051da350401204b15e32c0aa34819eec223d3946c9a18bad095199ab4357",
+        "bytes": 95040
       }
     },
     {
@@ -820,17 +850,17 @@
       "minAppVersion": "1.4.0",
       "description": null,
       "aliases": [],
+      "allowedOrigins": [],
+      "allowedUrls": [],
       "deprecation": null,
       "pipeline": {
         "mode": "standard",
         "injectRuntimeReleaseAuthority": true
       },
       "runtimeShared": [
-        "shared/families/self_hosted_library/index.js",
-        "shared/url/self_hosted_url.js",
-        "shared/http/self_hosted_json.js",
-        "shared/features/self_hosted/reference_cache.js",
-        "shared/features/self_hosted/category_parts.js"
+        "support/http/index.js",
+        "support/security/index.js",
+        "support/plugin/index.js"
       ],
       "source": {
         "type": "concat",
@@ -845,8 +875,8 @@
       "outputPath": "dist/plugins/komga.js",
       "publicUrl": "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/dist/plugins/komga.js",
       "checksums": {
-        "sha256": "3806bad5fdc4acdbd77f3515c5b6c70988f07b30c5f7b32d1e84e9906f5f6fc2",
-        "bytes": 36560
+        "sha256": "c12e9e63a6577472ea9f157da9db083555f3faaa5ac4b97d52cdb6e776c7fe21",
+        "bytes": 100758
       }
     },
     {
@@ -857,6 +887,8 @@
       "minAppVersion": "1.0.0",
       "description": null,
       "aliases": [],
+      "allowedOrigins": [],
+      "allowedUrls": [],
       "deprecation": null,
       "pipeline": {
         "mode": "standard",
@@ -876,8 +908,8 @@
       "outputPath": "dist/plugins/komiic.js",
       "publicUrl": "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/dist/plugins/komiic.js",
       "checksums": {
-        "sha256": "eee6f0d66f292f29cb9b06f432c135bc6a7ba6ea14b2dcc38bdc6bcd94577968",
-        "bytes": 21116
+        "sha256": "508d7f945a2a51b8a0164a93c4993d33fb6455a55dadd3985f4e8b176be6f482",
+        "bytes": 21228
       }
     },
     {
@@ -888,18 +920,17 @@
       "minAppVersion": "1.4.0",
       "description": null,
       "aliases": [],
+      "allowedOrigins": [],
+      "allowedUrls": [],
       "deprecation": null,
       "pipeline": {
         "mode": "standard",
         "injectRuntimeReleaseAuthority": true
       },
       "runtimeShared": [
-        "shared/families/self_hosted_library/index.js",
-        "shared/url/self_hosted_url.js",
-        "shared/http/self_hosted_json.js",
-        "shared/storage/offset_pagination.js",
-        "shared/features/self_hosted/offset_search_loader.js",
-        "shared/features/self_hosted/tag_helpers.js"
+        "support/http/index.js",
+        "support/security/index.js",
+        "support/plugin/index.js"
       ],
       "source": {
         "type": "concat",
@@ -914,8 +945,8 @@
       "outputPath": "dist/plugins/lanraragi.js",
       "publicUrl": "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/dist/plugins/lanraragi.js",
       "checksums": {
-        "sha256": "822ae96d7dbb11499e72748c748fe505d9d0ca4f76232f5d0f97fb1066fa01f5",
-        "bytes": 39557
+        "sha256": "a555e4368f78a8e3266eff5858a04d7e09d19e205bb3a46b70ae233e423d4e38",
+        "bytes": 101009
       }
     },
     {
@@ -926,6 +957,8 @@
       "minAppVersion": "1.6.0",
       "description": "Account feature is not supported yet.",
       "aliases": [],
+      "allowedOrigins": [],
+      "allowedUrls": [],
       "deprecation": null,
       "pipeline": {
         "mode": "standard",
@@ -945,8 +978,8 @@
       "outputPath": "dist/plugins/manga_dex.js",
       "publicUrl": "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/dist/plugins/manga_dex.js",
       "checksums": {
-        "sha256": "08e91188215d1298568491d0a5f83841ab569db6b3a639942968c0ddb68dec74",
-        "bytes": 24882
+        "sha256": "4fd34c5da20328f59a498f7343b8f82e7478577cae10999d814e3b0862c88762",
+        "bytes": 24994
       }
     },
     {
@@ -957,6 +990,8 @@
       "minAppVersion": "1.4.0",
       "description": null,
       "aliases": [],
+      "allowedOrigins": [],
+      "allowedUrls": [],
       "deprecation": null,
       "pipeline": {
         "mode": "standard",
@@ -976,8 +1011,8 @@
       "outputPath": "dist/plugins/manhuagui.js",
       "publicUrl": "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/dist/plugins/manhuagui.js",
       "checksums": {
-        "sha256": "4245f9fcc69e68b329cc0b27d525d02a673437fcce4a62c9637b197909257cf8",
-        "bytes": 36167
+        "sha256": "c3ba692e510aeaa429494a3d4c870932ce3b91ed688dbc1ef4f534398ab5d453",
+        "bytes": 36279
       }
     },
     {
@@ -988,6 +1023,8 @@
       "minAppVersion": "1.6.0",
       "description": null,
       "aliases": [],
+      "allowedOrigins": [],
+      "allowedUrls": [],
       "deprecation": null,
       "pipeline": {
         "mode": "standard",
@@ -1007,8 +1044,8 @@
       "outputPath": "dist/plugins/manhuaren.js",
       "publicUrl": "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/dist/plugins/manhuaren.js",
       "checksums": {
-        "sha256": "1f564bbe45ab32c2ab787ade2964c629756b5eafcfe113554a4914bd183be14d",
-        "bytes": 28257
+        "sha256": "59f62bcedefbb3dfad775e4b743e4f08cfb4b50504d72b07cc6885f683c07c78",
+        "bytes": 28369
       }
     },
     {
@@ -1019,6 +1056,8 @@
       "minAppVersion": "1.4.0",
       "description": null,
       "aliases": [],
+      "allowedOrigins": [],
+      "allowedUrls": [],
       "deprecation": null,
       "pipeline": {
         "mode": "standard",
@@ -1038,8 +1077,8 @@
       "outputPath": "dist/plugins/manwaba.js",
       "publicUrl": "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/dist/plugins/manwaba.js",
       "checksums": {
-        "sha256": "2317fb743acb6f41e33d126396b241bc2fc08b4526bbff893636cad213876d5f",
-        "bytes": 10020
+        "sha256": "d0cb020b9f9c487d0cb508b66c337069ff4f26c0d52e5e87f73295ef988f025a",
+        "bytes": 10132
       }
     },
     {
@@ -1050,14 +1089,15 @@
       "minAppVersion": "1.4.0",
       "description": null,
       "aliases": [],
+      "allowedOrigins": [],
+      "allowedUrls": [],
       "deprecation": null,
       "pipeline": {
         "mode": "standard",
         "injectRuntimeReleaseAuthority": true
       },
       "runtimeShared": [
-        "shared/url/web_source_url.js",
-        "shared/features/tag_action_helpers.js"
+        "support/plugin/index.js"
       ],
       "source": {
         "type": "concat",
@@ -1072,8 +1112,8 @@
       "outputPath": "dist/plugins/mh1234.js",
       "publicUrl": "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/dist/plugins/mh1234.js",
       "checksums": {
-        "sha256": "779143cdd07d54601cdbd655df080b5e0a5d9a5632391c5e3b805c3f727d626a",
-        "bytes": 20423
+        "sha256": "c2028b642c29d3512f2258782cb415949213168d1fed8670b1f6238211eb175b",
+        "bytes": 93010
       }
     },
     {
@@ -1084,16 +1124,17 @@
       "minAppVersion": "1.4.0",
       "description": null,
       "aliases": [],
+      "allowedOrigins": [],
+      "allowedUrls": [],
       "deprecation": null,
       "pipeline": {
         "mode": "standard",
         "injectRuntimeReleaseAuthority": true
       },
       "runtimeShared": [
-        "shared/errors/runtime.js",
-        "shared/http/runtime.js",
-        "shared/features/mh_like/index.js",
-        "shared/families/mh_like/index.js"
+        "support/runtime/index.js",
+        "support/http/index.js",
+        "support/plugin/index.js"
       ],
       "source": {
         "type": "concat",
@@ -1108,8 +1149,8 @@
       "outputPath": "dist/plugins/mh18.js",
       "publicUrl": "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/dist/plugins/mh18.js",
       "checksums": {
-        "sha256": "871805313b0fda48fbe6e84862d81fa0f635048322f2969ea59540ae4780c38e",
-        "bytes": 19607
+        "sha256": "cb2c84c46350f057710788a2002439cc4ebfa08747401c0981e20027124c3637",
+        "bytes": 84379
       }
     },
     {
@@ -1120,6 +1161,8 @@
       "minAppVersion": "1.5.0",
       "description": null,
       "aliases": [],
+      "allowedOrigins": [],
+      "allowedUrls": [],
       "deprecation": null,
       "pipeline": {
         "mode": "standard",
@@ -1139,8 +1182,8 @@
       "outputPath": "dist/plugins/mxs.js",
       "publicUrl": "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/dist/plugins/mxs.js",
       "checksums": {
-        "sha256": "440cc43b4f22290914c21729b1a7db6728a8a9d81b198a956b1e77e61b427285",
-        "bytes": 15862
+        "sha256": "feb98952739c558ba012f194e2ebd807d48b6f58d5d99ec12b72e79e7b679894",
+        "bytes": 15974
       }
     },
     {
@@ -1151,6 +1194,8 @@
       "minAppVersion": "1.0.0",
       "description": null,
       "aliases": [],
+      "allowedOrigins": [],
+      "allowedUrls": [],
       "deprecation": null,
       "pipeline": {
         "mode": "standard",
@@ -1160,18 +1205,42 @@
       "source": {
         "type": "concat",
         "moduleOrder": [
-          "plugins/nhentai/src/index.js"
+          "plugins/nhentai/src/index.js",
+          "plugins/nhentai/src/data/tag-catalog.js",
+          "plugins/nhentai/src/data/translations.js",
+          "plugins/nhentai/src/data/category-policy.js",
+          "plugins/nhentai/src/routes.js",
+          "plugins/nhentai/src/media.js",
+          "plugins/nhentai/src/parsers.js",
+          "plugins/nhentai/src/features/account.js",
+          "plugins/nhentai/src/features/explore.js",
+          "plugins/nhentai/src/features/category.js",
+          "plugins/nhentai/src/features/search.js",
+          "plugins/nhentai/src/features/favorites.js",
+          "plugins/nhentai/src/features/comic.js"
         ]
       },
       "sourceEntries": [
-        "plugins/nhentai/src/index.js"
+        "plugins/nhentai/src/index.js",
+        "plugins/nhentai/src/data/tag-catalog.js",
+        "plugins/nhentai/src/data/translations.js",
+        "plugins/nhentai/src/data/category-policy.js",
+        "plugins/nhentai/src/routes.js",
+        "plugins/nhentai/src/media.js",
+        "plugins/nhentai/src/parsers.js",
+        "plugins/nhentai/src/features/account.js",
+        "plugins/nhentai/src/features/explore.js",
+        "plugins/nhentai/src/features/category.js",
+        "plugins/nhentai/src/features/search.js",
+        "plugins/nhentai/src/features/favorites.js",
+        "plugins/nhentai/src/features/comic.js"
       ],
       "configPath": "plugins/nhentai/plugin.config.json",
       "outputPath": "dist/plugins/nhentai.js",
       "publicUrl": "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/dist/plugins/nhentai.js",
       "checksums": {
-        "sha256": "ea63971430c9efa5cafc9071862cd99fa691a7240781db8a8daffa68e2990222",
-        "bytes": 52978
+        "sha256": "4c79e108a1549da642fbac5843c09e8bc700f877b381a179f857f21f2f05a801",
+        "bytes": 44008
       }
     },
     {
@@ -1182,13 +1251,15 @@
       "minAppVersion": "1.0.0",
       "description": null,
       "aliases": [],
+      "allowedOrigins": [],
+      "allowedUrls": [],
       "deprecation": null,
       "pipeline": {
         "mode": "standard",
         "injectRuntimeReleaseAuthority": true
       },
       "runtimeShared": [
-        "shared/families/picacg/index.js"
+        "support/plugin/index.js"
       ],
       "source": {
         "type": "concat",
@@ -1203,8 +1274,8 @@
       "outputPath": "dist/plugins/picacg.js",
       "publicUrl": "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/dist/plugins/picacg.js",
       "checksums": {
-        "sha256": "dfc71feb1f65e0bad8a98653abc8a289d496f47d57c6392b4910fe6f5c831529",
-        "bytes": 31004
+        "sha256": "e752162e1092c113f8485533bb19c2025863a67b96ec829187a457f0c44688aa",
+        "bytes": 102124
       }
     },
     {
@@ -1215,6 +1286,8 @@
       "minAppVersion": "1.2.1",
       "description": null,
       "aliases": [],
+      "allowedOrigins": [],
+      "allowedUrls": [],
       "deprecation": null,
       "pipeline": {
         "mode": "standard",
@@ -1234,8 +1307,8 @@
       "outputPath": "dist/plugins/shonen_jump_plus.js",
       "publicUrl": "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/dist/plugins/shonen_jump_plus.js",
       "checksums": {
-        "sha256": "4fc5fd352565bda0bee5eaf00cc152fd0d709e764bfc503c01f63beb746f9fb8",
-        "bytes": 15943
+        "sha256": "3870a84192265e307176f88221fe55466f19bd3dacd216337daff9c177755a03",
+        "bytes": 16055
       }
     },
     {
@@ -1246,6 +1319,8 @@
       "minAppVersion": "1.0.0",
       "description": "紳士漫畫漫畫源, 不能使用時請嘗試更換URL",
       "aliases": [],
+      "allowedOrigins": [],
+      "allowedUrls": [],
       "deprecation": null,
       "pipeline": {
         "mode": "standard",
@@ -1265,8 +1340,8 @@
       "outputPath": "dist/plugins/wnacg.js",
       "publicUrl": "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/dist/plugins/wnacg.js",
       "checksums": {
-        "sha256": "b7d3d75c3b581a438219ea4cf2d1f62217ef2653639fe4d394ca838e3b88ce72",
-        "bytes": 18539
+        "sha256": "bd7aef5b0ead0e7c0981a8d9718ca91ad0a59d62599c6bb1b98b4bd8c687a18a",
+        "bytes": 18650
       }
     },
     {
@@ -1277,14 +1352,15 @@
       "minAppVersion": "1.4.0",
       "description": null,
       "aliases": [],
+      "allowedOrigins": [],
+      "allowedUrls": [],
       "deprecation": null,
       "pipeline": {
         "mode": "standard",
         "injectRuntimeReleaseAuthority": true
       },
       "runtimeShared": [
-        "shared/url/web_source_url.js",
-        "shared/features/tag_action_helpers.js"
+        "support/plugin/index.js"
       ],
       "source": {
         "type": "concat",
@@ -1299,8 +1375,8 @@
       "outputPath": "dist/plugins/ykmh.js",
       "publicUrl": "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/dist/plugins/ykmh.js",
       "checksums": {
-        "sha256": "219eeba4463873b7b17cf718ef333d436de5d53676ce437e92d79938c187fb23",
-        "bytes": 31810
+        "sha256": "f1a342cad156188d9b1dbef60d0f8eeca5de80d95e9573fc7b44ed116a04c966",
+        "bytes": 104397
       }
     },
     {
@@ -1311,6 +1387,8 @@
       "minAppVersion": "1.0.0",
       "description": null,
       "aliases": [],
+      "allowedOrigins": [],
+      "allowedUrls": [],
       "deprecation": null,
       "pipeline": {
         "mode": "standard",
@@ -1330,8 +1408,8 @@
       "outputPath": "dist/plugins/zaimanhua.js",
       "publicUrl": "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/dist/plugins/zaimanhua.js",
       "checksums": {
-        "sha256": "cd33ac14ef9867d0be1315f1cc8fcfc036902717bf1f995068decb5ad6bc25c0",
-        "bytes": 14559
+        "sha256": "28ec676d0e19314657cb048e0ef260aace407429d44bb47e2a7cb76a68ef6733",
+        "bytes": 14670
       }
     }
   ]

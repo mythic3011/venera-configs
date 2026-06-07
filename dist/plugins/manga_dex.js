@@ -10,14 +10,14 @@ class MangaDex extends ComicSource {
                 for (let t of e.attributes.altTitles) for (let e of Object.keys(t)) void 0 === s[e] && (s[e] = t[e]);
                 let r = APP.locale, o = "", c = s[Object.keys(s)[0]];
                 r.startsWith("en") ? o = s.en || s.ja || c : r.startsWith("zh_CN") ? o = s.zh || s["zh-hk"] || s["zh-tw"] || s.ja || c : r.startsWith("zh_TW") && (o = s["zh-hk"] || s["zh-tw"] || s.zh || s.ja || c);
-                let n = [];
-                for (let t of e.attributes.tags) n.push(t.attributes.name.en);
-                let l = null == (t = e.relationships.find(e => "cover_art" === e.type)) ? void 0 : t.attributes.fileName;
-                l = l ? `https://mangadex.org/covers/${a}/${l}.256.jpg` : "";
-                let d = e.attributes.description.en, f = e.attributes.createdAt, u = e.attributes.updatedAt, h = e.attributes.status, p = [], b = [];
+                let l = [];
+                for (let t of e.attributes.tags) l.push(t.attributes.name.en);
+                let n = null == (t = e.relationships.find(e => "cover_art" === e.type)) ? void 0 : t.attributes.fileName;
+                n = n ? `https://mangadex.org/covers/${a}/${n}.256.jpg` : "";
+                let d = e.attributes.description.en, u = e.attributes.createdAt, f = e.attributes.updatedAt, p = e.attributes.status, h = [], b = [];
                 for (let t of e.relationships) if ("author" === t.type) {
                     let e = t.attributes.name, a = t.id;
-                    p.push(e), this.authors[e] = a;
+                    h.push(e), this.authors[e] = a;
                 } else if ("artist" === t.type) {
                     let e = t.attributes.name, a = t.id;
                     b.push(e), this.artists[e] = a;
@@ -25,15 +25,15 @@ class MangaDex extends ComicSource {
                 return {
                     id: a,
                     title: o,
-                    subtitle: p.at(0),
+                    subtitle: h.at(0),
                     titles: s,
-                    cover: l,
-                    tags: n,
+                    cover: n,
+                    tags: l,
                     description: d,
-                    createTime: f,
-                    updateTime: u,
-                    status: h,
-                    authors: p,
+                    createTime: u,
+                    updateTime: f,
+                    status: p,
+                    authors: h,
                     artists: b
                 };
             },
@@ -122,8 +122,8 @@ class MangaDex extends ComicSource {
             load: async (e, t, a = [], s = 1) => {
                 if (!t) throw new Error("No tag id provided for category comics");
                 const i = (e, t) => null == e || "" === e ? t : e.split("-")[0] || t, r = i(a[0], "popular"), o = i(a[1], "any"), c = i(a[2], "any");
-                let n, l = [ "includes[]=cover_art", "includes[]=artist", "includes[]=author", "hasAvailableChapters=true", `limit=${this.comicsPerPage}`, `includedTags[]=${encodeURIComponent(t)}` ];
-                if (s && s > 1 && l.push("offset=" + (s - 1) * this.comicsPerPage), "any" !== r) {
+                let l, n = [ "includes[]=cover_art", "includes[]=artist", "includes[]=author", "hasAvailableChapters=true", `limit=${this.comicsPerPage}`, `includedTags[]=${encodeURIComponent(t)}` ];
+                if (s && s > 1 && n.push("offset=" + (s - 1) * this.comicsPerPage), "any" !== r) {
                     const e = {
                         popular: "followedCount",
                         follows: "followedCount",
@@ -131,18 +131,18 @@ class MangaDex extends ComicSource {
                         updated: "latestUploadedChapter",
                         rating: "rating"
                     }[r];
-                    e && l.push(`order[${e}]=desc`);
+                    e && n.push(`order[${e}]=desc`);
                 }
-                n = "any" === o ? [ "safe", "suggestive", "erotica" ] : [ o ];
-                for (let e of n) l.push(`contentRating[]=${encodeURIComponent(e)}`);
-                "any" !== c && l.push(`status[]=${encodeURIComponent(c)}`);
-                let d = `https://api.mangadex.org/manga?${l.join("&")}`, f = await fetch(d);
-                if (!f.ok) throw new Error("Network response was not ok");
-                let u = await f.json(), h = u.total || 0, p = [];
-                for (let e of u.data || []) p.push(this.api.parseComic(e));
+                l = "any" === o ? [ "safe", "suggestive", "erotica" ] : [ o ];
+                for (let e of l) n.push(`contentRating[]=${encodeURIComponent(e)}`);
+                "any" !== c && n.push(`status[]=${encodeURIComponent(c)}`);
+                let d = `https://api.mangadex.org/manga?${n.join("&")}`, u = await fetch(d);
+                if (!u.ok) throw new Error("Network response was not ok");
+                let f = await u.json(), p = f.total || 0, h = [];
+                for (let e of f.data || []) h.push(this.api.parseComic(e));
                 return {
-                    comics: p,
-                    maxPage: h ? Math.ceil(h / this.comicsPerPage) : p.length < this.comicsPerPage ? s : s + 1
+                    comics: h,
+                    maxPage: p ? Math.ceil(p / this.comicsPerPage) : h.length < this.comicsPerPage ? s : s + 1
                 };
             },
             optionList: [ {
@@ -189,10 +189,10 @@ class MangaDex extends ComicSource {
                 }
                 let c = await fetch(o);
                 if (!c.ok) throw new Error("Network response was not ok");
-                let n = await c.json(), l = n.total, d = Math.ceil(l / this.comicsPerPage), f = [];
-                for (let e of n.data) f.push(this.api.parseComic(e));
+                let l = await c.json(), n = l.total, d = Math.ceil(n / this.comicsPerPage), u = [];
+                for (let e of l.data) u.push(this.api.parseComic(e));
                 return {
-                    comics: f,
+                    comics: u,
                     maxPage: d
                 };
             },
@@ -283,12 +283,12 @@ class MangaDex extends ComicSource {
                 };
                 let r = `https://forums.mangadex.org/threads/${i}/page-${a}`, o = await fetch(r);
                 if (!o.ok) throw new Error(`Failed to load forum page: ${o.status}`);
-                let c = await o.text(), n = new HtmlDocument(c), l = [], d = n.querySelectorAll("article.message");
+                let c = await o.text(), l = new HtmlDocument(c), n = [], d = l.querySelectorAll("article.message");
                 for (let e of d) {
                     let t = e.attributes.id || "", a = e.querySelector(".message-name"), s = a ? a.text : "Unknown", i = e.querySelector(".avatar img"), r = i ? i.attributes.src : null;
                     r && (r = "https://forums.mangadex.org" + r);
-                    let o = e.querySelector("time"), c = o ? o.text : "Unknown", n = e.querySelector(".bbWrapper"), d = "";
-                    n && (d = n.innerHTML, d = n.innerHTML.replace(/[\r\n\t]+/g, ""), d = d.replace(/<div class="bbCodeBlock-expandLink[^>]*>.*?<\/div>/gi, ""),
+                    let o = e.querySelector("time"), c = o ? o.text : "Unknown", l = e.querySelector(".bbWrapper"), d = "";
+                    l && (d = l.innerHTML, d = l.innerHTML.replace(/[\r\n\t]+/g, ""), d = d.replace(/<div class="bbCodeBlock-expandLink[^>]*>.*?<\/div>/gi, ""),
                     d = d.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, ""), d = d.replace(/<blockquote[^>]*>/gi, '<span style="font-style:italic;font-weight:lighter">'),
                     d = d.replace(/<\/blockquote>/gi, "</span>"), d = d.replace(/<button[^>]*class="[^"]*bbCodeSpoiler-button[^"]*"[^>]*>([\s\S]*?)<\/button>/gi, '<span style="font-weight:bold">[$1]</span>'),
                     d = d.replace(/<img([^>]*)>/gi, (e, t) => {
@@ -303,7 +303,7 @@ class MangaDex extends ComicSource {
                         }
                         return e;
                     }), d = d.replace(/<\/?([a-z0-9]+)[^>]*>/gi, (e, t) => [ "img", "a", "b", "i", "u", "s", "br", "span", "strong" ].includes(t.toLowerCase()) ? e : [ "div", "p" ].includes(t.toLowerCase()) && e.startsWith("</") ? "<br>" : "")),
-                    l.push(new Comment({
+                    n.push(new Comment({
                         id: t,
                         userName: s,
                         avatar: r,
@@ -311,14 +311,14 @@ class MangaDex extends ComicSource {
                         time: c
                     }));
                 }
-                let f = a, u = n.querySelectorAll(".pageNav-page > a");
-                if (u && u.length > 0) {
-                    let e = u[u.length - 1].text, t = parseInt(e);
-                    isNaN(t) || (f = Math.max(f, t));
+                let u = a, f = l.querySelectorAll(".pageNav-page > a");
+                if (f && f.length > 0) {
+                    let e = f[f.length - 1].text, t = parseInt(e);
+                    isNaN(t) || (u = Math.max(u, t));
                 }
-                return n.dispose(), {
-                    comments: l,
-                    maxPage: f
+                return l.dispose(), {
+                    comments: n,
+                    maxPage: u
                 };
             },
             sendComment: async (e, t, a, s) => {
@@ -450,10 +450,14 @@ function __veneraNormalizeAuthorityPart(e, t, a) {
 }
 
 function resolvePluginUpdateUrl(e) {
-    const t = __veneraGetRuntimeGlobal(), a = t.__VENERA_RELEASE_AUTHORITY__ && "object" == typeof t.__VENERA_RELEASE_AUTHORITY__ ? t.__VENERA_RELEASE_AUTHORITY__ : {}, s = __veneraNormalizeAuthorityPart(a.cdnOrigin, "https://cdn.jsdelivr.net", !1).replace(/\/+$/, ""), i = __veneraNormalizeAuthorityPart(a.providerPath, "gh", !0), r = __veneraNormalizeAuthorityPart(a.repository, "mythic3011/venera-configs", !0), o = __veneraNormalizeAuthorityPart(a.releaseRef, "main", !1), c = __veneraNormalizeAuthorityPart(a.artifactPathPrefix, "dist/plugins", !0), n = String(e || "").replace(/^\/+/, "");
-    if (!n) return `${s}/${i}/${r}@${o}`;
-    const l = c ? `${c}/${n}` : n;
-    return `${s}/${i}/${r}@${o}/${n.startsWith(`${c}/`) ? n : l}`;
+    const t = __veneraGetRuntimeGlobal(), a = t.__VENERA_RELEASE_AUTHORITY__ && "object" == typeof t.__VENERA_RELEASE_AUTHORITY__ ? t.__VENERA_RELEASE_AUTHORITY__ : {}, s = __veneraNormalizeAuthorityPart(a.cdnOrigin, "https://cdn.jsdelivr.net", !1).replace(/\/+$/, ""), i = __veneraNormalizeAuthorityPart(a.providerPath, "gh", !0), r = __veneraNormalizeAuthorityPart(a.repository, "mythic3011/venera-configs", !0), o = __veneraNormalizeAuthorityPart(a.releaseRef, "main", !1), c = __veneraNormalizeAuthorityPart(a.artifactPathPrefix, "dist/plugins", !0), l = String(e || "").replace(/^\/+/, "");
+    if (!l) return `${s}/${i}/${r}@${o}`;
+    const n = c ? `${c}/${l}` : l;
+    return `${s}/${i}/${r}@${o}/${l.startsWith(`${c}/`) ? l : n}`;
 }
+
+"undefined" != typeof module && module && module.exports && (module.exports = {
+    resolvePluginUpdateUrl
+});
 
 "use strict";

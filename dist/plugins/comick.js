@@ -89,7 +89,7 @@ class Comick extends ComicSource {
                     } catch (e) {
                         return [];
                     }
-                })(s), h = p.map(e => Comick.category_param_dict[e] || e), g = (null == s ? void 0 : s.desc) || "暂无描述", _ = null != s && s.last_chapter ? `第${s.last_chapter}话` : "暂无更新", f = new Map, k = _;
+                })(s), h = p.map(e => Comick.category_param_dict[e] || e), g = (null == s ? void 0 : s.desc) || "暂无描述", f = null != s && s.last_chapter ? `第${s.last_chapter}话` : "暂无更新", _ = new Map, k = f;
                 try {
                     let e = await (async (e, t) => {
                         let i = new Map, r = null, o = 1, l = 1, s = e => {
@@ -136,11 +136,11 @@ class Comick extends ComicSource {
                         } else null != t && t.last_chapter && (m = `第${t.last_chapter}话`);
                         return [ u, m ];
                     })(i, s);
-                    Array.isArray(e) && (f = e[0] instanceof Map ? e[0] : f, k = "string" == typeof e[1] && e[1].length > 0 ? e[1] : k);
+                    Array.isArray(e) && (_ = e[0] instanceof Map ? e[0] : _, k = "string" == typeof e[1] && e[1].length > 0 ? e[1] : k);
                 } catch (e) {
-                    f = new Map;
+                    _ = new Map;
                 }
-                return 0 === f.size ? {
+                return 0 === _.size ? {
                     title: c,
                     cover: m,
                     description: g,
@@ -151,7 +151,7 @@ class Comick extends ComicSource {
                         标签: h,
                         状态: [ Comick.comic_status[u] ]
                     },
-                    chapters: f
+                    chapters: _
                 } : {
                     title: c,
                     cover: m,
@@ -162,7 +162,7 @@ class Comick extends ComicSource {
                         标签: h,
                         状态: [ Comick.comic_status[u] ]
                     },
-                    chapters: f
+                    chapters: _
                 };
             },
             loadEp: async (e, t) => {
@@ -586,6 +586,8 @@ Comick.comic_status = {
     斯洛伐克文: "sk",
     南非荷兰文: "af",
     拉脱维亚文: "lv"
-};
+}, "undefined" != typeof module && module && module.exports && (module.exports = {
+    resolvePluginUpdateUrl
+});
 
 "use strict";

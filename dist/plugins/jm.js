@@ -151,7 +151,7 @@ class JM extends ComicSource {
             loadInfo: async e => {
                 var t, a, i, r, s, o, n;
                 e.startsWith("jm") && (e = e.substring(2));
-                let l = await this.get(`${this.baseUrl}/album?id=${e}`), c = JSON.parse(l), h = null != (t = c.author) ? t : [], m = null != (a = c.works) ? a : [], d = null != (i = c.actors) ? i : [], g = new Map, p = (null != (r = c.series) ? r : []).sort((e, t) => e.sort - t.sort);
+                let l = await this.get(`${this.baseUrl}/album?id=${e}`), c = JSON.parse(l), h = null != (t = c.author) ? t : [], d = null != (a = c.works) ? a : [], m = null != (i = c.actors) ? i : [], g = new Map, p = (null != (r = c.series) ? r : []).sort((e, t) => e.sort - t.sort);
                 for (let e of p) {
                     var u;
                     let t = null != (u = e.name) ? u : "";
@@ -179,8 +179,8 @@ class JM extends ComicSource {
                     tags: {
                         Author: h,
                         Tag: f,
-                        Work: m,
-                        Actor: d,
+                        Work: d,
+                        Actor: m,
                         View: c.total_views ? [ c.total_views ] : []
                     },
                     recommend: v,
@@ -547,6 +547,9 @@ function resolvePluginUpdateUrl(e) {
 }
 
 JM.jmVersion = "2.0.16", JM.jmPkgName = "com.example.app", JM.fallbackServers = [ "www.cdntwice.org", "www.cdnsha.org", "www.cdnaspa.cc", "www.cdnntr.cc" ],
-JM.imageUrl = "https://cdn-msp.jmapinodeudzn.net", JM.ua = "Mozilla/5.0 (Linux; Android 10; K; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/130.0.0.0 Mobile Safari/537.36";
+JM.imageUrl = "https://cdn-msp.jmapinodeudzn.net", JM.ua = "Mozilla/5.0 (Linux; Android 10; K; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/130.0.0.0 Mobile Safari/537.36",
+"undefined" != typeof module && module && module.exports && (module.exports = {
+    resolvePluginUpdateUrl
+});
 
 "use strict";

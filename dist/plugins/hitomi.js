@@ -373,6 +373,10 @@ function resolvePluginUpdateUrl(e) {
     return `${r}/${s}/${n}@${o}/${l.startsWith(`${i}/`) ? l : c}`;
 }
 
+"undefined" != typeof module && module && module.exports && (module.exports = {
+    resolvePluginUpdateUrl
+});
+
 "use strict";
 
 const domain2 = "gold-usergeneratedcontent.net", domain = "ltn." + domain2, nozomiextension = ".nozomi", separator = "-", extension = ".html", galleriesdir = "galleries", index_dir = "tagindex", galleries_index_dir = "galleriesindex", languages_index_dir = "languagesindex", nozomiurl_index_dir = "nozomiurlindex", max_node_size = 464, B = 16, compressed_nozomi_prefix = "n", tag_index_domain = "tagindex.hitomi.la", namespaces = [ "artist", "character", "female", "group", "language", "male", "series", "tag", "type" ], refererUrl = "https://hitomi.la/";

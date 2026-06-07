@@ -6,7 +6,7 @@ class ManWaBa extends ComicSource {
             title: this.name,
             type: "singlePageWithMultiPart",
             load: async t => {
-                const a = `${this.api}/home`, e = await this.fetchJson(a, {
+                const e = `${this.api}/home`, a = await this.fetchJson(e, {
                     params: {
                         page: 1,
                         pageSize: 6,
@@ -15,10 +15,10 @@ class ManWaBa extends ComicSource {
                     }
                 }).then(t => t.data);
                 let i = {
-                    热门: e.comicList,
-                    最新完整版: e.gufengList,
-                    最新更新: e.xuanhuanList,
-                    热门收藏: e.xiaoyuanList
+                    热门: a.comicList,
+                    最新完整版: a.gufengList,
+                    最新更新: a.xuanhuanList,
+                    热门收藏: a.xiaoyuanList
                 };
                 function s(t) {
                     return new Comic({
@@ -29,9 +29,9 @@ class ManWaBa extends ComicSource {
                         tags: t.tags.split(",")
                     });
                 }
-                let r = {};
-                for (let t in i) r[t] = i[t].map(s);
-                return r;
+                let o = {};
+                for (let t in i) o[t] = i[t].map(s);
+                return o;
             }
         } ], this.category = {
             title: this.name,
@@ -44,7 +44,7 @@ class ManWaBa extends ComicSource {
             } ],
             enableRankingPage: !1
         }, this.categoryComics = {
-            load: async (t, a, e, i) => {
+            load: async (t, e, a, i) => {
                 let s = this.api + {
                     "": "/cate",
                     热血: "/cate/hotblooded",
@@ -68,17 +68,17 @@ class ManWaBa extends ComicSource {
                     完整版: "/cate/fullversion",
                     "19r": "/cate/19plus",
                     台版: "/cate/taiwanver"
-                }[a] || "/cate", r = JSON.stringify({
+                }[e] || "/cate", o = JSON.stringify({
                     page: {
                         page: i,
                         pageSize: 10
                     },
                     category: "comic",
-                    sort: parseInt(e[2]),
+                    sort: parseInt(a[2]),
                     comic: {
-                        status: parseInt("2" == e[0] ? -1 : e[0]),
-                        day: parseInt(e[1]),
-                        tag: a
+                        status: parseInt("2" == a[0] ? -1 : a[0]),
+                        day: parseInt(a[1]),
+                        tag: e
                     },
                     video: {
                         year: 0,
@@ -98,7 +98,7 @@ class ManWaBa extends ComicSource {
                 return {
                     comics: (await this.fetchJson(s, {
                         method: "POST",
-                        payload: r
+                        payload: o
                     }).then(t => t.data.list)).map(function(t) {
                         return new Comic({
                             id: t.url.split("/").pop(),
@@ -121,17 +121,17 @@ class ManWaBa extends ComicSource {
                 options: [ "0-更新", "1-新作", "2-畅销", "3-热门", "4-收藏" ]
             } ]
         }, this.search = {
-            load: async (t, a, e) => {
+            load: async (t, e, a) => {
                 let i = `${this.api}/search`, s = {
                     keyword: t,
                     type: "mh",
-                    page: e,
+                    page: a,
                     pageSize: 20
-                }, r = await this.fetchJson(i, {
+                }, o = await this.fetchJson(i, {
                     params: s
-                }).then(t => t.data), o = r.total;
+                }).then(t => t.data), r = o.total;
                 return {
-                    comics: r.list.map(t => new Comic({
+                    comics: o.list.map(t => new Comic({
                         id: t.id.toString(),
                         title: t.title,
                         subTitle: t.author,
@@ -140,52 +140,52 @@ class ManWaBa extends ComicSource {
                         description: t.description,
                         status: 0 == t.status ? "连载中" : "已完结"
                     })),
-                    maxPage: Math.ceil(o / 20)
+                    maxPage: Math.ceil(r / 20)
                 };
             }
         }, this.comic = {
             loadInfo: async t => {
-                let a = `${this.api}/comic/${t}`, e = await this.fetchJson(a, {
+                let e = `${this.api}/comic/${t}`, a = await this.fetchJson(e, {
                     payload: void 0
                 }).then(t => t.data);
-                this.logger.warn(`loadInfo: ${e}`);
-                let i = e.id, s = `${this.api}/comic/chapter`, r = {
+                this.logger.warn(`loadInfo: ${a}`);
+                let i = a.id, s = `${this.api}/comic/chapter`, o = {
                     comicId: i,
                     page: 1,
                     pageSize: 1
-                }, o = (await this.fetchJson(s, {
-                    params: r
+                }, r = (await this.fetchJson(s, {
+                    params: o
                 })).pagination.total, n = (await this.fetchJson(s, {
                     params: {
-                        ...r,
-                        pageSize: o
+                        ...o,
+                        pageSize: r
                     }
                 })).data, c = new Map;
                 return n.forEach(t => {
                     c.set(t.id.toString(), t.title.toString());
                 }), new ComicDetails({
-                    title: e.title.toString(),
-                    subTitle: e.author.toString(),
-                    cover: e.cover,
+                    title: a.title.toString(),
+                    subTitle: a.author.toString(),
+                    cover: a.cover,
                     tags: {
-                        类型: e.tags.split(","),
-                        状态: 0 == e.status ? "连载中" : "已完结"
+                        类型: a.tags.split(","),
+                        状态: 0 == a.status ? "连载中" : "已完结"
                     },
                     chapters: c,
-                    description: e.intro,
-                    updateTime: new Date(1e3 * e.editTime).toLocaleDateString()
+                    description: a.intro,
+                    updateTime: new Date(1e3 * a.editTime).toLocaleDateString()
                 });
             },
-            loadEp: async (t, a) => {
-                let e = `${this.api}/comic/image/${a}`, i = {
+            loadEp: async (t, e) => {
+                let a = `${this.api}/comic/image/${e}`, i = {
                     page: 1,
                     pageSize: 1,
                     imageSource: "https://tu.mhttu.cc"
-                }, s = await this.fetchJson(e, {
+                }, s = await this.fetchJson(a, {
                     params: i
                 }).then(t => t.data.pagination.total);
                 return {
-                    images: (await this.fetchJson(e, {
+                    images: (await this.fetchJson(a, {
                         params: {
                             ...i,
                             page_size: s
@@ -196,11 +196,11 @@ class ManWaBa extends ComicSource {
         };
     }
     init() {
-        this.fetchJson = async (t, {method: a = "GET", params: e, headers: i, payload: s}) => {
-            e && (t += `?${Object.keys(e).map(t => `${t}=${e[t]}`).join("&")}`);
-            let r = await Network.sendRequest(a, t, i, s);
-            if (200 !== r.status) throw `Invalid status code: ${r.status}, body: ${r.body}`;
-            return JSON.parse(r.body);
+        this.fetchJson = async (t, {method: e = "GET", params: a, headers: i, payload: s}) => {
+            a && (t += `?${Object.keys(a).map(t => `${t}=${a[t]}`).join("&")}`);
+            let o = await Network.sendRequest(e, t, i, s);
+            if (200 !== o.status) throw `Invalid status code: ${o.status}, body: ${o.body}`;
+            return JSON.parse(o.body);
         }, this.logger = {
             error: t => {
                 log("error", this.name, t);
@@ -219,16 +219,20 @@ function __veneraGetRuntimeGlobal() {
     return "object" == typeof globalThis && null !== globalThis ? globalThis : {};
 }
 
-function __veneraNormalizeAuthorityPart(t, a, e) {
-    const i = String(null == t ? "" : t).trim() || a;
-    return e ? i.replace(/^\/+|\/+$/g, "") : i;
+function __veneraNormalizeAuthorityPart(t, e, a) {
+    const i = String(null == t ? "" : t).trim() || e;
+    return a ? i.replace(/^\/+|\/+$/g, "") : i;
 }
 
 function resolvePluginUpdateUrl(t) {
-    const a = __veneraGetRuntimeGlobal(), e = a.__VENERA_RELEASE_AUTHORITY__ && "object" == typeof a.__VENERA_RELEASE_AUTHORITY__ ? a.__VENERA_RELEASE_AUTHORITY__ : {}, i = __veneraNormalizeAuthorityPart(e.cdnOrigin, "https://cdn.jsdelivr.net", !1).replace(/\/+$/, ""), s = __veneraNormalizeAuthorityPart(e.providerPath, "gh", !0), r = __veneraNormalizeAuthorityPart(e.repository, "mythic3011/venera-configs", !0), o = __veneraNormalizeAuthorityPart(e.releaseRef, "main", !1), n = __veneraNormalizeAuthorityPart(e.artifactPathPrefix, "dist/plugins", !0), c = String(t || "").replace(/^\/+/, "");
-    if (!c) return `${i}/${s}/${r}@${o}`;
+    const e = __veneraGetRuntimeGlobal(), a = e.__VENERA_RELEASE_AUTHORITY__ && "object" == typeof e.__VENERA_RELEASE_AUTHORITY__ ? e.__VENERA_RELEASE_AUTHORITY__ : {}, i = __veneraNormalizeAuthorityPart(a.cdnOrigin, "https://cdn.jsdelivr.net", !1).replace(/\/+$/, ""), s = __veneraNormalizeAuthorityPart(a.providerPath, "gh", !0), o = __veneraNormalizeAuthorityPart(a.repository, "mythic3011/venera-configs", !0), r = __veneraNormalizeAuthorityPart(a.releaseRef, "main", !1), n = __veneraNormalizeAuthorityPart(a.artifactPathPrefix, "dist/plugins", !0), c = String(t || "").replace(/^\/+/, "");
+    if (!c) return `${i}/${s}/${o}@${r}`;
     const l = n ? `${n}/${c}` : c;
-    return `${i}/${s}/${r}@${o}/${c.startsWith(`${n}/`) ? c : l}`;
+    return `${i}/${s}/${o}@${r}/${c.startsWith(`${n}/`) ? c : l}`;
 }
+
+"undefined" != typeof module && module && module.exports && (module.exports = {
+    resolvePluginUpdateUrl
+});
 
 "use strict";

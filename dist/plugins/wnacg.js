@@ -357,6 +357,8 @@ function resolvePluginUpdateUrl(e) {
     return `${l}/${i}/${r}@${s}/${n.startsWith(`${o}/`) ? n : c}`;
 }
 
-Wnacg.domains = [];
+Wnacg.domains = [], "undefined" != typeof module && module && module.exports && (module.exports = {
+    resolvePluginUpdateUrl
+});
 
 "use strict";
