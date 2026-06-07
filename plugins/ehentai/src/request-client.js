@@ -16,16 +16,20 @@ class EhentaiRequestClient {
   }
 
   async send(method, url, headers = {}, body = null, options = {}) {
-    const defaultRequestKey = `${method}:${url}`;
+    const isMutation = options.mutation ?? method !== "GET";
+
     const resolved = {
       action: options.action || `${method} ${url}`,
-      requestKey: options.requestKey || defaultRequestKey,
+      requestKey:
+        options.requestKey ||
+        this._defaultRequestKey(method, url, body, isMutation),
       domainKey: options.domainKey || domainKey(url),
       expectedStatus: options.expectedStatus ?? 200,
-      maxRetries: options.maxRetries ?? (options.mutation ? 0 : 0),
+      maxRetries: options.maxRetries ?? (method === "GET" ? 1 : 0),
       cooldownMs: options.cooldownMs ?? 60000,
       classifyBody: options.classifyBody ?? true,
-      mutation: options.mutation ?? method !== "GET",
+      mutation: isMutation,
+      allowDedup: options.allowDedup ?? !isMutation,
     };
 
     const cooldownUntil = this.source.requestState.cooldownUntil.get(
@@ -35,26 +39,46 @@ class EhentaiRequestClient {
       throw `${resolved.action} blocked: temporary cooldown in effect`;
     }
 
-    const inflightKey = resolved.requestKey;
     const finalHeaders = this._resolveHeaders(method, url, headers, resolved);
-    if (this.source.requestState.inflight.has(inflightKey)) {
+    const inflightKey = resolved.requestKey;
+
+    if (
+      resolved.allowDedup &&
+      inflightKey &&
+      this.source.requestState.inflight.has(inflightKey)
+    ) {
       return this.source.requestState.inflight.get(inflightKey);
     }
 
-    const run = this._enqueueByDomain(resolved.domainKey, () =>
-      this._sendWithRetry(method, url, finalHeaders, body, resolved),
-    );
+    const run = this._enqueueByDomain(resolved.domainKey, () => {
+      return this._sendWithRetry(method, url, finalHeaders, body, resolved);
+    });
 
-    this.source.requestState.inflight.set(inflightKey, run);
+    if (resolved.allowDedup && inflightKey) {
+      this.source.requestState.inflight.set(inflightKey, run);
+    }
+
     try {
       return await run;
     } finally {
-      this.source.requestState.inflight.delete(inflightKey);
+      if (resolved.allowDedup && inflightKey) {
+        this.source.requestState.inflight.delete(inflightKey);
+      }
     }
   }
 
+  _defaultRequestKey(method, url, body, isMutation) {
+    if (!isMutation) {
+      return `${method}:${url}`;
+    }
+
+    // mutation default no de-dup; caller can pass requestKey + allowDedup=true manually
+    return null;
+  }
+
   _enqueueByDomain(domainKey, task) {
-    const tail = this.source.requestState.queues.get(domainKey) || Promise.resolve();
+    const tail =
+      this.source.requestState.queues.get(domainKey) || Promise.resolve();
     const run = tail.then(task, task);
     const queueNext = run.then(
       () => undefined,
@@ -133,8 +157,10 @@ class EhentaiRequestClient {
       return false;
     }
     const body = String((response && response.body) || "");
+
+    // Empty body is transport/server failure, not an abuse signal. Don't cooldown.
     if (!this._hasNonWhitespace(body)) {
-      return true;
+      return false;
     }
     return this.source.isAbuseResponseBody(body);
   }
@@ -150,6 +176,9 @@ class EhentaiRequestClient {
   }
 
   _markCooldown(domainKey, cooldownMs) {
-    this.source.requestState.cooldownUntil.set(domainKey, Date.now() + cooldownMs);
+    this.source.requestState.cooldownUntil.set(
+      domainKey,
+      Date.now() + cooldownMs,
+    );
   }
 }
