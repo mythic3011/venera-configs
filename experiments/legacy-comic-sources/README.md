@@ -71,6 +71,36 @@ Image keys carry stable archive/path identifiers rather than authenticated
 URLs. Returned page entries are parsed and reconstructed under the configured
 server base instead of forwarding arbitrary remote origins.
 
+### v0.1.1 compatibility and safety changes
+
+The temporary source is now **ES2018/QuickJS-friendly**: it initializes its
+metadata, settings and callbacks in a `constructor()` instead of class field
+initializers. Authentication headers use a **synchronous UTF-8/Base64 encoder**
+implemented in plain JS. Venera's `Convert.encodeUtf8` and
+`Convert.encodeBase64` may call the asynchronous host bridge and must not be
+used to supply headers from synchronous `onThumbnailLoad`.
+
+Other guardrails:
+- Fixed archive ID format and immutable image-key identity (`lrr-page:<arcid>:<path>`).
+- Exact same-base validation for absolute LANraragi page URLs, otherwise
+  anchored relative `./api/archives/{id}/page&path=...` or
+  `.../page?path=...` formats. Foreign hosts, mismatched archive IDs,
+  encoded traversal, unsafe filenames and arbitrary trailing query parameters
+  fail closed. No remote page URL is forwarded directly to the loader.
+- All metadata requests use a bounded JSON response, status-specific errors,
+  fixed order/pagination and a configurable HTTPS/explicit trusted-LAN HTTP
+  base. Empty extracted pages are reported as pending/empty, **not** retried
+  endlessly. `/files?force=false` does not force archive re-extraction.
+- Auth is optional; use a dedicated revocable LANraragi API Key for testing.
+  Image requests include their own Authorization headers because Venera's
+  thumbnail path does not inherit body-image headers.
+- Tags avoid JS prototype-pollution names; malformed search totals and
+  nonnumeric cursors are rejected.
+
+**Compatibility note:** a LANraragi server version that changes its page URL
+response shape may require an adapter update. This version is tested against
+the published API examples with mocked responses, **not a live LANraragi server**.
+
 ### Known limitations and threat boundaries
 
 - There is **no comic preservation**, immutable snapshot, backup, cloud sync,
