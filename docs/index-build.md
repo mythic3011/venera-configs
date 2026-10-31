@@ -37,9 +37,9 @@ Experimental entries deliberately contain only `name`, `key`, `version`, `fileNa
   {
     "name": "LANraragi (Temporary)",
     "key": "lanraragi_temporary",
-    "version": "0.1.0",
+    "version": "0.2.0",
     "fileName": "lanraragi_temporary.js",
-    "description": "Read-only LANraragi source for authorized, user-configured self-hosted instances; experimental legacy JS only."
+    "description": "Temporary LANraragi reader with dynamic categories, browse pagination, metadata and page images; legacy JS only."
   }
 ]
 ```
@@ -87,6 +87,40 @@ To add another experimental source, put the independent source in the same exper
 - [CDN purge](../.github/workflows/purge_cdn.yml) runs only after a change reaches `main`; it is not a release step for PRs. New root `index.json` is included in canonical CDN path detection.
 
 **No PR workflow auto-commits generated files or pushes to production**. The reviewer must inspect identity/version changes and compare manifests and checksum evidence before merge. Neither index carries secrets or comic bytes.
+
+## Main-only CI automatic generation
+
+[Auto-generate Venera JSON catalogs](../.github/workflows/index-autogen.yml)
+runs on relevant **main** pushes, or manually on `main`.
+It first validates the committed canonical build manifest and plugin artifacts,
+then regenerates **both** catalogs and human-readable source indexes:
+
+```text
+index.json
+CATALOG.md
+experiments/legacy-comic-sources/index.json
+experiments/legacy-comic-sources/INDEX.md
+```
+
+If the outputs match, it reports **no drift** and does nothing. If they differ,
+it creates or updates a dedicated
+`automation/generated-venera-catalogs` branch and opens a **review PR**;
+it **never commits directly to main** or silently overwrites plugin config,
+JS files, release authority or credentials. A bot PR is not a release and must
+still pass the independent Index Integrity and full runtime checks.
+
+This job requires repository **Actions: Read and write permissions** and
+**Allow GitHub Actions to create and approve pull requests**, or a scoped
+repository policy permitting the equivalent; otherwise it cannot open the PR.
+Using `GITHUB_TOKEN` means a bot-created PR update might **not automatically
+trigger other workflows**, so generated diffs must be checked by reviewers
+before merge. The normal [PR CI](../.github/workflows/catalog-index.yml)
+does not get write permissions and does not auto-commit any output.
+
+The index is **not** mirrored/scraped from the upstream
+[`venera-app/venera-configs` reference](https://raw.githubusercontent.com/venera-app/venera-configs/refs/heads/main/index.json):
+we use its JSON-array wire format, while retaining this repo's own reviewed
+plugin identities, SHA-256 build manifest and release URL authority.
 
 ## Troubleshooting
 
