@@ -64,7 +64,7 @@ function harness(respond) {
 test("source has unique temporary identity and legacy entrypoints", () => {
   const { plugin } = harness();
   assert.equal(plugin.key, "lanraragi_temporary");
-  assert.equal(plugin.version, "0.1.1");
+  assert.equal(plugin.version, "0.2.0");
   assert.equal(plugin.minAppVersion, "1.16.0");
   assert.equal(typeof plugin.search.loadNext, "function");
   assert.equal(typeof plugin.comic.loadEp, "function");
@@ -269,7 +269,7 @@ test("metadata callback and image callbacks remain compatible without Convert br
 test("constructor-based identity supports ES2018 without class field initializers", () => {
   const {plugin}=harness();
   assert.equal(plugin.key,"lanraragi_temporary");
-  assert.ok(sourceText.includes('this.version = "0.1.1";'));
+  assert.ok(sourceText.includes('this.version = "0.2.0";'));
   assert.equal(/^\s{4}version\s*=/m.test(sourceText),false);
 });
 
@@ -363,4 +363,172 @@ test("requestJson validates transport response size and status",async()=>{
     const {plugin}=harness(()=>response);
     await assert.rejects(plugin.search.loadNext("x",[],null));
   }
+});
+
+
+test("init discovers real LANraragi categories and dynamic loader stays synchronous", async () => {
+  const { plugin, calls } = harness((url) => ({
+    status: 200,
+    body: JSON.stringify([
+      {id: "SET_1613080290", name: "Favorites", search: null, pinned: 1},
+      {id: "SET_1234567890", name: "Genre: Sci-Fi", search: "genre:sci-fi"},
+    ]),
+  }));
+  await plugin.init();
+  const section = plugin.category.parts[0];
+  assert.equal(section.type, "dynamic");
+  const result = section.loader();
+  assert.equal(typeof result.then, "undefined");
+  assert.deepEqual(Array.from(result, x => x.label),
+    ["All Archives", "Favorites", "Genre: Sci-Fi"]);
+  assert.equal(result[1].target.page, "category");
+  assert.equal(result[1].target.attributes.category, "SET_1613080290");
+  assert.equal(result[0].target.attributes.category, "all");
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].url, "https://nas.example.test/library/api/categories");
+});
+
+test("dynamic loader never performs network calls and preserves a usable All entry", () => {
+  const {plugin,calls}=harness();
+  assert.deepEqual(Array.from(plugin.category.parts[0].loader(), x => x.label),
+    ["All Archives"]);
+  assert.equal(calls.length, 0);
+});
+
+test("malformed and duplicate category identities are skipped", async () => {
+  const {plugin}=harness(() => ({
+    status:200,body:JSON.stringify([
+      {id:"SET_1613080290",name:"A"},
+      {id:"SET_1613080290",name:"duplicate"},
+      {id:"SET_XXXXXXXXXX",name:"bad"},
+      {id:"SET_1234567890",name:""},
+      {name:"no id"},
+      {id:"SET_9876543210",name:"Valid B"},
+    ]),
+  }));
+  await plugin.init();
+  assert.deepEqual(Array.from(plugin.category.parts[0].loader(), x => x.label),
+    ["All Archives","A","Valid B"]);
+});
+
+test("category-list errors fail closed but do not disable browse/search", async () => {
+  for (const response of [
+    {status:401,body:""},
+    {status:200,body:"not JSON"},
+    {status:200,body:JSON.stringify({categories:[]})},
+  ]) {
+    const {plugin}=harness(() => response);
+    await plugin.init();
+    assert.deepEqual(Array.from(plugin.category.parts[0].loader(), x => x.label),
+      ["All Archives"]);
+  }
+});
+
+test("switching to a different server clears visible category targets", async () => {
+  const {plugin}=harness(() => ({
+    status:200,body:JSON.stringify([{id:"SET_1613080290",name:"Private Shelf"}]),
+  }));
+  await plugin.init();
+  assert.equal(plugin.category.parts[0].loader().length,2);
+  plugin._config.server="https://another.example.test";
+  assert.deepEqual(Array.from(plugin.category.parts[0].loader(), x => x.label),
+    ["All Archives"]);
+});
+
+test("category browse page one filters by category ID, no groupby tanks", async () => {
+  const {plugin,calls}=harness(() => ({
+    status:200,body:JSON.stringify({data:[
+      {arcid:A,title:"First"},{arcid:B,title:"Second"}
+    ],recordsFiltered:3}),
+  }));
+  const result=await plugin.categoryComics.load("SET_1613080290",null,[],1);
+  assert.deepEqual(Array.from(result.comics,x=>x.id),[A,B]);
+  assert.equal(result.maxPage,2);
+  assert.equal(calls.length,1);
+  assert.equal(calls[0].url,
+    "https://nas.example.test/library/api/search?filter=&start=0&groupby_tanks=false&sortby=title&order=asc&category=SET_1613080290");
+});
+
+test("category page two discovers configurable server page size from page one", async () => {
+  const {plugin,calls}=harness(url => {
+    const offset=new URL(url).searchParams.get("start");
+    return {status:200,body:JSON.stringify({
+      data:offset==="0"?[{arcid:A},{arcid:B}]:[{arcid:B,title:"Last"}],
+      recordsFiltered:3,
+    })};
+  });
+  const result=await plugin.categoryComics.load("SET_1613080290",null,[],2);
+  assert.equal(result.maxPage,2);
+  assert.deepEqual(Array.from(result.comics,x=>x.title),["Last"]);
+  assert.equal(calls.length,2);
+  assert.ok(calls[1].url.includes("start=2"));
+  assert.ok(calls.every(x=>x.url.includes("category=SET_1613080290")));
+});
+
+test("all archives category omits category= parameter and supports an empty library", async () => {
+  const {plugin,calls}=harness(()=>({
+    status:200,body:JSON.stringify({data:[],recordsFiltered:0}),
+  }));
+  const result=await plugin.categoryComics.load("all",null,[],1);
+  assert.equal(result.maxPage,1);
+  assert.equal(result.comics.length,0);
+  assert.equal(calls.length,1);
+  assert.equal(calls[0].url.includes("category="),false);
+});
+
+test("out-of-range category page returns empty results without a second request", async () => {
+  const {plugin,calls}=harness(()=>({
+    status:200,body:JSON.stringify({data:[{arcid:A}],recordsFiltered:1}),
+  }));
+  const result=await plugin.categoryComics.load("SET_1613080290",null,[],999);
+  assert.equal(result.comics.length,0);
+  assert.equal(result.maxPage,1);
+  assert.equal(calls.length,1);
+});
+
+test("categories refuse non-SET IDs, invalid page numbers and unbounded offsets", async () => {
+  const {plugin,calls}=harness(()=>({
+    status:200,body:JSON.stringify({data:[{arcid:A}],recordsFiltered:99999999}),
+  }));
+  for(const category of ["../../admin","SET_123","TANK_1234567890","SET_1234567890&newonly=true"]){
+    await assert.rejects(plugin.categoryComics.load(category,null,[],1),
+      /Invalid LANraragi category ID/);
+  }
+  for(const page of [0,-1,1.5,"1e2","01",10001]){
+    await assert.rejects(plugin.categoryComics.load("all",null,[],page),
+      /Invalid category page number/);
+  }
+  await assert.rejects(plugin.categoryComics.load("all",null,[],9999),
+    /Category pagination offset too large/);
+  assert.equal(calls.length,1);
+});
+
+test("inconsistent category response rejects count and excessive results", async () => {
+  const cases=[
+    {data:[],recordsFiltered:5},
+    {data:[{arcid:A}],recordsFiltered:0},
+    {data:[{arcid:A}],recordsFiltered:"oops"},
+    {data:new Array(1001).fill({arcid:A}),recordsFiltered:1001},
+  ];
+  for(const response of cases){
+    const {plugin}=harness(()=>({status:200,body:JSON.stringify(response)}));
+    await assert.rejects(plugin.categoryComics.load("all",null,[],1));
+  }
+});
+
+test("category browse does not mix state across concurrent category requests", async () => {
+  const {plugin,calls}=harness(url=>{
+    const id=new URL(url).searchParams.get("category");
+    return Promise.resolve({status:200,body:JSON.stringify({
+      data:[{arcid:id==="SET_1613080290"?A:B}],
+      recordsFiltered:1,
+    })});
+  });
+  const [a,b]=await Promise.all([
+    plugin.categoryComics.load("SET_1613080290",null,[],1),
+    plugin.categoryComics.load("SET_9876543210",null,[],1),
+  ]);
+  assert.equal(a.comics[0].id,A);
+  assert.equal(b.comics[0].id,B);
+  assert.equal(calls.length,2);
 });
