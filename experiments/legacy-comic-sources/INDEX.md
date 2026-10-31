@@ -5,7 +5,7 @@ This README is generated from `catalog.sources.json`. It is a **temporary, non-c
 
 | Source | Key | Version | Min Venera | Status |
 | --- | --- | --- | --- | --- |
-| [LANraragi (Temporary)](lanraragi_temporary.js) | `lanraragi_temporary` | 0.1.0 | 1.16.0 | Experimental |
+| [LANraragi (Temporary)](lanraragi_temporary.js) | `lanraragi_temporary` | 0.1.1 | 1.16.0 | Experimental |
 
 ## Install the JSON index
 
