@@ -9,7 +9,7 @@ class LANraragiTemporarySource extends ComicSource {
         super();
         this.name = "LANraragi (Temporary)";
         this.key = "lanraragi_temporary";
-        this.version = "0.1.1";
+        this.version = "0.2.0";
         this.minAppVersion = "1.16.0";
         this.url = "";
 
@@ -43,6 +43,90 @@ class LANraragiTemporarySource extends ComicSource {
                 "LANraragi API Key (legacy setting; not secure vault)": "LANraragi API Key（旧版设置，非安全存储库）"
             },
             en: {}
+        };
+
+        // Category discovery happens once per source initialization.
+        // A Venera dynamic category loader must be SYNCHRONOUS; it returns
+        // this in-memory snapshot rather than making a network request.
+        this._categories = [];
+        this._categoryServer = "";
+        this.category = {
+            title: "LANraragi Categories",
+            parts: [{
+                name: "Library",
+                type: "dynamic",
+                loader: () => {
+                    const entries = [{
+                        label: "All Archives",
+                        target: {
+                            page: "category",
+                            attributes: {category: "all", param: null}
+                        }
+                    }];
+                    // Settings may change without a new constructor/init call.
+                    // Never display categories cached for a different server.
+                    let sameServer = false;
+                    try {
+                        sameServer = this._categoryServer === this.baseUrl();
+                    } catch (_) {
+                        sameServer = false;
+                    }
+                    if (sameServer) {
+                        for (const item of this._categories) {
+                            entries.push({
+                                label: item.name,
+                                target: {
+                                    page: "category",
+                                    attributes: {category: item.id, param: null}
+                                }
+                            });
+                        }
+                    }
+                    return entries;
+                }
+            }],
+            enableRankingPage: false
+        };
+
+        // Category pages are 1-based in Venera, but LANraragi takes a
+        // zero-based *record offset*, not page number. Discover the server's
+        // configured page size from page 1 on each request; no global cursor
+        // state or stale per-category page-size assumptions.
+        this.categoryComics = {
+            optionList: [],
+            load: async (category, param, options, page) => {
+                const id = String(category == null ? "" : category);
+                if (id !== "all" && !/^SET_[0-9]{10}$/.test(id)) {
+                    throw new Error("Invalid LANraragi category ID.");
+                }
+                const number = page == null ? 1 : Number(page);
+                if (!Number.isSafeInteger(number) || number < 1 || number > 10000 ||
+                    (page != null && !/^[1-9][0-9]*$/.test(String(page)))) {
+                    throw new Error("Invalid category page number.");
+                }
+                const query = id === "all" ? "" : "&category=" + encodeURIComponent(id);
+                const first = await this.searchArchivePage(query, 0);
+                const size = first.data.length;
+                const total = first.total;
+                if (total === 0) return {comics: [], maxPage: 1};
+                if (size === 0 || size > total) {
+                    throw new Error("Inconsistent LANraragi category page size.");
+                }
+                const maxPage = Math.max(1, Math.ceil(total / size));
+                if (number > maxPage) return {comics: [], maxPage: maxPage};
+                if (number === 1) {
+                    return {comics: first.data.map(item => this.toComic(item)), maxPage: maxPage};
+                }
+                const offset = (number - 1) * size;
+                if (!Number.isSafeInteger(offset) || offset > 1000000) {
+                    throw new Error("Category pagination offset too large.");
+                }
+                const next = await this.searchArchivePage(query, offset);
+                return {
+                    comics: next.data.map(item => this.toComic(item)),
+                    maxPage: maxPage
+                };
+            }
         };
 
         this.search = {
@@ -124,6 +208,65 @@ class LANraragiTemporarySource extends ComicSource {
                 headers: this.imageHeaders()
             })
         };
+    }
+
+    async init() {
+        // No bulk archive scan. /api/categories is a small read-only list.
+        // Fail closed to "All Archives" when the server is unreachable.
+        this._categories = [];
+        this._categoryServer = "";
+        let base;
+        try {
+            base = this.baseUrl();
+        } catch (_) {
+            return;
+        }
+        try {
+            const response = await this.requestJson("/api/categories");
+            if (!Array.isArray(response) || response.length > 1000) {
+                throw new Error("Invalid LANraragi category list.");
+            }
+            const categories = [];
+            const seen = {};
+            for (const item of response) {
+                if (!item || typeof item !== "object" || Array.isArray(item)) continue;
+                if (typeof item.id !== "string" || !/^SET_[0-9]{10}$/.test(item.id)) continue;
+                const name = this.text(item.name, 160).trim();
+                if (!name || Object.prototype.hasOwnProperty.call(seen, item.id)) continue;
+                seen[item.id] = true;
+                categories.push({id: item.id, name: name});
+            }
+            // Do not publish results from the old server if settings were changed
+            // during the async fetch.
+            if (this.baseUrl() === base) {
+                this._categories = categories;
+                this._categoryServer = base;
+            }
+        } catch (_) {
+            // A broken category list cannot block the existing reader/search.
+            this._categories = [];
+            this._categoryServer = "";
+        }
+    }
+
+    async searchArchivePage(categoryQuery, start) {
+        if (typeof categoryQuery !== "string" ||
+            (categoryQuery !== "" && !/^&category=SET_[0-9]{10}$/.test(categoryQuery)) ||
+            !Number.isSafeInteger(start) || start < 0 || start > 1000000) {
+            throw new Error("Invalid LANraragi category query.");
+        }
+        const response = await this.requestJson(
+            "/api/search?filter=&start=" + start +
+            "&groupby_tanks=false&sortby=title&order=asc" + categoryQuery
+        );
+        if (!response || !Array.isArray(response.data) ||
+            response.data.length > 1000 ||
+            !Number.isSafeInteger(response.recordsFiltered) ||
+            response.recordsFiltered < 0 ||
+            response.recordsFiltered > 100000000) {
+            throw new Error("Invalid LANraragi category search response.");
+        }
+        return {data: response.data, total: response.recordsFiltered};
     }
 
     text(value, limit) {
