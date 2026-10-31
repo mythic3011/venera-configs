@@ -488,7 +488,10 @@ test("out-of-range category page returns empty results without a second request"
 
 test("categories refuse non-SET IDs, invalid page numbers and unbounded offsets", async () => {
   const {plugin,calls}=harness(()=>({
-    status:200,body:JSON.stringify({data:[{arcid:A}],recordsFiltered:99999999}),
+    status:200,body:JSON.stringify({
+      data:Array(999).fill({arcid:A}),
+      recordsFiltered:99999999
+    }),
   }));
   for(const category of ["../../admin","SET_123","TANK_1234567890","SET_1234567890&newonly=true"]){
     await assert.rejects(plugin.categoryComics.load(category,null,[],1),
@@ -531,4 +534,32 @@ test("category browse does not mix state across concurrent category requests", a
   assert.equal(a.comics[0].id,A);
   assert.equal(b.comics[0].id,B);
   assert.equal(calls.length,2);
+});
+
+
+test("out-of-order async category initialization does not overwrite newer results", async () => {
+  let releaseOld;
+  let calls=0;
+  const {plugin}=harness(async ()=>{
+    calls++;
+    if(calls===1) return new Promise(resolve=>{releaseOld=resolve;});
+    return {status:200,body:JSON.stringify([{id:"SET_2222222222",name:"New"}])};
+  });
+  const old=plugin.init();
+  await plugin.init();
+  releaseOld({status:200,body:JSON.stringify([{id:"SET_1111111111",name:"Old"}])});
+  await old;
+  assert.deepEqual(Array.from(plugin.category.parts[0].loader(), x=>x.label),
+    ["All Archives","New"]);
+});
+
+test("category initialization changed credentials does not publish old pending results", async () => {
+  let release;
+  const {plugin}=harness(()=>new Promise(resolve=>{release=resolve;}));
+  const pending=plugin.init();
+  plugin._config.api_key="new-key";
+  release({status:200,body:JSON.stringify([{id:"SET_1111111111",name:"Old Secret Category"}])});
+  await pending;
+  assert.deepEqual(Array.from(plugin.category.parts[0].loader(), x=>x.label),
+    ["All Archives"]);
 });
