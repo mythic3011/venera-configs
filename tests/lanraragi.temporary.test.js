@@ -7,7 +7,7 @@ const vm = require("node:vm");
 // This suite validates only the standalone legacy JS source with a mocked
 // Venera host. It does not contact a real LANraragi instance, nor grant LAN.
 const file = path.resolve(
-  __dirname, "../../experiments/legacy-comic-sources/lanraragi_temporary.js",
+  __dirname, "../experiments/legacy-comic-sources/lanraragi_temporary.js",
 );
 const sourceText = fs.readFileSync(file, "utf8");
 const A = "a".repeat(40);
