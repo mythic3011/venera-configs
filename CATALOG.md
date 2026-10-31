@@ -23,7 +23,7 @@ Import the actual Venera-compatible JSON array using [index.json](index.json) vi
 | Kavita | `kavita` | 1.0.0 | [kavita.js](dist/plugins/kavita.js) |
 | Komga | `komga` | 1.0.0 | [komga.js](dist/plugins/komga.js) |
 | Komiic | `Komiic` | 1.0.3 | [komiic.js](dist/plugins/komiic.js) |
-| Lanraragi | `lanraragi` | 1.2.0 | [lanraragi.js](dist/plugins/lanraragi.js) |
+| Lanraragi | `lanraragi` | 1.2.1 | [lanraragi.js](dist/plugins/lanraragi.js) |
 | MangaDex | `manga_dex` | 1.1.1 | [manga_dex.js](dist/plugins/manga_dex.js) |
 | 漫画柜 | `ManHuaGui` | 1.2.1 | [manhuagui.js](dist/plugins/manhuagui.js) |
 | 漫画人 | `manhuaren` | 1.0.0 | [manhuaren.js](dist/plugins/manhuaren.js) |
