@@ -63,7 +63,7 @@ function harness(respond) {
 test("source has unique temporary identity and legacy entrypoints", () => {
   const { plugin } = harness();
   assert.equal(plugin.key, "lanraragi_temporary");
-  assert.equal(plugin.version, "0.1.0");
+  assert.equal(plugin.version, "0.1.1");
   assert.equal(plugin.minAppVersion, "1.16.0");
   assert.equal(typeof plugin.search.loadNext, "function");
   assert.equal(typeof plugin.comic.loadEp, "function");
@@ -121,7 +121,7 @@ test("first search uses offset zero and encodes query", async () => {
     body: JSON.stringify({ data: [{ arcid: A, title: "Test Book", tags: "artist:Me, color" }], recordsFiltered: 1 }),
   }));
   const result = await plugin.search.loadNext("hello & world", [], null);
-  assert.equal(calls[0].url, "https://nas.example.test/library/api/search?filter=hello%20%26%20world&start=0&groupby_tanks=false");
+  assert.equal(calls[0].url, "https://nas.example.test/library/api/search?filter=hello%20%26%20world&start=0&groupby_tanks=false&sortby=title&order=asc");
   assert.equal(result.comics.length, 1);
   assert.equal(result.comics[0].id, A);
   assert.equal(result.comics[0].title, "Test Book");
@@ -161,7 +161,7 @@ test("401 and 403 expose an authentication error without leaking credentials", a
 
 test("204/invalid JSON responses report correct failures", async () => {
   const { plugin: waiting } = harness(() => ({ status: 204, body: "" }));
-  await assert.rejects(waiting.search.loadNext("x", [], null), /not initialized/);
+  await assert.rejects(waiting.search.loadNext("x", [], null), /returned no data/);
   const { plugin: bad } = harness(() => ({ status: 200, body: "{no-json" }));
   await assert.rejects(bad.search.loadNext("x", [], null), /invalid JSON/);
 });
@@ -177,7 +177,7 @@ test("loadInfo maps tags into namespaces and preserves unchaptered semantics", a
   assert.equal(result.cover, "lrr-cover:" + A);
   assert.deepEqual(Array.from(result.tags.artist), ["Test"]);
   assert.deepEqual(Array.from(result.tags.genre), ["Action"]);
-  assert.deepEqual(Array.from(result.tags.tags), ["misc"]);
+  assert.deepEqual(Array.from(result.tags.Tags), ["misc"]);
   assert.equal(calls[0].url, "https://nas.example.test/library/api/archives/" + A + "/metadata");
 });
 
@@ -196,12 +196,9 @@ test("loadEp maps documented LANraragi page&path form without reordering", async
   assert.equal(plugin.imageUrl(result.images[0]), "https://nas.example.test/library/api/archives/" + A + "/page?path=00.jpg");
 });
 
-test("all images stay under configured server, ignoring source page URL origin", () => {
+test("foreign page URL origin is rejected before image loading", () => {
   const { plugin } = harness();
-  const key = plugin.pageKey(A, "https://attacker.invalid/api/archives/" + A + "/page?path=test.jpg");
-  const resolved = plugin.imageUrl(key);
-  assert.equal(resolved.startsWith("https://nas.example.test/library/"), true);
-  assert.equal(resolved.includes("attacker.invalid"), false);
+  assert.throws(() => plugin.pageKey(A, "https://attacker.invalid/api/archives/" + A + "/page?path=test.jpg"), /Unexpected LANraragi page origin/);
 });
 
 test("foreign archive IDs and encoded path traversal blocked", () => {
@@ -252,4 +249,115 @@ test("independent concurrent archives preserve per-response page identities", as
   ]);
   assert.ok(a.images[0].includes(A));
   assert.ok(b.images[0].includes(B));
+});
+
+
+test("metadata callback and image callbacks remain compatible without Convert bridge", () => {
+  const {plugin}=harness();
+  assert.equal(typeof plugin.comic.onThumbnailLoad, "function");
+  // If this tries to use asynchronous Convert, this will not have an Authorization value.
+  plugin._config.api_key="café-金";
+  const image=plugin.comic.onImageLoad("lrr-page:"+A+":01.jpg",A,null);
+  const cover=plugin.comic.onThumbnailLoad("lrr-cover:"+A);
+  const expected="Bearer "+Buffer.from("café-金","utf8").toString("base64");
+  assert.equal(image.headers.Authorization,expected);
+  assert.equal(cover.headers.Authorization,expected);
+  assert.equal(typeof cover.then,"undefined");
+});
+
+test("constructor-based identity supports ES2018 without class field initializers", () => {
+  const {plugin}=harness();
+  assert.equal(plugin.key,"lanraragi_temporary");
+  assert.ok(sourceText.includes('this.version = "0.1.1";'));
+  assert.equal(/^\s{4}version\s*=/m.test(sourceText),false);
+});
+
+test("source rejects archive mixup in onImageLoad comicId argument", () => {
+  const {plugin}=harness();
+  assert.throws(()=>plugin.comic.onImageLoad("lrr-page:"+A+":01.jpg",B,null),/belongs to another archive/);
+  assert.throws(()=>plugin.imageUrl("lrr-cover:"+A,B),/belongs to another archive/);
+});
+
+test("search invalid total, oversized array and malformed archive IDs fail before returning data",async()=>{
+  for(const response of [
+    {data:[{arcid:A}],recordsFiltered:"bad"},
+    {data:[{arcid:"wrong"}],recordsFiltered:1},
+    {data:new Array(1001).fill({arcid:A}),recordsFiltered:1001}
+  ]){
+    const {plugin}=harness(()=>({status:200,body:JSON.stringify(response)}));
+    await assert.rejects(plugin.search.loadNext("x",[],null));
+  }
+});
+
+test("pagination cursor rejects ambiguous encoded and fractional values",async()=>{
+  const {plugin,calls}=harness();
+  for(const cursor of ["1e2","1.5","01","+1","-2","Infinity"]){
+    await assert.rejects(plugin.search.loadNext("x",[],cursor),/Invalid search cursor/);
+  }
+  assert.equal(calls.length,0);
+});
+
+test("control bytes, encoded traversal, percent-double-encoding and extra query parts fail closed",()=>{
+  const {plugin}=harness();
+  for(const path of [
+    "../admin","%2e%2e%2fprivate","dir%2F%252e%252e%2Fsecret",
+    "%00x","x.jpg%3Ftoken%3Dabc","x.jpg&other=true"
+  ]){
+    assert.throws(()=>plugin.pageKey(A,"./api/archives/"+A+"/page?path="+path));
+  }
+});
+
+test("same-origin absolute page form resolves without forwarding credentials to foreign host",()=>{
+  const {plugin}=harness();
+  const key=plugin.pageKey(A,"https://nas.example.test/library/api/archives/"+A+"/page?path=01.jpg");
+  assert.equal(plugin.imageUrl(key),"https://nas.example.test/library/api/archives/"+A+"/page?path=01.jpg");
+  assert.throws(()=>plugin.pageKey(A,"https://nas.example.test.evil.invalid/library/api/archives/"+A+"/page?path=01.jpg"),/Unexpected LANraragi page origin/);
+});
+
+test("prototype pollution tag names do not alter returned tag object prototype",()=>{
+  const {plugin}=harness();
+  const tags=plugin.parseTags("__proto__:poison, constructor:bad, artist:Test");
+  assert.equal(Object.getPrototypeOf(tags),Object.prototype);
+  assert.deepEqual(Array.from(tags.Tags),["poison","bad"]);
+  assert.deepEqual(Array.from(tags.artist),["Test"]);
+  assert.equal(Object.prototype.poison,undefined);
+});
+
+test("API key rejects header splitting and unbounded values",()=>{
+  const {plugin}=harness();
+  for(const key of ["abc\r\nX-Evil: 1","z".repeat(513)]){
+    plugin._config.api_key=key;
+    assert.throws(()=>plugin.requestHeaders(),/Invalid LANraragi API Key/);
+  }
+});
+
+test("reject untrusted host authority and unsafe base-path percent escapes",()=>{
+  for(const server of [
+    "https://example.com%40evil.invalid",
+    "https://server.invalid:abc",
+    "https://server.invalid/path/%2e%2e/admin",
+    "https://server.invalid//api",
+    "https://server.invalid:999999"
+  ]){
+    const {plugin}=harness();
+    plugin._config.server=server;
+    assert.throws(()=>plugin.baseUrl());
+  }
+});
+
+test("204 and 404 are distinct from authentication failures",async()=>{
+  const {plugin}=harness(()=>({status:404,body:""}));
+  await assert.rejects(plugin.search.loadNext("x",[],null),/HTTP 404/);
+});
+
+test("loadEp refuses oversized archives without attempting to materialize many image keys",async()=>{
+  const {plugin}=harness(()=>({status:200,body:JSON.stringify({pages:Array(10001).fill("unused")})}));
+  await assert.rejects(plugin.comic.loadEp(A,null),/Invalid LANraragi archive page list/);
+});
+
+test("requestJson validates transport response size and status",async()=>{
+  for(const response of [null,{status:200,body:"x".repeat(4*1024*1024+1)},{status:200,body:{data:[]}}]){
+    const {plugin}=harness(()=>response);
+    await assert.rejects(plugin.search.loadNext("x",[],null));
+  }
 });
