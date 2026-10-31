@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-05-12T00:44:54.694Z",
+  "generatedAt": "2026-10-31T21:07:57.706Z",
   "releaseAuthorityPath": "scripts/config/release-authority.json",
   "releaseAuthority": {
     "provider": "jsdelivr",
@@ -1170,8 +1170,8 @@
       "outputPath": "dist/plugins/nhentai.js",
       "publicUrl": "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/dist/plugins/nhentai.js",
       "checksums": {
-        "sha256": "ea63971430c9efa5cafc9071862cd99fa691a7240781db8a8daffa68e2990222",
-        "bytes": 52978
+        "sha256": "9a6d053f37e2da159b8365e1c3686c4ee8369fc0a2f20555d4a4970ca55b6cd6",
+        "bytes": 53085
       }
     },
     {
