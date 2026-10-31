@@ -97,8 +97,8 @@ class LANraragiTemporarySource extends ComicSource {
                     throw new Error("LANraragi archive has no chapters.");
                 }
                 const id = this.archiveId(comicId);
-                // /files launches background extraction when needed, without
-                // forcing re-extraction or initiating server-side mutations.
+                // /files uses GET but may queue a LANraragi Minion extraction
+                // job and update server cache; force=false avoids re-extraction.
                 const response = await this.requestJson(
                     "/api/archives/" + id + "/files?force=false"
                 );
@@ -139,6 +139,10 @@ class LANraragiTemporarySource extends ComicSource {
             /[@%]/.test(match[2]) ||
             !/^(?:[A-Za-z0-9._-]+(?::[0-9]{1,5})?|\[[0-9a-fA-F:.]+\](?::[0-9]{1,5})?)$/.test(match[2])) {
             throw new Error("Set a valid LANraragi Server URL in Source Settings.");
+        }
+        const port = /:([0-9]{1,5})$/.exec(match[2]);
+        if (port && (Number(port[1]) < 1 || Number(port[1]) > 65535)) {
+            throw new Error("Invalid LANraragi server port.");
         }
         const path = match[3] || "";
         if (path && (path.indexOf("//") >= 0 || /%2f|%5c|%2e|%00/i.test(path) ||
@@ -252,8 +256,12 @@ class LANraragiTemporarySource extends ComicSource {
             let group = position > 0 ? tag.slice(0, position).trim() : "Tags";
             const value = position > 0 ? tag.slice(position + 1).trim() : tag;
             // Avoid prototype pollution; return a plain JSON-bridge object.
-            if (group === "__proto__" || group === "constructor" ||
-                group === "prototype") group = "Tags";
+            if (["__proto__", "constructor", "prototype", "toString",
+                "valueOf", "hasOwnProperty", "isPrototypeOf", "propertyIsEnumerable",
+                "toLocaleString", "__defineGetter__", "__defineSetter__",
+                "__lookupGetter__", "__lookupSetter__"].indexOf(group) >= 0) {
+                group = "Tags";
+            }
             if (!value || group.length > 100 || value.length > 512) continue;
             if (!Object.prototype.hasOwnProperty.call(tags, group)) tags[group] = [];
             if (tags[group].length < 200) tags[group].push(value);
