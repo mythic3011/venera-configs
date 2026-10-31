@@ -84,7 +84,7 @@ node --test tests/catalog-index.test.js tests/lanraragi.temporary.test.js
 
 `npm run sync-manifest` also refreshes the root `index.json`. Generated indexes, URLs, checksums and plugin artifacts must **not** be hand edited. Commit regenerated outputs alongside the corresponding source/config changes.
 
-For exact dependency ordering, Venera JSON examples, release authority, failure diagnosis and development steps, see the **[Index Build Guide](docs/index-build.md)**.
+For the official Venera JSON-array schema, exact dependency ordering, auto-generation review workflow, release authority, failure diagnosis and development steps, see the **[Index Build Guide](docs/index-build.md)**.
 
 ## GitHub Actions
 
@@ -93,9 +93,10 @@ For exact dependency ordering, Venera JSON examples, release authority, failure 
 | [CI](.github/workflows/ci.yml) | PR, main push, manual | Full existing plugin build and runtime verification |
 | [JSON Catalog Integrity](.github/workflows/catalog-index.yml) | Relevant PR/push, manual | Manifest, both JSON indexes, generated README and catalog tests |
 | [Experimental JS Sources](.github/workflows/legacy-source-ci.yml) | Relevant experiment PR/push, manual | Source syntax, mocked LANraragi/Venera tests, importable review artifacts |
+| [Auto-generate Venera JSON catalogs](.github/workflows/index-autogen.yml) | Main push / manual on main | Rebuilds JSON + generated READMEs; opens/updates review PR **only if drift is detected** |
 | [Purge jsDelivr CDN](.github/workflows/purge_cdn.yml) | Main push, manual | Purges changed canonical CDN paths |
 
-PR workflows are read-only. They never publish releases, overwrite main, accept private-network grants, or save user credentials. Focused green checks do **not** override failures in the full existing CI.
+PR validation workflows are read-only. The separate main-only auto-generation job can push **only four generated catalog outputs** to an automation branch and request review; it never commits directly to main. GitHub Actions must allow bot-created PRs, and GitHub-token-created PRs may not start new CI workflows automatically, so reviewers must independently verify generated output before merge. No workflow grants private-network access or stores user credentials. Focused green checks do **not** override failures in the full existing CI.
 
 ## Compatibility and security
 
