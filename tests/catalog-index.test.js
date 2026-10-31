@@ -16,7 +16,7 @@ test("canonical index.json is an exact deterministic publicIndex projection", ()
   assert.equal(onDisk, projected);
   const readme = fs.readFileSync(path.join(root, "CATALOG.md"), "utf8");
   assert.equal(readme, buildCatalogReadme(manifest));
-  assert.match(readme, /Total canonical sources: \*\*31\*\*/);
+  assert.ok(readme.includes("Total canonical sources: **" + manifest.plugins.length + "**."));
   const index = JSON.parse(onDisk);
   assert.equal(index.length, manifest.plugins.length);
   assert.ok(index.every(x => x.url.startsWith("https://") && x.key && x.fileName));
@@ -75,4 +75,29 @@ test("legacy builder refuses unreviewed production entries or stale metadata", (
   assert.throws(() => buildLegacyIndex([{...entry}], () =>
     code.replace('key = "lanraragi_temporary";', 'key = "different";')),
   /mismatch/);
+});
+
+
+test("both catalogs preserve official Venera index-array entry contract", () => {
+  const canonical = readJson(path.join(root, "index.json"));
+  const experimental = readJson(path.join(temp, "index.json"));
+  const fields = new Set(["name", "fileName", "key", "version", "description", "url"]);
+  for (const index of [canonical, experimental]) {
+    assert.ok(Array.isArray(index));
+    assert.ok(index.length > 0);
+    for (const entry of index) {
+      assert.equal(typeof entry, "object");
+      assert.ok(!Array.isArray(entry));
+      for (const key of ["name", "fileName", "key", "version"]) {
+        assert.equal(typeof entry[key], "string");
+        assert.ok(entry[key].trim().length > 0);
+      }
+      assert.ok(Object.keys(entry).every(key => fields.has(key)));
+      assert.match(entry.fileName, /^[A-Za-z0-9_-]+\.js$/);
+      assert.match(entry.version, /^\d+\.\d+\.\d+(?:[-+][A-Za-z0-9.-]+)?$/);
+      if (entry.url !== undefined) {
+        assert.match(entry.url, /^https:\/\//);
+      }
+    }
+  }
 });
