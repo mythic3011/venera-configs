@@ -19,6 +19,8 @@ Two **separate, Venera-compatible JSON arrays**:
 | Canonical | [index.json](index.json) | Official plugin catalog, including LANraragi, Komga and Kavita | `.generated/build-manifest.json#publicIndex` from `plugins/*/plugin.config.json` |
 | Experimental | [experiments/legacy-comic-sources/index.json](experiments/legacy-comic-sources/index.json) | Temporary legacy JS imports (currently read-only LANraragi) | Reviewed `catalog.sources.json` allowlist and JS source |
 
+Browse the automatically generated [canonical source table](CATALOG.md) (31 sources) or [experimental table](experiments/legacy-comic-sources/INDEX.md).
+
 **Canonical JSON index URL (after merge to main):**
 
 ```text
@@ -47,6 +49,7 @@ Canonical `lanraragi` and experimental `lanraragi_temporary` are separate source
 | `.generated/build-manifest.json` | Generated metadata, checksums and `publicIndex` | No |
 | `dist/plugins/*.js` | Generated standalone runtime artifacts | No |
 | **`index.json`** | Generated canonical Venera JSON catalog | No |
+| `CATALOG.md` | Generated README listing canonical plugins | No |
 | `experiments/legacy-comic-sources/*.js` | Isolated test-only legacy JS source | Yes |
 | `experiments/legacy-comic-sources/catalog.sources.json` | Experimental allowlist | Yes |
 | `experiments/legacy-comic-sources/index.json` | Generated experiment JSON catalog | No |
@@ -72,8 +75,8 @@ npm run pipeline:ci        # All existing runtime/security checks
 Focused commands:
 
 ```bash
-npm run build:index
-npm run check:index-json
+npm run build:index       # Also regenerates CATALOG.md
+npm run check:index-json  # Validates index.json and CATALOG.md
 npm run build:legacy-index
 npm run check:legacy-index
 node --test tests/catalog-index.test.js tests/lanraragi.temporary.test.js
