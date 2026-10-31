@@ -5,6 +5,7 @@ on:
   pull_request:
     paths:
       - "index.json"
+      - "CATALOG.md"
       - ".generated/build-manifest.json"
       - "plugins/**"
       - "shared/**"
@@ -72,6 +73,7 @@ jobs:
           retention-days: 14
           path: |
             index.json
+            CATALOG.md
             .generated/build-manifest.json
             experiments/legacy-comic-sources/index.json
             experiments/legacy-comic-sources/INDEX.md
