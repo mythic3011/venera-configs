@@ -50,6 +50,7 @@ class LANraragiTemporarySource extends ComicSource {
         // this in-memory snapshot rather than making a network request.
         this._categories = [];
         this._categoryServer = "";
+        this._categoryGeneration = 0;
         this.category = {
             title: "LANraragi Categories",
             parts: [{
@@ -213,11 +214,14 @@ class LANraragiTemporarySource extends ComicSource {
     async init() {
         // No bulk archive scan. /api/categories is a small read-only list.
         // Fail closed to "All Archives" when the server is unreachable.
+        const generation = ++this._categoryGeneration;
         this._categories = [];
         this._categoryServer = "";
         let base;
+        let auth;
         try {
             base = this.baseUrl();
+            auth = this.apiKey();
         } catch (_) {
             return;
         }
@@ -238,14 +242,18 @@ class LANraragiTemporarySource extends ComicSource {
             }
             // Do not publish results from the old server if settings were changed
             // during the async fetch.
-            if (this.baseUrl() === base) {
+            if (this._categoryGeneration === generation &&
+                this.baseUrl() === base && this.apiKey() === auth) {
                 this._categories = categories;
                 this._categoryServer = base;
             }
         } catch (_) {
             // A broken category list cannot block the existing reader/search.
-            this._categories = [];
-            this._categoryServer = "";
+            // But a stale request must not overwrite a newer successful init.
+            if (this._categoryGeneration === generation) {
+                this._categories = [];
+                this._categoryServer = "";
+            }
         }
     }
 
@@ -263,7 +271,8 @@ class LANraragiTemporarySource extends ComicSource {
             response.data.length > 1000 ||
             !Number.isSafeInteger(response.recordsFiltered) ||
             response.recordsFiltered < 0 ||
-            response.recordsFiltered > 100000000) {
+            response.recordsFiltered > 100000000 ||
+            (response.recordsFiltered === 0 && response.data.length !== 0)) {
             throw new Error("Invalid LANraragi category search response.");
         }
         return {data: response.data, total: response.recordsFiltered};
