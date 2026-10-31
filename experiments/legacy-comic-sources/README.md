@@ -5,6 +5,35 @@ for the legacy `ComicSource` JavaScript import interface in Venera-Next. They
 are deliberately **not** discovered by `plugins/*/plugin.config.json`, bundled
 into `dist/plugins`, or published into `.generated/build-manifest.json`.
 
+## Importable JSON Catalog
+
+Use [`index.json`](index.json) to import the full temporary catalog with
+a Venera build that supports source repository JSON arrays. For review before
+this PR merges, open the JSON file on the branch and click **Raw**. After merge,
+the permanent raw URL is:
+
+```text
+https://raw.githubusercontent.com/mythic3011/venera-configs/main/experiments/legacy-comic-sources/index.json
+```
+
+The JSON contains a relative `fileName`, so the app resolves the script from
+the **final raw JSON response URL**. Don't import a GitHub HTML `blob` URL.
+
+The table in [`INDEX.md`](INDEX.md) and the JSON list are **both generated**
+from [`catalog.sources.json`](catalog.sources.json), with a static identity
+cross-check against the actual JS source. Edit the allowlist and script;
+then regenerate both outputs. Do **not** hand-edit `INDEX.md` or `index.json`.
+
+```bash
+npm run build:legacy-index
+npm run check:legacy-index
+node --test tests/catalog-index.test.js tests/lanraragi.temporary.test.js
+```
+
+The temporary catalog is intentionally isolated from the root
+[canonical index](../../index.json) and existing `lanraragi` plugin.
+See the full [Index Build Guide](../../docs/index-build.md).
+
 ## LANraragi Temporary
 
 File: [`lanraragi_temporary.js`](lanraragi_temporary.js).
@@ -68,3 +97,17 @@ node --test tests/lanraragi.temporary.test.js
 
 Mocked Venera and LANraragi responses are used; these tests do **not**
 perform LAN access, credential-vault checks, or app integration tests.
+
+### CI / troubleshooting
+
+- [Experimental JS Sources](../../.github/workflows/legacy-source-ci.yml):
+  source syntax, 18 mocked LANraragi tests, index drift and artifact upload.
+- [JSON Catalog Integrity](../../.github/workflows/catalog-index.yml):
+  verifies both generated catalogs and index metadata independently of
+  unrelated canonical plugin failures.
+- A successful Mock Host test is **not** a real app or NAS integration test.
+  A missing source in the UI may mean the app build does not support legacy
+  JavaScript imports. A 401/403 usually means server authentication/authorization;
+  an empty page set may mean LANraragi extraction is unfinished.
+- If HTTP URL validation succeeds but LAN access is denied by the app, do
+  **not** disable host SSRF protections to make this experiment work.
