@@ -101,6 +101,31 @@ Other guardrails:
 response shape may require an adapter update. This version is tested against
 the published API examples with mocked responses, **not a live LANraragi server**.
 
+### LANraragi Categories (v0.2.0)
+
+The source now supports Venera's **Category** page in addition to Search.
+On initialization, it reads `GET /api/categories` (once per initialization),
+validates server category IDs (`SET_##########`), and populates a **synchronous**
+`category.parts[].loader()` with *All Archives* plus available categories.
+The dynamic loader does **not** make network requests. If category discovery
+fails, the user can still use *All Archives*, Search and the existing Reader.
+
+Clicking a category calls `categoryComics.load(category, param, options, page)`.
+The adapter uses `GET /api/search?category=<SET_ID>&start=<offset>` with
+`groupby_tanks=false` so results map to individual archive IDs. Since
+LANraragi's `start` is a **record offset** but Venera passes **1-based pages**,
+it loads page one to discover the server's configured page size before requesting
+later pages. Consequently, categories page 2+ may issue **two reads**;
+this is intentional and avoids hard-coding the server's page size.
+Results are sorted by title and retain the normal LANraragi server semantics.
+
+No category creation, removal, archive association changes, favorites writes,
+server setting modifications, or bulk background scanning are performed.
+Categories are an in-memory discovery list, not a restored snapshot of an
+offline source. Switching servers hides categories discovered from the previous
+server; a new source initialization fetches the latest list. A changed server
+library may reorder archive pages between requests, so pagination is best-effort.
+
 ### Known limitations and threat boundaries
 
 - There is **no comic preservation**, immutable snapshot, backup, cloud sync,
