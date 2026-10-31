@@ -2,7 +2,7 @@
   {
     "name": "LANraragi (Temporary)",
     "key": "lanraragi_temporary",
-    "version": "0.1.0",
+    "version": "0.1.1",
     "fileName": "lanraragi_temporary.js",
     "description": "Read-only LANraragi source for authorized, user-configured self-hosted instances; experimental legacy JS only."
   }
