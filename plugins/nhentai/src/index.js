@@ -2,9 +2,16 @@ class Nhentai extends ComicSource {
   constructor() {
     super();
 
+    // Runtime metadata must be available on the ComicSource instance.
+    // Keep these values synchronized with plugins/nhentai/plugin.config.json;
+    // tests/runtime/runtime-harness.smoke.test.js guards that contract.
+    this.name = "nhentai";
+    this.key = "nhentai";
+    this.version = "1.0.9";
+    this.minAppVersion = "1.0.0";
+
     // Note: The fields which are marked as [Optional] should be removed if not used
 
-    // Metadata (id, name, version, minAppVersion) is sourced from plugin.config.json
     // update url
     this.url = resolvePluginUpdateUrl("nhentai.js");
 

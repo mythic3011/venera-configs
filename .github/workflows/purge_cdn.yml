@@ -49,7 +49,49 @@ jobs:
              DIFF_CMD="git diff --name-only $BEFORE $AFTER"
           fi
           
-          CHANGED_FILES=$($DIFF_CMD | grep -E '^(dist/plugins/.*\.js|\.generated/build-manifest\.json)$' || true)
+          CHANGED_FILES=$($DIFF_CMD | grep -E '^(dist/plugins/.*\.js|\.generated/build-manifest\.json|index\.json)$' || true)
+          
+          if [ -z "$CHANGED_FILES" ]; then
+            echo "No CDN-served files changed"
+            echo "files=" >> $GITHUB_OUTPUT
+          else
+            echo "Changed files:"
+            echo "$CHANGED_FILES"
+            FILES_LIST=$(echo "$CHANGED_FILES" | tr '\n' ' ')
+            echo "files=$FILES_LIST" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Purge jsDelivr CDN
+        if: steps.changed-files.outputs.files != ''
+        run: |
+          AUTH_JSON="scripts/config/release-authority.json"
+          REPO_OWNER=$(node -e "const a=require('./${AUTH_JSON}'); process.stdout.write(a.repo.owner)")
+          REPO_NAME=$(node -e "const a=require('./${AUTH_JSON}'); process.stdout.write(a.repo.name)")
+          RELEASE_REF=$(node -e "const a=require('./${AUTH_JSON}'); process.stdout.write(a.ref)")
+          PROVIDER_PATH=$(node -e "const a=require('./${AUTH_JSON}'); process.stdout.write(a.urlTemplate.repositoryPathPrefix)")
+          REPO_FULL="${REPO_OWNER}/${REPO_NAME}"
+          
+          echo "Purging jsDelivr CDN for repository: $REPO_FULL"
+          
+          for file in ${{ steps.changed-files.outputs.files }}; do
+            if [ -z "$file" ]; then continue; fi
+            PURGE_URL="https://purge.jsdelivr.net/${PROVIDER_PATH}/${REPO_FULL}@${RELEASE_REF}/${file}"
+            
+            echo "Purging: $PURGE_URL"
+            
+            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "$PURGE_URL")
+            
+            if [ "$HTTP_CODE" -eq 200 ] || [ "$HTTP_CODE" -eq 201 ] || [ "$HTTP_CODE" -eq 303 ]; then
+              echo "✓ Successfully purged: $file (HTTP $HTTP_CODE)"
+            else
+              echo "✗ Failed to purge: $file (HTTP $HTTP_CODE)"
+            fi
+            
+            sleep 0.5
+          done
+          
+          echo "CDN purge completed!"
+ || true)
           
           if [ -z "$CHANGED_FILES" ]; then
             echo "No CDN-served files changed"

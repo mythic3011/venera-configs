@@ -23,13 +23,19 @@
     "pipeline:validate": "npm run validate:release-authority && npm run validate:plugins",
     "prepipeline:build": "npm run pipeline:validate",
     "pipeline:build": "npm run generate",
-    "postpipeline:build": "npm run check-generated",
+    "postpipeline:build": "npm run check-generated && npm run check:catalogs",
     "pipeline:test": "npm run test",
     "postpipeline:test": "npm run test:runtime && npm run audit:unsafe-runtime-code",
     "prepipeline:verify": "npm run pipeline:build",
     "pipeline:verify": "npm run check:index",
     "postpipeline:verify": "npm run pipeline:test",
-    "pipeline:ci": "npm run pipeline:verify"
+    "pipeline:ci": "npm run pipeline:verify",
+    "build:index": "node scripts/build/write-public-index.js",
+    "check:index-json": "node scripts/build/write-public-index.js --check",
+    "build:legacy-index": "node scripts/build/generate-legacy-index.js",
+    "check:legacy-index": "node scripts/build/generate-legacy-index.js --check",
+    "build:catalogs": "npm run build:index && npm run build:legacy-index",
+    "check:catalogs": "npm run check:index-json && npm run check:legacy-index"
   },
   "devDependencies": {
     "@babel/core": "^7.23.0",

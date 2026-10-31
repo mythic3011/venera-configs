@@ -1,6 +1,7 @@
 class Nhentai extends ComicSource {
     constructor() {
-        super(), this.url = resolvePluginUpdateUrl("nhentai.js"), this.URL_SCHEME = Nhentai.URL_SCHEME,
+        super(), this.name = "nhentai", this.key = "nhentai", this.version = "1.0.9", this.minAppVersion = "1.0.0",
+        this.url = resolvePluginUpdateUrl("nhentai.js"), this.URL_SCHEME = Nhentai.URL_SCHEME,
         this.URL_PREFIX = Nhentai.URL_PREFIX, this.DOMAIN = Nhentai.DOMAIN, this.BASE_ORIGIN = Nhentai.BASE_ORIGIN,
         this.baseUrl = Nhentai.BASE_URL, this.apiBaseUrl = Nhentai.API_BASE_URL, this.imageServer = Nhentai.IMAGE_SERVER_URL,
         this.thumbServer = Nhentai.THUMB_SERVER_URL, this.DEFAULT_USER_AGENT = Nhentai.DEFAULT_USER_AGENT,
