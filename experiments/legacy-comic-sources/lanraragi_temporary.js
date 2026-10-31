@@ -9,7 +9,7 @@ class LANraragiTemporarySource extends ComicSource {
         super();
         this.name = "LANraragi (Temporary)";
         this.key = "lanraragi_temporary";
-        this.version = "0.2.0";
+        this.version = "0.3.0";
         this.minAppVersion = "1.16.0";
         this.url = "";
 
@@ -106,7 +106,12 @@ class LANraragiTemporarySource extends ComicSource {
                     throw new Error("Invalid category page number.");
                 }
                 const query = id === "all" ? "" : "&category=" + encodeURIComponent(id);
-                const first = await this.searchArchivePage(query, 0);
+                // The whole library groups tankoubons on the server. A static
+                // category that lists only member archives returns nothing
+                // when the server groups, so those pages stay ungrouped and
+                // are collapsed from the discovered tank list.
+                const group = id === "all";
+                const first = await this.searchArchivePage(query, 0, group);
                 const size = first.data.length;
                 const total = first.total;
                 if (total === 0) return {comics: [], maxPage: 1};
@@ -115,18 +120,16 @@ class LANraragiTemporarySource extends ComicSource {
                 }
                 const maxPage = Math.max(1, Math.ceil(total / size));
                 if (number > maxPage) return {comics: [], maxPage: maxPage};
-                if (number === 1) {
-                    return {comics: first.data.map(item => this.toComic(item)), maxPage: maxPage};
+                const pageData = number === 1 ? first : await this.laterCategoryPage(
+                    query, number, size, group
+                );
+                if (group && pageData.data.some(item => item && this.isTank(item.arcid))) {
+                    await this.ensureTankIndex();
                 }
-                const offset = (number - 1) * size;
-                if (!Number.isSafeInteger(offset) || offset > 1000000) {
-                    throw new Error("Category pagination offset too large.");
-                }
-                const next = await this.searchArchivePage(query, offset);
-                return {
-                    comics: next.data.map(item => this.toComic(item)),
-                    maxPage: maxPage
-                };
+                const comics = group
+                    ? pageData.data.map(item => this.toComic(item))
+                    : await this.collapseCategory(pageData.data);
+                return {comics: comics, maxPage: maxPage};
             }
         };
 
@@ -141,13 +144,16 @@ class LANraragiTemporarySource extends ComicSource {
                 const query = String(keyword == null ? "" : keyword).trim().slice(0, 256);
                 const data = await this.requestJson(
                     "/api/search?filter=" + encodeURIComponent(query) +
-                    "&start=" + offset + "&groupby_tanks=false" +
+                    "&start=" + offset + "&groupby_tanks=true" +
                     "&sortby=title&order=asc"
                 );
                 if (!data || !Array.isArray(data.data) || data.data.length > 1000 ||
                     !Number.isSafeInteger(Number(data.recordsFiltered)) ||
                     Number(data.recordsFiltered) < 0) {
                     throw new Error("Invalid LANraragi search response.");
+                }
+                if (data.data.some(item => item && this.isTank(item.arcid))) {
+                    await this.ensureTankIndex();
                 }
                 const items = data.data.map(item => this.toComic(item));
                 const total = Number(data.recordsFiltered);
@@ -158,9 +164,17 @@ class LANraragiTemporarySource extends ComicSource {
 
         this.comic = {
             loadInfo: async id => {
-                const archiveId = this.archiveId(id);
+                const comic = this.comicId(id);
+                if (this.isTank(comic)) {
+                    return await this.tankDetails(comic);
+                }
+                await this.ensureTankIndex();
+                const parent = this._memberTank && this._memberTank[comic];
+                if (parent) {
+                    return await this.tankDetails(parent);
+                }
                 const data = await this.requestJson(
-                    "/api/archives/" + archiveId + "/metadata"
+                    "/api/archives/" + comic + "/metadata"
                 );
                 if (!data || typeof data !== "object" || Array.isArray(data)) {
                     throw new Error("Invalid LANraragi metadata.");
@@ -170,18 +184,21 @@ class LANraragiTemporarySource extends ComicSource {
                     tags.Pages = [String(data.pagecount)];
                 }
                 return new ComicDetails({
-                    title: this.text(data.title || data.filename || archiveId, 512),
-                    cover: this.coverKey(archiveId),
+                    title: this.text(data.title || data.filename || comic, 512),
+                    cover: this.coverKey(comic),
                     description: this.text(data.summary, 10000),
                     tags: tags,
                     chapters: null
                 });
             },
             loadEp: async (comicId, epId) => {
-                if (epId != null && epId !== "") {
+                const comic = this.comicId(comicId);
+                let id = comic;
+                if (this.isTank(comic)) {
+                    id = await this.tankChapter(comic, epId);
+                } else if (epId != null && epId !== "") {
                     throw new Error("LANraragi archive has no chapters.");
                 }
-                const id = this.archiveId(comicId);
                 // /files uses GET but may queue a LANraragi Minion extraction
                 // job and update server cache; force=false avoids re-extraction.
                 const response = await this.requestJson(
@@ -257,7 +274,15 @@ class LANraragiTemporarySource extends ComicSource {
         }
     }
 
-    async searchArchivePage(categoryQuery, start) {
+    async laterCategoryPage(categoryQuery, number, size, group) {
+        const offset = (number - 1) * size;
+        if (!Number.isSafeInteger(offset) || offset > 1000000) {
+            throw new Error("Category pagination offset too large.");
+        }
+        return await this.searchArchivePage(categoryQuery, offset, group);
+    }
+
+    async searchArchivePage(categoryQuery, start, group) {
         if (typeof categoryQuery !== "string" ||
             (categoryQuery !== "" && !/^&category=SET_[0-9]{10}$/.test(categoryQuery)) ||
             !Number.isSafeInteger(start) || start < 0 || start > 1000000) {
@@ -265,7 +290,8 @@ class LANraragiTemporarySource extends ComicSource {
         }
         const response = await this.requestJson(
             "/api/search?filter=&start=" + start +
-            "&groupby_tanks=false&sortby=title&order=asc" + categoryQuery
+            "&groupby_tanks=" + (group ? "true" : "false") +
+            "&sortby=title&order=asc" + categoryQuery
         );
         if (!response || !Array.isArray(response.data) ||
             response.data.length > 1000 ||
@@ -364,6 +390,226 @@ class LANraragiTemporarySource extends ComicSource {
         return id;
     }
 
+    // Tank IDs come from the server (TANK_ plus 10 digits). Nothing here
+    // names a series or a particular tank.
+    isTank(value) {
+        return /^TANK_[0-9]{10}$/.test(String(value || ""));
+    }
+
+    comicId(value) {
+        const id = String(value || "");
+        if (this.isTank(id)) return id;
+        return this.archiveId(id);
+    }
+
+    rememberTankChapters(tankId, archives) {
+        if (!this._tankChapters) this._tankChapters = {};
+        this._tankChapters[tankId] = archives;
+    }
+
+    // One small paged read of /api/tankoubons. Member archives map back to
+    // the tank the server already grouped. A member listed in two tanks is
+    // left as its own archive rather than guessed.
+    async ensureTankIndex() {
+        let base;
+        let auth;
+        try {
+            base = this.baseUrl();
+            auth = this.apiKey();
+        } catch (error) {
+            throw error;
+        }
+        if (this._tankServer === base && this._tankAuth === auth && this._memberTank) {
+            return;
+        }
+        if (this._tankIndexPromise && this._tankIndexBase === base &&
+            this._tankIndexAuth === auth) {
+            return await this._tankIndexPromise;
+        }
+        const generation = (this._tankGeneration || 0) + 1;
+        this._tankGeneration = generation;
+        const load = this.loadTankIndex(base, auth, generation);
+        this._tankIndexPromise = load;
+        this._tankIndexBase = base;
+        this._tankIndexAuth = auth;
+        try {
+            await load;
+        } finally {
+            if (this._tankIndexPromise === load) this._tankIndexPromise = null;
+        }
+    }
+
+    async loadTankIndex(base, auth, generation) {
+        const memberTank = {};
+        const covers = {};
+        const ambiguous = {};
+        let start = 1;
+        let seen = 0;
+        for (let page = 0; page < 20; page++) {
+            let response;
+            try {
+                response = await this.requestJson("/api/tankoubons?page=" + start);
+            } catch (_) {
+                response = null;
+            }
+            // A missing tank list, or a body that is not one, must not block
+            // reading standalone archives. Grouping is then unavailable.
+            if (!response || !Array.isArray(response.result) ||
+                response.result.length > 1000 ||
+                !Number.isSafeInteger(Number(response.total)) ||
+                Number(response.total) < 0 || Number(response.total) > 100000) {
+                response = {result: [], total: 0};
+            }
+            for (const item of response.result) {
+                if (!item || typeof item !== "object" || Array.isArray(item)) continue;
+                if (!this.isTank(item.id) || !Array.isArray(item.archives)) continue;
+                if (item.archives.length > 2000) continue;
+                const members = [];
+                const local = {};
+                for (const raw of item.archives) {
+                    if (typeof raw !== "string" || !/^[a-f0-9]{40}$/i.test(raw)) continue;
+                    const archive = raw.toLowerCase();
+                    if (Object.prototype.hasOwnProperty.call(local, archive)) continue;
+                    local[archive] = true;
+                    members.push(archive);
+                }
+                if (!members.length) continue;
+                covers[item.id] = members[0];
+                for (const archive of members) {
+                    if (Object.prototype.hasOwnProperty.call(ambiguous, archive)) continue;
+                    const existing = memberTank[archive];
+                    if (existing && existing !== item.id) {
+                        delete memberTank[archive];
+                        ambiguous[archive] = true;
+                        continue;
+                    }
+                    memberTank[archive] = item.id;
+                }
+            }
+            seen += response.result.length;
+            const total = Number(response.total);
+            if (response.result.length === 0 || seen >= total) break;
+            start += 1;
+        }
+        if (this._tankGeneration !== generation ||
+            this.baseUrl() !== base || this.apiKey() !== auth) {
+            return;
+        }
+        this._memberTank = memberTank;
+        this._tankCover = covers;
+        this._tankServer = base;
+        this._tankAuth = auth;
+    }
+
+    async collapseCategory(items) {
+        await this.ensureTankIndex();
+        const comics = [];
+        const shown = {};
+        for (const item of items) {
+            if (!item || typeof item !== "object" || Array.isArray(item)) {
+                throw new Error("Invalid LANraragi archive item.");
+            }
+            if (this.isTank(item.arcid)) {
+                if (Object.prototype.hasOwnProperty.call(shown, item.arcid)) continue;
+                shown[item.arcid] = true;
+                comics.push(this.toComic(item));
+                continue;
+            }
+            const id = this.archiveId(item.arcid);
+            const tank = this._memberTank && this._memberTank[id];
+            if (!tank) {
+                comics.push(this.toComic(item));
+                continue;
+            }
+            if (Object.prototype.hasOwnProperty.call(shown, tank)) continue;
+            shown[tank] = true;
+            comics.push(this.tankComic(tank, this._tankCover && this._tankCover[tank]));
+        }
+        return comics;
+    }
+
+    tankComic(id, coverArchive) {
+        const cover = typeof coverArchive === "string" && /^[a-f0-9]{40}$/.test(coverArchive)
+            ? this.coverKey(coverArchive)
+            : "";
+        return new Comic({
+            id: id,
+            title: id,
+            cover: cover,
+            subtitle: "",
+            tags: []
+        });
+    }
+
+    async tankDetails(id) {
+        if (!this.isTank(id)) throw new Error("Invalid LANraragi tankoubon ID.");
+        const data = await this.requestJson("/api/tankoubons/" + id);
+        if (!data || data.id !== id || !Array.isArray(data.archives)) {
+            throw new Error("Invalid LANraragi tankoubon.");
+        }
+        if (data.archives.length > 2000) {
+            throw new Error("LANraragi tankoubon has too many chapters.");
+        }
+        const archives = [];
+        const seen = {};
+        for (const raw of data.archives) {
+            if (typeof raw !== "string" || !/^[a-f0-9]{40}$/i.test(raw)) {
+                throw new Error("Invalid LANraragi tankoubon chapter.");
+            }
+            const archive = raw.toLowerCase();
+            if (Object.prototype.hasOwnProperty.call(seen, archive)) continue;
+            seen[archive] = true;
+            archives.push(archive);
+        }
+        if (!archives.length) throw new Error("LANraragi tankoubon has no chapters.");
+        this.rememberTankChapters(id, archives);
+        const titles = {};
+        const limit = Math.min(archives.length, 64);
+        const requests = [];
+        for (let i = 0; i < limit; i++) {
+            const archive = archives[i];
+            requests.push(this.requestJson("/api/archives/" + archive + "/metadata").then(
+                meta => {
+                    if (meta && typeof meta.title === "string") {
+                        titles[archive] = this.text(meta.title, 300);
+                    }
+                },
+                () => {}
+            ));
+        }
+        await Promise.all(requests);
+        const chapters = new Map();
+        for (let i = 0; i < archives.length; i++) {
+            const archive = archives[i];
+            chapters.set(archive, titles[archive] || ("Chapter " + (i + 1)));
+        }
+        const tags = this.parseTags(data.tags);
+        const cover = archives[0];
+        return new ComicDetails({
+            title: this.text(data.name, 300) || id,
+            cover: this.coverKey(cover),
+            description: this.text(data.summary, 10000),
+            tags: tags,
+            chapters: chapters
+        });
+    }
+
+    async tankChapter(tankId, epId) {
+        if (!this._tankChapters || !this._tankChapters[tankId]) {
+            await this.tankDetails(tankId);
+        }
+        const archives = this._tankChapters && this._tankChapters[tankId];
+        if (!archives || !archives.length) {
+            throw new Error("LANraragi tankoubon has no chapters.");
+        }
+        if (epId == null || epId === "") return archives[0];
+        const chapter = this.archiveId(epId);
+        if (archives.indexOf(chapter) < 0) {
+            throw new Error("LANraragi chapter is not in this tankoubon.");
+        }
+        return chapter;
+    }
+
     async requestJson(route) {
         if (!/^\/api\/[a-z0-9/?=&%._-]+$/i.test(route) || route.length > 4096) {
             throw new Error("Invalid LANraragi API route.");
@@ -425,6 +671,16 @@ class LANraragiTemporarySource extends ComicSource {
         if (!item || typeof item !== "object" || Array.isArray(item)) {
             throw new Error("Invalid LANraragi archive item.");
         }
+        if (this.isTank(item.arcid)) {
+            const cover = item.arcid && this._tankCover ? this._tankCover[item.arcid] : "";
+            const comic = this.tankComic(item.arcid, cover);
+            comic.title = this.text(item.title || item.filename || item.arcid, 512);
+            comic.subtitle = this.text(item.summary, 512);
+            comic.tags = typeof item.tags === "string"
+                ? item.tags.split(",").slice(0, 200).map(x => x.trim()).filter(Boolean)
+                : [];
+            return comic;
+        }
         const id = this.archiveId(item.arcid);
         return new Comic({
             id: id,
@@ -475,11 +731,21 @@ class LANraragiTemporarySource extends ComicSource {
         return "lrr-page:" + id + ":" + encodeURIComponent(this.pagePath(filename));
     }
 
+    imageBelongs(comicId, archiveId) {
+        const comic = String(comicId || "");
+        const archive = String(archiveId || "").toLowerCase();
+        if (!this.isTank(comic)) return this.archiveId(comic) === archive;
+        const chapters = this._tankChapters && this._tankChapters[comic];
+        if (chapters && chapters.indexOf(archive) >= 0) return true;
+        const cover = this._tankCover && this._tankCover[comic];
+        return cover === archive;
+    }
+
     imageUrl(key, comicId) {
         const value = String(key || "");
         if (value.startsWith("lrr-cover:")) {
             const coverId = this.archiveId(value.slice("lrr-cover:".length));
-            if (comicId != null && this.archiveId(comicId) !== coverId) {
+            if (comicId != null && !this.imageBelongs(comicId, coverId)) {
                 throw new Error("LANraragi cover belongs to another archive.");
             }
             return this.baseUrl() + "/api/archives/" + coverId + "/thumbnail";
@@ -487,7 +753,7 @@ class LANraragiTemporarySource extends ComicSource {
         const match = /^lrr-page:([a-f0-9]{40}):(.+)$/i.exec(value);
         if (!match) throw new Error("Invalid LANraragi image key.");
         const id = this.archiveId(match[1]);
-        if (comicId != null && this.archiveId(comicId) !== id) {
+        if (comicId != null && !this.imageBelongs(comicId, id)) {
             throw new Error("LANraragi page belongs to another archive.");
         }
         let filename;

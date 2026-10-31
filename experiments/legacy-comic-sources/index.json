@@ -2,8 +2,8 @@
   {
     "name": "LANraragi (Temporary)",
     "key": "lanraragi_temporary",
-    "version": "0.2.0",
+    "version": "0.3.0",
     "fileName": "lanraragi_temporary.js",
-    "description": "Temporary LANraragi reader with dynamic categories, browse pagination, metadata and page images; legacy JS only."
+    "description": "Temporary LANraragi reader with dynamic categories, server tankoubon chapters, browse pagination, metadata and page images; legacy JS only."
   }
 ]

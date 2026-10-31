@@ -61,9 +61,10 @@ existing canonical plugin for ordinary usage.
    credential vault.** Prefer a dedicated/revocable API key, TLS, and avoid
    transferring credentials over a public/untrusted network. Do not include
    keys in a script commit, Issue, log, source URL, or screenshot.
-4. Search a work, open its details, and open the unchaptered archive. The
-   adapter treats each LANraragi archive as a work and keeps source page order
-   from `/api/archives/{id}/files`.
+4. Search a work and open its details. A standalone archive stays one
+   unchaptered work. A server tankoubon opens as one comic whose chapters are
+   the member archives, in the server's order. Page order inside a chapter
+   stays the order from `/api/archives/{id}/files`.
 
 The temporary source is **read-only** and supports search pagination, metadata,
 tags, cover images, ordered pages and optional authentication headers.
@@ -101,7 +102,7 @@ Other guardrails:
 response shape may require an adapter update. This version is tested against
 the published API examples with mocked responses, **not a live LANraragi server**.
 
-### LANraragi Categories (v0.2.0)
+### LANraragi Categories (v0.2.0) and tankoubon chapters (v0.3.0)
 
 The source now supports Venera's **Category** page in addition to Search.
 On initialization, it reads `GET /api/categories` (once per initialization),
@@ -111,8 +112,12 @@ The dynamic loader does **not** make network requests. If category discovery
 fails, the user can still use *All Archives*, Search and the existing Reader.
 
 Clicking a category calls `categoryComics.load(category, param, options, page)`.
-The adapter uses `GET /api/search?category=<SET_ID>&start=<offset>` with
-`groupby_tanks=false` so results map to individual archive IDs. Since
+*All Archives* and Search use `groupby_tanks=true`, so a tankoubon the server
+already grouped appears once. A static category that only lists member
+archives returns nothing when the server groups, so those pages stay
+`groupby_tanks=false` and are collapsed with `GET /api/tankoubons`. Chapter
+order is that tank's `archives` array. Nothing in the script names a series.
+A member listed in two tankoubons is left as its own archive. Since
 LANraragi's `start` is a **record offset** but Venera passes **1-based pages**,
 it loads page one to discover the server's configured page size before requesting
 later pages. Consequently, categories page 2+ may issue **two reads**;

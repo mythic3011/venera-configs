@@ -64,7 +64,7 @@ function harness(respond) {
 test("source has unique temporary identity and legacy entrypoints", () => {
   const { plugin } = harness();
   assert.equal(plugin.key, "lanraragi_temporary");
-  assert.equal(plugin.version, "0.2.0");
+  assert.equal(plugin.version, "0.3.0");
   assert.equal(plugin.minAppVersion, "1.16.0");
   assert.equal(typeof plugin.search.loadNext, "function");
   assert.equal(typeof plugin.comic.loadEp, "function");
@@ -122,7 +122,7 @@ test("first search uses offset zero and encodes query", async () => {
     body: JSON.stringify({ data: [{ arcid: A, title: "Test Book", tags: "artist:Me, color" }], recordsFiltered: 1 }),
   }));
   const result = await plugin.search.loadNext("hello & world", [], null);
-  assert.equal(calls[0].url, "https://nas.example.test/library/api/search?filter=hello%20%26%20world&start=0&groupby_tanks=false&sortby=title&order=asc");
+  assert.equal(calls[0].url, "https://nas.example.test/library/api/search?filter=hello%20%26%20world&start=0&groupby_tanks=true&sortby=title&order=asc");
   assert.equal(result.comics.length, 1);
   assert.equal(result.comics[0].id, A);
   assert.equal(result.comics[0].title, "Test Book");
@@ -179,7 +179,8 @@ test("loadInfo maps tags into namespaces and preserves unchaptered semantics", a
   assert.deepEqual(Array.from(result.tags.artist), ["Test"]);
   assert.deepEqual(Array.from(result.tags.genre), ["Action"]);
   assert.deepEqual(Array.from(result.tags.Tags), ["misc"]);
-  assert.equal(calls[0].url, "https://nas.example.test/library/api/archives/" + A + "/metadata");
+  assert.ok(calls.some(call => call.url ===
+    "https://nas.example.test/library/api/archives/" + A + "/metadata"));
 });
 
 test("loadEp maps documented LANraragi page&path form without reordering", async () => {
@@ -231,6 +232,49 @@ test("image and thumbnail requests resolve a local URL and include auth headers"
   assert.equal(thumbnail.headers.Authorization, image.headers.Authorization);
 });
 
+test("a server tankoubon is one comic and its archives are chapters", async () => {
+  const tank = "TANK_1793486619";
+  const { plugin } = harness(url => {
+    if (url.includes("/api/tankoubons/" + tank)) {
+      return { status: 200, body: JSON.stringify({
+        id: tank,
+        name: "Grouped",
+        summary: "from the server",
+        tags: "series:Grouped",
+        archives: [A, B],
+      }) };
+    }
+    if (url.includes("/metadata")) {
+      const id = url.includes(A) ? A : B;
+      return { status: 200, body: JSON.stringify({ arcid: id, title: "Chapter " + id.slice(0, 1) }) };
+    }
+    if (url.includes("/files")) {
+      const id = url.includes(A) ? A : B;
+      return { status: 200, body: JSON.stringify({
+        pages: ["./api/archives/" + id + "/page?path=00.jpg"],
+      }) };
+    }
+    return { status: 200, body: "{}" };
+  });
+  const details = await plugin.comic.loadInfo(tank);
+  assert.equal(details.title, "Grouped");
+  assert.equal(details.cover, "lrr-cover:" + A);
+  assert.deepEqual(Array.from(details.chapters.keys()), [A, B]);
+  assert.equal(details.chapters.get(A), "Chapter a");
+  const first = await plugin.comic.loadEp(tank, null);
+  assert.equal(first.images[0], "lrr-page:" + A + ":00.jpg");
+  assert.equal(
+    plugin.imageUrl(first.images[0], tank),
+    "https://nas.example.test/library/api/archives/" + A + "/page?path=00.jpg",
+  );
+  const second = await plugin.comic.loadEp(tank, B);
+  assert.equal(second.images[0], "lrr-page:" + B + ":00.jpg");
+  assert.throws(
+    () => plugin.imageUrl("lrr-page:" + "c".repeat(40) + ":00.jpg", tank),
+    /belongs to another archive/,
+  );
+});
+
 test("empty files and nonempty epId are rejected for single-archive reading", async () => {
   const { plugin } = harness(() => ({ status: 200, body: '{"pages":[]}' }));
   await assert.rejects(plugin.comic.loadEp(A, null), /no pages yet/);
@@ -269,7 +313,7 @@ test("metadata callback and image callbacks remain compatible without Convert br
 test("constructor-based identity supports ES2018 without class field initializers", () => {
   const {plugin}=harness();
   assert.equal(plugin.key,"lanraragi_temporary");
-  assert.ok(sourceText.includes('this.version = "0.2.0";'));
+  assert.ok(sourceText.includes('this.version = "0.3.0";'));
   assert.equal(/^\s{4}version\s*=/m.test(sourceText),false);
 });
 
@@ -444,9 +488,10 @@ test("category browse page one filters by category ID, no groupby tanks", async 
   const result=await plugin.categoryComics.load("SET_1613080290",null,[],1);
   assert.deepEqual(Array.from(result.comics,x=>x.id),[A,B]);
   assert.equal(result.maxPage,2);
-  assert.equal(calls.length,1);
-  assert.equal(calls[0].url,
-    "https://nas.example.test/library/api/search?filter=&start=0&groupby_tanks=false&sortby=title&order=asc&category=SET_1613080290");
+  assert.ok(calls.some(call => call.url ===
+    "https://nas.example.test/library/api/tankoubons?page=1"));
+  assert.ok(calls.some(call => call.url ===
+    "https://nas.example.test/library/api/search?filter=&start=0&groupby_tanks=false&sortby=title&order=asc&category=SET_1613080290"));
 });
 
 test("category page two discovers configurable server page size from page one", async () => {
@@ -460,9 +505,11 @@ test("category page two discovers configurable server page size from page one", 
   const result=await plugin.categoryComics.load("SET_1613080290",null,[],2);
   assert.equal(result.maxPage,2);
   assert.deepEqual(Array.from(result.comics,x=>x.title),["Last"]);
-  assert.equal(calls.length,2);
-  assert.ok(calls[1].url.includes("start=2"));
-  assert.ok(calls.every(x=>x.url.includes("category=SET_1613080290")));
+  const searches=calls.filter(x=>x.url.includes("/api/search"));
+  assert.equal(searches.length,2);
+  assert.ok(searches[1].url.includes("start=2"));
+  assert.ok(searches.every(x=>x.url.includes("category=SET_1613080290")));
+  assert.ok(searches.every(x=>x.url.includes("groupby_tanks=false")));
 });
 
 test("all archives category omits category= parameter and supports an empty library", async () => {
@@ -474,6 +521,7 @@ test("all archives category omits category= parameter and supports an empty libr
   assert.equal(result.comics.length,0);
   assert.equal(calls.length,1);
   assert.equal(calls[0].url.includes("category="),false);
+  assert.ok(calls[0].url.includes("groupby_tanks=true"));
 });
 
 test("out-of-range category page returns empty results without a second request", async () => {
@@ -483,7 +531,7 @@ test("out-of-range category page returns empty results without a second request"
   const result=await plugin.categoryComics.load("SET_1613080290",null,[],999);
   assert.equal(result.comics.length,0);
   assert.equal(result.maxPage,1);
-  assert.equal(calls.length,1);
+  assert.equal(calls.filter(x=>x.url.includes("/api/search")).length,1);
 });
 
 test("categories refuse non-SET IDs, invalid page numbers and unbounded offsets", async () => {
@@ -503,7 +551,7 @@ test("categories refuse non-SET IDs, invalid page numbers and unbounded offsets"
   }
   await assert.rejects(plugin.categoryComics.load("all",null,[],9999),
     /Category pagination offset too large/);
-  assert.equal(calls.length,1);
+  assert.equal(calls.filter(x=>x.url.includes("/api/search")).length,1);
 });
 
 test("inconsistent category response rejects count and excessive results", async () => {
@@ -533,7 +581,7 @@ test("category browse does not mix state across concurrent category requests", a
   ]);
   assert.equal(a.comics[0].id,A);
   assert.equal(b.comics[0].id,B);
-  assert.equal(calls.length,2);
+  assert.equal(calls.filter(x=>x.url.includes("/api/search")).length,2);
 });
 
 
