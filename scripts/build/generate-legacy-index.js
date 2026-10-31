@@ -19,13 +19,19 @@ function safeText(value, label) {
 function parseClassMetadata(source) {
   const match = /\bclass\s+[A-Za-z_$][\w$]*\s+extends\s+ComicSource\s*\{/.exec(source);
   if (!match || match.index > 1200) throw new Error("Expected standalone ComicSource class");
-  // Static identity fields must appear before any runtime settings or method.
-  const prefix = source.slice(match.index + match[0].length, match.index + match[0].length + 450);
+  // Parse literal identity assignments only. Never execute the imported source
+  // while generating a catalog. Constructor assignments are preferred for
+  // ES2018/QuickJS compatibility; legacy class field declarations stay valid.
+  const prefix = source.slice(match.index + match[0].length, match.index + match[0].length + 1600);
   const meta = {};
   for (const field of ["name", "key", "version", "minAppVersion"]) {
-    const m = new RegExp("^\\s*" + field + "\\s*=\\s*\"([^\"]+)\"\\s*;", "m").exec(prefix);
-    if (!m) throw new Error("Missing static identity field: " + field);
-    meta[field] = m[1];
+    const oldField = new RegExp("^\\s*" + field + "\\s*=\\s*\"([^\"]+)\"\\s*;", "gm");
+    const ctorField = new RegExp("^\\s*this\\." + field + "\\s*=\\s*\"([^\"]+)\"\\s*;", "gm");
+    const matches = [...prefix.matchAll(oldField), ...prefix.matchAll(ctorField)];
+    if (matches.length !== 1) {
+      throw new Error("Missing or ambiguous literal identity field: " + field);
+    }
+    meta[field] = matches[0][1];
   }
   return meta;
 }
