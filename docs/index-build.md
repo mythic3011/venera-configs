@@ -1,6 +1,6 @@
 # Building Venera JSON Indexes
 
-The JSON indexes are **generated artifacts**, not manually curated URL lists. The app's source-repository importer expects a UTF-8 JSON **array**, not the object-shaped build manifest.
+The JSON indexes and their machine-generated catalog READMEs are **generated artifacts**, not manually curated URL lists. The app's source-repository importer expects a UTF-8 JSON **array**, not the object-shaped build manifest.
 
 ## Two independent catalog channels
 
@@ -8,7 +8,7 @@ The JSON indexes are **generated artifacts**, not manually curated URL lists. Th
 | --- | --- | --- |
 | Authoring | `plugins/*/plugin.config.json`, plugin source, release authority | `experiments/legacy-comic-sources/catalog.sources.json` + standalone JS |
 | Generated JSON | repository root `index.json` | `experiments/legacy-comic-sources/index.json` |
-| Generated README | Main [README](../README.md) is manually maintained | `experiments/legacy-comic-sources/INDEX.md` |
+| Generated README | `CATALOG.md` lists all canonical sources | `experiments/legacy-comic-sources/INDEX.md` |
 | Build command | `npm run pipeline:build` or `npm run build:index` after manifest update | `npm run build:legacy-index` |
 | Check command | `npm run check:index-json` | `npm run check:legacy-index` |
 | Distribution | Canonical `@main` CDN artifact URL from release authority | Relative `fileName`, resolved from raw JSON response |
