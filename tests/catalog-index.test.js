@@ -2,7 +2,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
-const { buildPublicIndex } = require("../scripts/build/write-public-index");
+const { buildPublicIndex, buildCatalogReadme } = require("../scripts/build/write-public-index");
 const { buildLegacyIndex } = require("../scripts/build/generate-legacy-index");
 
 const root = path.resolve(__dirname, "..");
@@ -14,6 +14,9 @@ test("canonical index.json is an exact deterministic publicIndex projection", ()
   const projected = buildPublicIndex(manifest);
   const onDisk = fs.readFileSync(path.join(root, "index.json"), "utf8");
   assert.equal(onDisk, projected);
+  const readme = fs.readFileSync(path.join(root, "CATALOG.md"), "utf8");
+  assert.equal(readme, buildCatalogReadme(manifest));
+  assert.match(readme, /Total canonical sources: \*\*31\*\*/);
   const index = JSON.parse(onDisk);
   assert.equal(index.length, manifest.plugins.length);
   assert.ok(index.every(x => x.url.startsWith("https://") && x.key && x.fileName));
