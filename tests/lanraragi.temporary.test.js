@@ -233,7 +233,7 @@ test("image and thumbnail requests resolve a local URL and include auth headers"
 test("empty files and nonempty epId are rejected for single-archive reading", async () => {
   const { plugin } = harness(() => ({ status: 200, body: '{"pages":[]}' }));
   await assert.rejects(plugin.comic.loadEp(A, null), /no pages yet/);
-  await assert.rejects(plugin.comic.loadEp(A, "ep_1"), /does not contain chapters/);
+  await assert.rejects(plugin.comic.loadEp(A, "ep_1"), /has no chapters/);
 });
 
 test("independent concurrent archives preserve per-response page identities", async () => {
