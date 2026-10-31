@@ -1,264 +1,342 @@
-// TEMPORARY LEGACY VENERA JS COMIC SOURCE.
-// First-party references:
-// - Venera-Next doc/api/comic_source.zh.md + doc/api/js.zh.md
-// - LANraragi tools/openapi.yaml, Search API + Archive API.
+// Temporary, read-only legacy Venera ComicSource adapter for LANraragi.
+// See experiments/legacy-comic-sources/README.md for the network and auth
+// limitations. This standalone JS is NOT a v2 security/credential broker.
 //
-// No import/export/require: load as ONE .js file in the old Venera JS runtime.
-// No cloud sync, backup, or snapshot guarantees. API key is read from the
-// legacy source settings (not a secure host vault). Do not grant this source
-// unrestricted private LAN access at the v2 plugin boundary.
-
+// No class fields, import/export, Buffer, btoa, or asynchronous Convert calls.
+// Image-header callbacks must remain synchronous in the legacy Venera runtime.
 class LANraragiTemporarySource extends ComicSource {
-    name = "LANraragi (Temporary)";
-    key = "lanraragi_temporary";
-    version = "0.1.0";
-    minAppVersion = "1.16.0";
-    url = "";
+    constructor() {
+        super();
+        this.name = "LANraragi (Temporary)";
+        this.key = "lanraragi_temporary";
+        this.version = "0.1.1";
+        this.minAppVersion = "1.16.0";
+        this.url = "";
 
-    settings = {
-        server: {
-            title: "Server URL (HTTPS preferred)",
-            type: "input",
-            default: "",
-            validator: "^https?://[^/?#]+(?:/[^?#]*)?$"
-        },
-        api_key: {
-            title: "LANraragi API Key (legacy setting; not secure vault)",
-            type: "input",
-            default: ""
-        },
-        allow_http: {
-            title: "Allow plain HTTP (trusted LAN only)",
-            type: "switch",
-            default: false
-        }
-    };
+        this.settings = {
+            server: {
+                title: "Server URL (HTTPS preferred)",
+                type: "input",
+                default: "",
+                validator: "^https?://[^?#]+$"
+            },
+            api_key: {
+                title: "LANraragi API Key (legacy setting; not secure vault)",
+                type: "input",
+                default: ""
+            },
+            allow_http: {
+                title: "Allow plain HTTP (trusted LAN only)",
+                type: "switch",
+                default: false
+            }
+        };
+        this.translation = {
+            zh_TW: {
+                "Server URL (HTTPS preferred)": "伺服器 URL（建議 HTTPS）",
+                "Allow plain HTTP (trusted LAN only)": "允許 HTTP（只限可信任 LAN）",
+                "LANraragi API Key (legacy setting; not secure vault)": "LANraragi API Key（舊版設定，非安全保管庫）"
+            },
+            zh_CN: {
+                "Server URL (HTTPS preferred)": "服务器 URL（建议 HTTPS）",
+                "Allow plain HTTP (trusted LAN only)": "允许 HTTP（仅可信任局域网）",
+                "LANraragi API Key (legacy setting; not secure vault)": "LANraragi API Key（旧版设置，非安全存储库）"
+            },
+            en: {}
+        };
 
-    translation = {
-        zh_TW: {
-            "Server URL (HTTPS preferred)": "伺服器 URL（建議 HTTPS）",
-            "Allow plain HTTP (trusted LAN only)": "允許 HTTP（只限可信任 LAN）",
-            "LANraragi API Key (legacy setting; not secure vault)": "LANraragi API Key（舊版設定，非安全保管庫）"
-        },
-        zh_CN: {
-            "Server URL (HTTPS preferred)": "服务器 URL（建议 HTTPS）",
-            "Allow plain HTTP (trusted LAN only)": "允许 HTTP（仅可信任局域网）",
-            "LANraragi API Key (legacy setting; not secure vault)": "LANraragi API Key（旧版设置，非安全存储库）"
-        },
-        en: {}
-    };
+        this.search = {
+            optionList: [],
+            loadNext: async (keyword, options, next) => {
+                const offset = next == null ? 0 : Number(next);
+                if (!Number.isSafeInteger(offset) || offset < 0 || offset > 1000000 ||
+                    (next != null && !/^(0|[1-9][0-9]*)$/.test(String(next)))) {
+                    throw new Error("Invalid search cursor.");
+                }
+                const query = String(keyword == null ? "" : keyword).trim().slice(0, 256);
+                const data = await this.requestJson(
+                    "/api/search?filter=" + encodeURIComponent(query) +
+                    "&start=" + offset + "&groupby_tanks=false" +
+                    "&sortby=title&order=asc"
+                );
+                if (!data || !Array.isArray(data.data) || data.data.length > 1000 ||
+                    !Number.isSafeInteger(Number(data.recordsFiltered)) ||
+                    Number(data.recordsFiltered) < 0) {
+                    throw new Error("Invalid LANraragi search response.");
+                }
+                const items = data.data.map(item => this.toComic(item));
+                const total = Number(data.recordsFiltered);
+                const end = offset + items.length;
+                return {comics: items, next: items.length && end < total ? String(end) : null};
+            }
+        };
 
-    // The legacy runtime's URL API is not guaranteed, so use strict
-    // string validation without new URL(). This does not substitute
-    // a host-owned SSRF policy, DNS pinning, or redirect enforcement.
-    baseUrl = () => {
+        this.comic = {
+            loadInfo: async id => {
+                const archiveId = this.archiveId(id);
+                const data = await this.requestJson(
+                    "/api/archives/" + archiveId + "/metadata"
+                );
+                if (!data || typeof data !== "object" || Array.isArray(data)) {
+                    throw new Error("Invalid LANraragi metadata.");
+                }
+                const tags = this.parseTags(data.tags);
+                if (Number.isSafeInteger(Number(data.pagecount)) && Number(data.pagecount) > 0) {
+                    tags.Pages = [String(data.pagecount)];
+                }
+                return new ComicDetails({
+                    title: this.text(data.title || data.filename || archiveId, 512),
+                    cover: this.coverKey(archiveId),
+                    description: this.text(data.summary, 10000),
+                    tags: tags,
+                    chapters: null
+                });
+            },
+            loadEp: async (comicId, epId) => {
+                if (epId != null && epId !== "") {
+                    throw new Error("LANraragi archive has no chapters.");
+                }
+                const id = this.archiveId(comicId);
+                // /files launches background extraction when needed, without
+                // forcing re-extraction or initiating server-side mutations.
+                const response = await this.requestJson(
+                    "/api/archives/" + id + "/files?force=false"
+                );
+                if (!response || !Array.isArray(response.pages) ||
+                    response.pages.length > 10000) {
+                    throw new Error("Invalid LANraragi archive page list.");
+                }
+                if (response.pages.length === 0) {
+                    throw new Error(
+                        "LANraragi archive has no pages yet. Extraction may still be running."
+                    );
+                }
+                // LANraragi returns an ordered page list. Never re-sort names.
+                return {images: response.pages.map(value => this.pageKey(id, value))};
+            },
+            onImageLoad: (key, comicId, epId) => ({
+                url: this.imageUrl(key, comicId),
+                headers: this.imageHeaders()
+            }),
+            // Venera requires this callback to return synchronously.
+            onThumbnailLoad: key => ({
+                url: this.imageUrl(key),
+                headers: this.imageHeaders()
+            })
+        };
+    }
+
+    text(value, limit) {
+        if (value == null) return "";
+        const result = String(value);
+        return result.length > limit ? result.slice(0, limit) : result;
+    }
+
+    baseUrl() {
         const value = String(this.loadSetting("server") || "").trim();
         const match = /^(https?):\/\/([^/?#]+)(\/[^?#]*)?$/i.exec(value);
-        if (!match || match[2].includes("@") || match[2].includes("\\") ||
-            (match[3] || "").includes("\\") ||
-            /(?:^|\/)\.\.(?:\/|$)/.test(match[3] || "")) {
+        if (!match || value.length > 2048 || /[\s\\\u0000-\u001f\u007f]/.test(value) ||
+            /[@%]/.test(match[2]) ||
+            !/^(?:[A-Za-z0-9._-]+(?::[0-9]{1,5})?|\[[0-9a-fA-F:.]+\](?::[0-9]{1,5})?)$/.test(match[2])) {
             throw new Error("Set a valid LANraragi Server URL in Source Settings.");
+        }
+        const path = match[3] || "";
+        if (path && (path.indexOf("//") >= 0 || /%2f|%5c|%2e|%00/i.test(path) ||
+            path.split("/").some(p => p === "." || p === ".."))) {
+            throw new Error("Unsafe LANraragi base path.");
         }
         if (match[1].toLowerCase() === "http" &&
             this.loadSetting("allow_http") !== true) {
             throw new Error("Plain HTTP is disabled. Enable it explicitly for a trusted LAN.");
         }
         return value.replace(/\/+$/, "");
-    };
+    }
 
-    requestHeaders = () => {
-        const headers = { "Accept": "application/json" };
-        const apiKey = String(this.loadSetting("api_key") || "").trim();
-        if (apiKey) {
-            // LANraragi requires Base64-encoded Bearer API keys.
-            const encoded = Convert.encodeBase64(Convert.encodeUtf8(apiKey));
-            headers.Authorization = "Bearer " + encoded;
+    // Synchronous Base64 of UTF-8 bytes. Convert.encodeUtf8/encodeBase64
+    // use a host bridge and are not guaranteed synchronous, which would
+    // break Venera's synchronous thumbnail callback.
+    encodeBearer(value) {
+        const escaped = encodeURIComponent(value);
+        const bytes = [];
+        for (let i = 0; i < escaped.length; i++) {
+            if (escaped[i] === "%") {
+                bytes.push(parseInt(escaped.slice(i + 1, i + 3), 16));
+                i += 2;
+            } else {
+                bytes.push(escaped.charCodeAt(i));
+            }
         }
-        return headers;
-    };
+        const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+        let out = "";
+        for (let i = 0; i < bytes.length; i += 3) {
+            const a = bytes[i];
+            const b = i + 1 < bytes.length ? bytes[i + 1] : 0;
+            const c = i + 2 < bytes.length ? bytes[i + 2] : 0;
+            out += chars[a >> 2];
+            out += chars[((a & 3) << 4) | (b >> 4)];
+            out += i + 1 < bytes.length ? chars[((b & 15) << 2) | (c >> 6)] : "=";
+            out += i + 2 < bytes.length ? chars[c & 63] : "=";
+        }
+        return out;
+    }
 
-    archiveId = id => {
-        const value = String(id || "").toLowerCase();
-        if (!/^[a-f0-9]{40}$/.test(value)) {
-            throw new Error("Invalid LANraragi archive ID.");
+    apiKey() {
+        const value = String(this.loadSetting("api_key") || "").trim();
+        if (value.length > 512 || /[\r\n\u0000-\u001f\u007f]/.test(value)) {
+            throw new Error("Invalid LANraragi API Key.");
         }
         return value;
-    };
+    }
 
-    json = async path => {
-        const response = await Network.get(this.baseUrl() + path, this.requestHeaders());
+    requestHeaders() {
+        const headers = {"Accept": "application/json"};
+        const key = this.apiKey();
+        if (key) headers.Authorization = "Bearer " + this.encodeBearer(key);
+        return headers;
+    }
+
+    imageHeaders() {
+        const key = this.apiKey();
+        return key ? {Authorization: "Bearer " + this.encodeBearer(key)} : {};
+    }
+
+    archiveId(value) {
+        const id = String(value || "").toLowerCase();
+        if (!/^[a-f0-9]{40}$/.test(id)) {
+            throw new Error("Invalid LANraragi archive ID.");
+        }
+        return id;
+    }
+
+    async requestJson(route) {
+        if (!/^\/api\/[a-z0-9/?=&%._-]+$/i.test(route) || route.length > 4096) {
+            throw new Error("Invalid LANraragi API route.");
+        }
+        const response = await Network.get(this.baseUrl() + route, this.requestHeaders());
+        if (!response || typeof response.status !== "number") {
+            throw new Error("LANraragi returned an invalid HTTP response.");
+        }
         if (response.status === 401 || response.status === 403) {
-            throw new Error("LANraragi returned HTTP " + response.status + ". Check your API Key and server access.");
+            throw new Error("LANraragi HTTP " + response.status + ": check API Key and server access.");
+        }
+        if (response.status === 404) {
+            throw new Error("LANraragi HTTP 404: archive or API endpoint unavailable.");
         }
         if (response.status === 204) {
-            throw new Error("LANraragi search index is not initialized yet.");
+            throw new Error("LANraragi API returned no data (index/extraction may be pending).");
         }
         if (response.status !== 200) {
             throw new Error("LANraragi HTTP " + response.status);
+        }
+        if (typeof response.body !== "string" || response.body.length > 4 * 1024 * 1024) {
+            throw new Error("Invalid or oversized LANraragi JSON response.");
         }
         try {
             return JSON.parse(response.body);
         } catch (_) {
             throw new Error("LANraragi returned invalid JSON.");
         }
-    };
+    }
 
-    coverKey = id => "lrr-cover:" + this.archiveId(id);
+    coverKey(id) {
+        return "lrr-cover:" + this.archiveId(id);
+    }
 
-    parseTags = raw => {
-        const groups = {};
-        if (typeof raw !== "string") return groups;
-        for (const entry of raw.split(",")) {
-            const tag = entry.trim();
+    parseTags(raw) {
+        const tags = {};
+        if (typeof raw !== "string") return tags;
+        for (const part of raw.slice(0, 100000).split(",")) {
+            const tag = part.trim();
             if (!tag) continue;
-            const separator = tag.indexOf(":");
-            const namespace = separator > 0 ? tag.slice(0, separator).trim() : "tags";
-            const value = separator > 0 ? tag.slice(separator + 1).trim() : tag;
-            if (!value) continue;
-            if (!groups[namespace]) groups[namespace] = [];
-            groups[namespace].push(value);
+            const position = tag.indexOf(":");
+            let group = position > 0 ? tag.slice(0, position).trim() : "Tags";
+            const value = position > 0 ? tag.slice(position + 1).trim() : tag;
+            // Avoid prototype pollution; return a plain JSON-bridge object.
+            if (group === "__proto__" || group === "constructor" ||
+                group === "prototype") group = "Tags";
+            if (!value || group.length > 100 || value.length > 512) continue;
+            if (!Object.prototype.hasOwnProperty.call(tags, group)) tags[group] = [];
+            if (tags[group].length < 200) tags[group].push(value);
         }
-        return groups;
-    };
+        return tags;
+    }
 
-    toComic = item => {
+    toComic(item) {
+        if (!item || typeof item !== "object" || Array.isArray(item)) {
+            throw new Error("Invalid LANraragi archive item.");
+        }
         const id = this.archiveId(item.arcid);
         return new Comic({
-            id,
-            title: String(item.title || item.filename || id),
+            id: id,
+            title: this.text(item.title || item.filename || id, 512),
             cover: this.coverKey(id),
-            subtitle: String(item.summary || ""),
-            tags: typeof item.tags === "string" ?
-                item.tags.split(",").map(x => x.trim()).filter(Boolean) : []
+            subtitle: this.text(item.summary, 512),
+            tags: typeof item.tags === "string"
+                ? item.tags.split(",").slice(0, 200).map(x => x.trim()).filter(Boolean)
+                : []
         });
-    };
+    }
 
-    // Do not trust a returned external URL; extract only the path from
-    // the documented LANraragi /api/archives/{id}/page[?&]path=... form.
-    // Reconstruct requests under the user's configured server origin.
-    pageKey = (archiveId, item) => {
-        if (typeof item !== "string" || item.length > 8192) {
-            throw new Error("Invalid page entry from LANraragi.");
+    pagePath(value) {
+        if (typeof value !== "string" || value.length === 0 || value.length > 4096 ||
+            /[\u0000-\u001f\u007f\\?#]/.test(value) || value[0] === "/" ||
+            value.split("/").some(part => !part || part === "." || part === "..") ||
+            /%(?:2e|2f|5c|00)/i.test(value)) {
+            throw new Error("Unsafe LANraragi image filename.");
         }
-        const match = /(?:^|\/)api\/archives\/([a-f0-9]{40})\/page[?&]path=([^&#]+)/i.exec(item);
-        if (!match || match[1].toLowerCase() !== archiveId) {
-            throw new Error("Unexpected LANraragi image URL format.");
-        }
-        let path;
-        try {
-            path = decodeURIComponent(match[2].replace(/\+/g, " "));
-        } catch (_) {
-            throw new Error("Invalid encoded image filename.");
-        }
-        if (!path || path.length > 4096 || path.startsWith("/") ||
-            path.includes("\\") || path.includes("\0") ||
-            path.split("/").some(part => part === ".." || part === ".")) {
-            throw new Error("Unsafe image filename.");
-        }
-        return "lrr-page:" + archiveId + ":" + encodeURIComponent(path);
-    };
+        return value;
+    }
 
-    imageUrl = key => {
-        const text = String(key || "");
-        if (text.startsWith("lrr-cover:")) {
-            return this.baseUrl() + "/api/archives/" +
-                this.archiveId(text.slice("lrr-cover:".length)) + "/thumbnail";
+    pageKey(idValue, rawValue) {
+        const id = this.archiveId(idValue);
+        if (typeof rawValue !== "string" || rawValue.length > 8192) {
+            throw new Error("Invalid LANraragi page URL.");
         }
-        if (!text.startsWith("lrr-page:")) {
-            throw new Error("Invalid LANraragi image key.");
+        let raw = rawValue;
+        // Absolute URLs are acceptable only for the exact configured base.
+        // No userinfo, foreign host, cross-scheme or substring-origin matching.
+        if (/^https?:\/\//i.test(raw)) {
+            const base = this.baseUrl();
+            if (!raw.startsWith(base + "/")) {
+                throw new Error("Unexpected LANraragi page origin.");
+            }
+            raw = raw.slice(base.length + 1);
         }
-        const data = text.slice("lrr-page:".length);
-        const separator = data.indexOf(":");
-        if (separator < 0) throw new Error("Invalid image key.");
-        const id = this.archiveId(data.slice(0, separator));
-        const pathKey = data.slice(separator + 1);
-        let path;
+        const match = /^(?:\.\/|\/)?api\/archives\/([a-f0-9]{40})\/page[?&]path=([^&#]+)$/i.exec(raw);
+        if (!match || match[1].toLowerCase() !== id) {
+            throw new Error("Unexpected LANraragi page URL format.");
+        }
+        let filename;
         try {
-            path = decodeURIComponent(pathKey);
+            filename = decodeURIComponent(match[2].replace(/\+/g, " "));
         } catch (_) {
-            throw new Error("Invalid image key encoding.");
+            throw new Error("Invalid LANraragi image filename encoding.");
         }
-        if (!path || path.startsWith("/") || path.includes("\\") ||
-            path.includes("\0") || path.split("/").some(x => x === ".." || x === ".")) {
-            throw new Error("Unsafe image key.");
+        return "lrr-page:" + id + ":" + encodeURIComponent(this.pagePath(filename));
+    }
+
+    imageUrl(key, comicId) {
+        const value = String(key || "");
+        if (value.startsWith("lrr-cover:")) {
+            const coverId = this.archiveId(value.slice("lrr-cover:".length));
+            if (comicId != null && this.archiveId(comicId) !== coverId) {
+                throw new Error("LANraragi cover belongs to another archive.");
+            }
+            return this.baseUrl() + "/api/archives/" + coverId + "/thumbnail";
+        }
+        const match = /^lrr-page:([a-f0-9]{40}):(.+)$/i.exec(value);
+        if (!match) throw new Error("Invalid LANraragi image key.");
+        const id = this.archiveId(match[1]);
+        if (comicId != null && this.archiveId(comicId) !== id) {
+            throw new Error("LANraragi page belongs to another archive.");
+        }
+        let filename;
+        try {
+            filename = decodeURIComponent(match[2]);
+        } catch (_) {
+            throw new Error("Invalid LANraragi image key encoding.");
         }
         return this.baseUrl() + "/api/archives/" + id +
-            "/page?path=" + encodeURIComponent(path);
-    };
-
-    search = {
-        optionList: [],
-        // Cursor-based offset avoids assuming the server's configurable page size.
-        // 'start' is a raw offset; groupby_tanks=false keeps IDs archive-centric.
-        loadNext: async (keyword, options, next) => {
-            const start = next === null || next === undefined ? 0 : Number(next);
-            if (!Number.isSafeInteger(start) || start < 0 || start > 1000000) {
-                throw new Error("Invalid search cursor.");
-            }
-            const value = String(keyword || "").trim().slice(0, 256);
-            const response = await this.json("/api/search?filter=" +
-                encodeURIComponent(value) + "&start=" + start +
-                "&groupby_tanks=false");
-            if (!response || !Array.isArray(response.data)) {
-                throw new Error("Invalid LANraragi search response.");
-            }
-            const comics = response.data.map(x => this.toComic(x));
-            const total = Number(response.recordsFiltered);
-            const end = start + comics.length;
-            const more = comics.length > 0 &&
-                Number.isSafeInteger(total) && total >= 0 && end < total;
-            return {
-                comics,
-                next: more ? String(end) : null
-            };
-        }
-    };
-
-    comic = {
-        // Each LANraragi archive is an unchaptered Venera work.
-        loadInfo: async id => {
-            const archiveId = this.archiveId(id);
-            const item = await this.json("/api/archives/" + archiveId + "/metadata");
-            if (!item || typeof item !== "object" || Array.isArray(item)) {
-                throw new Error("Invalid LANraragi metadata.");
-            }
-            return new ComicDetails({
-                title: String(item.title || item.filename || archiveId),
-                cover: this.coverKey(archiveId),
-                description: String(item.summary || ""),
-                tags: this.parseTags(item.tags),
-                chapters: null
-            });
-        },
-
-        // No global "current archive" state: concurrent calls are safe.
-        loadEp: async (id, epId) => {
-            if (epId !== null && epId !== undefined && epId !== "") {
-                throw new Error("Archive does not contain chapters.");
-            }
-            const archiveId = this.archiveId(id);
-            const data = await this.json("/api/archives/" + archiveId + "/files");
-            if (!data || !Array.isArray(data.pages)) {
-                throw new Error("LANraragi did not return a page list.");
-            }
-            if (data.pages.length === 0) {
-                throw new Error("LANraragi archive has no extracted pages yet.");
-            }
-            // Preserve returned order, do not reverse/sort filenames.
-            return {images: data.pages.map(item => this.pageKey(archiveId, item))};
-        },
-
-        // The image loader owns actual HTTP requests. No API token is
-        // included in metadata, image keys, query strings, or source files.
-        onImageLoad: (imageKey, comicId, epId) => ({
-            url: this.imageUrl(imageKey),
-            headers: this.requestHeaders()
-        }),
-
-        // MUST be synchronous per Venera source API.
-        onThumbnailLoad: imageKey => ({
-            url: this.imageUrl(imageKey),
-            headers: this.requestHeaders()
-        })
-    };
+            "/page?path=" + encodeURIComponent(this.pagePath(filename));
+    }
 }
