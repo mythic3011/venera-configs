@@ -108,7 +108,9 @@ the published API examples with mocked responses, **not a live LANraragi server*
   Ordinary image caching is not a source-deletion recovery guarantee. See
   [the separate design PR](https://github.com/mythic3011/venera-next/pull/7).
 - Extracting archives may be asynchronous on LANraragi; an empty
-  `/files` response currently reports "no extracted pages" without polling.
+  `/files?force=false` request can **queue server-side Minion extraction/cache work**
+  even though the adapter only calls HTTP GET; an empty response reports
+  "no pages yet" without polling or retrying indefinitely.
 - API keys stored via legacy Source Settings should be considered recoverable
   from app data. Redirect validation, DNS rebinding protection, response size
   limits and private-network authorization **must be enforced by the host**.
