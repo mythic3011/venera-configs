@@ -209,11 +209,11 @@ test("foreign archive IDs and encoded path traversal blocked", () => {
   );
   assert.throws(
     () => plugin.pageKey(A, "./api/archives/" + A + "/page?path=..%2Fsecret"),
-    /Unsafe image filename/,
+    /Unsafe LANraragi image filename/,
   );
   assert.throws(
     () => plugin.pageKey(A, "./api/archives/" + A + "/page?path=%00x"),
-    /Unsafe image filename/,
+    /Unsafe LANraragi image filename/,
   );
 });
 
@@ -232,7 +232,7 @@ test("image and thumbnail requests resolve a local URL and include auth headers"
 
 test("empty files and nonempty epId are rejected for single-archive reading", async () => {
   const { plugin } = harness(() => ({ status: 200, body: '{"pages":[]}' }));
-  await assert.rejects(plugin.comic.loadEp(A, null), /no extracted pages/);
+  await assert.rejects(plugin.comic.loadEp(A, null), /no pages yet/);
   await assert.rejects(plugin.comic.loadEp(A, "ep_1"), /does not contain chapters/);
 });
 
@@ -317,7 +317,7 @@ test("same-origin absolute page form resolves without forwarding credentials to 
 test("prototype pollution tag names do not alter returned tag object prototype",()=>{
   const {plugin}=harness();
   const tags=plugin.parseTags("__proto__:poison, constructor:bad, artist:Test");
-  assert.equal(Object.getPrototypeOf(tags),Object.prototype);
+  assert.equal(Object.getPrototypeOf(Object.getPrototypeOf(tags)), null);
   assert.deepEqual(Array.from(tags.Tags),["poison","bad"]);
   assert.deepEqual(Array.from(tags.artist),["Test"]);
   assert.equal(Object.prototype.poison,undefined);
