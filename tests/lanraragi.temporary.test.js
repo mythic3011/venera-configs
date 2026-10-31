@@ -41,9 +41,10 @@ function harness(respond) {
         return callbacks(url, headers);
       },
     },
+    // Any attempt to call the asynchronous host Convert API must fail.
     Convert: {
-      encodeUtf8: value => Buffer.from(value, "utf8"),
-      encodeBase64: value => Buffer.from(value).toString("base64"),
+      encodeUtf8: () => { throw new Error("Convert bridge forbidden in synchronous image hook"); },
+      encodeBase64: () => { throw new Error("Convert bridge forbidden in synchronous image hook"); },
     },
   });
   vm.runInContext(
@@ -316,9 +317,9 @@ test("same-origin absolute page form resolves without forwarding credentials to 
 
 test("prototype pollution tag names do not alter returned tag object prototype",()=>{
   const {plugin}=harness();
-  const tags=plugin.parseTags("__proto__:poison, constructor:bad, artist:Test");
+  const tags=plugin.parseTags("__proto__:poison, constructor:bad, toString:alsoBad, artist:Test");
   assert.equal(Object.getPrototypeOf(Object.getPrototypeOf(tags)), null);
-  assert.deepEqual(Array.from(tags.Tags),["poison","bad"]);
+  assert.deepEqual(Array.from(tags.Tags),["poison","bad","alsoBad"]);
   assert.deepEqual(Array.from(tags.artist),["Test"]);
   assert.equal(Object.prototype.poison,undefined);
 });
@@ -337,7 +338,9 @@ test("reject untrusted host authority and unsafe base-path percent escapes",()=>
     "https://server.invalid:abc",
     "https://server.invalid/path/%2e%2e/admin",
     "https://server.invalid//api",
-    "https://server.invalid:999999"
+    "https://server.invalid:999999",
+    "https://server.invalid:65536",
+    "https://server.invalid:0"
   ]){
     const {plugin}=harness();
     plugin._config.server=server;
