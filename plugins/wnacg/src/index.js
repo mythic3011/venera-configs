@@ -180,6 +180,14 @@ class Wnacg extends ComicSource {
     });
   }
 
+  async _getPageDocument(url) {
+    let res = await Network.get(url, {});
+    if (res.status !== 200) {
+      throw `Invalid Status Code ${res.status}`;
+    }
+    return new HtmlDocument(res.body);
+  }
+
   // explore page list
   explore = [
     {
@@ -199,11 +207,7 @@ class Wnacg extends ComicSource {
        * - for `mixed` type, use param `page` as index. for each index(0-based), return {data: [], maxPage: number?}, data is an array contains Comic[] or {title: string, comics: Comic[], viewMore: string?}
        */
       load: async (page) => {
-        let res = await Network.get(this.baseUrl, {});
-        if (res.status !== 200) {
-          throw `Invalid Status Code ${res.status}`;
-        }
-        let document = new HtmlDocument(res.body);
+        let document = await this._getPageDocument(this.baseUrl);
         let titleBlocks = document.querySelectorAll("div.title_sort");
         let comicBlocks = document.querySelectorAll("div.bodywrap");
         if (titleBlocks.length !== comicBlocks.length) {
@@ -418,11 +422,7 @@ class Wnacg extends ComicSource {
         url = `${lr[0]}albums-${lr[1]}`;
       }
 
-      let res = await Network.get(url, {});
-      if (res.status !== 200) {
-        throw `Invalid Status Code ${res.status}`;
-      }
-      let document = new HtmlDocument(res.body);
+      let document = await this._getPageDocument(url);
       let comicElements = document.querySelectorAll(
         "div.grid div.gallary_wrap > ul.cc > li",
       );
@@ -446,12 +446,7 @@ class Wnacg extends ComicSource {
           url = `${this.baseUrl}/albums-favorite_ranking-page-${page}-type-${option}.html`;
         }
 
-        let res = await Network.get(url, {});
-        if (res.status !== 200) {
-          throw `Invalid Status Code ${res.status}`;
-        }
-
-        let document = new HtmlDocument(res.body);
+        let document = await this._getPageDocument(url);
         let comicElements = document.querySelectorAll(
           "div.grid div.gallary_wrap > ul.cc > li",
         );
@@ -489,11 +484,7 @@ class Wnacg extends ComicSource {
       if (page !== 0) {
         url += `&p=${page}`;
       }
-      let res = await Network.get(url, {});
-      if (res.status !== 200) {
-        throw `Invalid Status Code ${res.status}`;
-      }
-      let document = new HtmlDocument(res.body);
+      let document = await this._getPageDocument(url);
       let comicElements = document.querySelectorAll(
         "div.grid div.gallary_wrap > ul.cc > li",
       );

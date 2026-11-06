@@ -5,11 +5,11 @@ class Zaimanhua extends ComicSource {
         this.account = {
             login: async (t, e) => {
                 try {
-                    const a = Convert.hexEncode(Convert.md5(Convert.encodeUtf8(e))), s = await Network.post("https://account-api.zaimanhua.com/v1/login/passwd", {
+                    const a = Convert.hexEncode(Convert.md5(Convert.encodeUtf8(e))), r = await Network.post("https://account-api.zaimanhua.com/v1/login/passwd", {
                         "Content-Type": "application/x-www-form-urlencoded;charset=utf-8"
-                    }, `username=${t}&passwd=${a}`), r = JSON.parse(s.body);
-                    if (0 !== r.errno) throw new Error(r.errmsg);
-                    return this.saveData("token", r.data.user.token), this.headers.authorization = `Bearer ${r.data.user.token}`,
+                    }, `username=${t}&passwd=${a}`), s = JSON.parse(r.body);
+                    if (0 !== s.errno) throw new Error(s.errmsg);
+                    return this.saveData("token", s.data.user.token), this.headers.authorization = `Bearer ${s.data.user.token}`,
                     !0;
                 } catch (t) {
                     throw UI.showMessage(`登录失败: ${t.message}`), t;
@@ -43,9 +43,9 @@ class Zaimanhua extends ComicSource {
                 itemType: "category"
             } ]
         }, this.categoryComics = {
-            load: async (t, e, a, s) => {
+            load: async (t, e, a, r) => {
                 if (t.includes("排行")) {
-                    let t = await Network.get(this.buildUrl(`comic/rank/list?page=${s}&rank_type=${a}&by_time=${e}`), this.headers);
+                    let t = await Network.get(this.buildUrl(`comic/rank/list?page=${r}&rank_type=${a}&by_time=${e}`), this.headers);
                     return {
                         comics: JSON.parse(t.body).data.map(t => this.parseComic(t)),
                         maxPage: 10
@@ -53,11 +53,11 @@ class Zaimanhua extends ComicSource {
                 }
                 {
                     e = Zaimanhua.categoryParamMap[t] || "0";
-                    let r = await Network.get(this.buildUrl(`comic/filter/list?status=${a[2]}&theme=${e}&zone=${a[3]}&cate=${a[1]}&sortType=${a[0]}&page=${s}&size=20`), this.headers);
-                    const i = JSON.parse(r.body).data;
+                    let s = await Network.get(this.buildUrl(`comic/filter/list?status=${a[2]}&theme=${e}&zone=${a[3]}&cate=${a[1]}&sortType=${a[0]}&page=${r}&size=20`), this.headers);
+                    const o = JSON.parse(s.body).data;
                     return {
-                        comics: i.comicList.map(t => this.parseComic(t)),
-                        maxPage: Math.ceil(i.totalNum / 20)
+                        comics: o.comicList.map(t => this.parseComic(t)),
+                        maxPage: Math.ceil(o.totalNum / 20)
                     };
                 }
             },
@@ -84,26 +84,26 @@ class Zaimanhua extends ComicSource {
             } ]
         }, this.search = {
             load: async (t, e, a) => {
-                const s = await Network.get(this.buildUrl(`search/index?keyword=${encodeURIComponent(t)}&page=${a}&sort=0&size=20`), this.headers);
+                const r = await Network.get(this.buildUrl(`search/index?keyword=${encodeURIComponent(t)}&page=${a}&sort=0&size=20`), this.headers);
                 return {
-                    comics: JSON.parse(s.body).data.list.map(t => this.parseComic(t))
+                    comics: JSON.parse(r.body).data.list.map(t => this.parseComic(t))
                 };
             },
             optionList: []
         }, this.favorites = {
             multiFolder: !1,
             addOrDelFavorite: async (t, e, a) => {
-                const s = a ? "add" : "del", r = await Network.get(this.buildUrl(`comic/sub/${s}?comic_id=${t}`), this.headers), i = JSON.parse(r.body);
-                if (0 !== i.errno) throw new Error(i.errmsg || "操作失败");
+                const r = a ? "add" : "del", s = await Network.get(this.buildUrl(`comic/sub/${r}?comic_id=${t}`), this.headers), o = JSON.parse(s.body);
+                if (0 !== o.errno) throw new Error(o.errmsg || "操作失败");
                 return "ok";
             },
             loadComics: async t => {
                 try {
                     var e;
-                    const a = await Network.get(this.buildUrl(`comic/sub/list?status=0&page=${t}&size=20`), this.headers), s = JSON.parse(a.body).data;
+                    const a = await Network.get(this.buildUrl(`comic/sub/list?status=0&page=${t}&size=20`), this.headers), r = JSON.parse(a.body).data;
                     return {
-                        comics: null != (e = s.subList.map(t => this.parseComic(t))) ? e : [],
-                        maxPage: Math.ceil(s.total / 20)
+                        comics: null != (e = r.subList.map(t => this.parseComic(t))) ? e : [],
+                        maxPage: Math.ceil(r.total / 20)
                     };
                 } catch (t) {
                     return console.error("加载收藏失败:", t), {
@@ -120,20 +120,20 @@ class Zaimanhua extends ComicSource {
                 }).bind(this)(t) ]);
                 const a = JSON.parse(e[0].body);
                 if (0 !== a.errno) throw new Error(a.errmsg || "加载失败");
-                const s = a.data.data, {authors: r, status: i, types: o} = s, n = t => t.map(t => t.tag_name);
+                const r = a.data.data, {authors: s, status: o, types: i} = r, n = t => t.map(t => t.tag_name);
                 return {
-                    title: s.title,
-                    cover: s.cover,
-                    description: s.description,
+                    title: r.title,
+                    cover: r.cover,
+                    description: r.description,
                     tags: {
-                        作者: n(r),
-                        状态: [ ...n(i), s.last_update_chapter_name ],
-                        标签: n(o)
+                        作者: n(s),
+                        状态: [ ...n(o), r.last_update_chapter_name ],
+                        标签: n(i)
                     },
-                    updateTime: this.formatTimestamp(s.last_updatetime),
-                    chapters: (c = s.chapters, (c || []).reduce((t, e) => {
-                        const a = e.title || "默认", s = (e.data || []).reverse().map(t => [ String(t.chapter_id), `${t.chapter_title.replace(/^(?:连载版?)?(\d+\.?\d*)([话卷])?$/, (t, e, a) => `第${e}${a || "话"}`)}` ]);
-                        return t.set(a, new Map(s)), t;
+                    updateTime: this.formatTimestamp(r.last_updatetime),
+                    chapters: (c = r.chapters, (c || []).reduce((t, e) => {
+                        const a = e.title || "默认", r = (e.data || []).reverse().map(t => [ String(t.chapter_id), `${t.chapter_title.replace(/^(?:连载版?)?(\d+\.?\d*)([话卷])?$/, (t, e, a) => `第${e}${a || "话"}`)}` ]);
+                        return t.set(a, new Map(r)), t;
                     }, new Map)),
                     isFavorite: e[1],
                     subId: t
@@ -141,28 +141,28 @@ class Zaimanhua extends ComicSource {
                 var c;
             },
             loadEp: async (t, e) => {
-                const a = await Network.get(this.buildUrl(`comic/chapter/${t}/${e}`), this.headers), s = JSON.parse(a.body).data.data;
+                const a = await Network.get(this.buildUrl(`comic/chapter/${t}/${e}`), this.headers), r = JSON.parse(a.body).data.data;
                 return {
-                    images: s.page_url_hd || s.page_url
+                    images: r.page_url_hd || r.page_url
                 };
             },
-            loadComments: async (t, e, a, s) => {
+            loadComments: async (t, e, a, r) => {
                 try {
-                    const r = this.buildUrl(`comment/list?page=${a}&size=30&type=4&objId=${e || t}&sortBy=1`), i = await Network.get(r, this.headers);
-                    this.checkResponseStatus(i);
-                    const o = JSON.parse(i.body).data;
-                    if (!o || !o.commentIdList || !o.commentList) return UI.showMessage("暂时没有评论，快来发表第一条吧~"),
+                    const s = this.buildUrl(`comment/list?page=${a}&size=30&type=4&objId=${e || t}&sortBy=1`), o = await Network.get(s, this.headers);
+                    this.checkResponseStatus(o);
+                    const i = JSON.parse(o.body).data;
+                    if (!i || !i.commentIdList || !i.commentList) return UI.showMessage("暂时没有评论，快来发表第一条吧~"),
                     {
                         comments: [],
                         maxPage: 0
                     };
-                    const n = (Array.isArray(o.commentIdList) ? o.commentIdList : []).map(t => `${t || ""}`.split(",")).flat().filter(t => "" !== t.trim()), c = (() => {
-                        const t = [ ...new Set(n) ].filter(t => o.commentList.hasOwnProperty(t));
-                        return (s ? t.filter(t => {
+                    const n = (Array.isArray(i.commentIdList) ? i.commentIdList : []).map(t => `${t || ""}`.split(",")).flat().filter(t => "" !== t.trim()), c = (() => {
+                        const t = [ ...new Set(n) ].filter(t => i.commentList.hasOwnProperty(t));
+                        return (r ? t.filter(t => {
                             var e;
-                            return (null == (e = o.commentList[t]) ? void 0 : e.to_comment_id) == s;
+                            return (null == (e = i.commentList[t]) ? void 0 : e.to_comment_id) == r;
                         }) : t).map(t => {
-                            const e = o.commentList[t];
+                            const e = i.commentList[t];
                             return new Comment({
                                 userName: e.nickname || "匿名用户",
                                 avatar: e.photo || "",
@@ -175,9 +175,9 @@ class Zaimanhua extends ComicSource {
                             });
                         });
                     })();
-                    return 0 === c.length && UI.showMessage(s ? "该评论暂无回复" : "这里还没有评论哦~"), {
+                    return 0 === c.length && UI.showMessage(r ? "该评论暂无回复" : "这里还没有评论哦~"), {
                         comments: c,
-                        maxPage: Math.ceil((o.total || 0) / 30)
+                        maxPage: Math.ceil((i.total || 0) / 30)
                     };
                 } catch (t) {
                     return console.error("评论加载失败:", t), UI.showMessage(`加载评论失败: ${t.message}`), {
@@ -186,23 +186,23 @@ class Zaimanhua extends ComicSource {
                     };
                 }
             },
-            sendComment: async (t, e, a, s) => {
-                s || (s = 0);
-                let r = await Network.post(this.buildUrl("comment/add"), {
+            sendComment: async (t, e, a, r) => {
+                r || (r = 0);
+                let s = await Network.post(this.buildUrl("comment/add"), {
                     ...this.headers,
                     "Content-Type": "application/x-www-form-urlencoded;charset=utf-8"
-                }, `obj_id=${e}&content=${encodeURIComponent(a)}&to_comment_id=${s}&type=4`);
-                this.checkResponseStatus(r);
-                let i = JSON.parse(r.body);
-                if (0 !== i.errno) throw new Error(i.errmsg || "加载失败");
+                }, `obj_id=${e}&content=${encodeURIComponent(a)}&to_comment_id=${r}&type=4`);
+                this.checkResponseStatus(s);
+                let o = JSON.parse(s.body);
+                if (0 !== o.errno) throw new Error(o.errmsg || "加载失败");
                 return "ok";
             },
-            likeComment: async (t, e, a, s) => {
-                let r = await Network.post(this.buildUrl("comment/addLike"), {
+            likeComment: async (t, e, a, r) => {
+                let s = await Network.post(this.buildUrl("comment/addLike"), {
                     ...this.headers,
                     "Content-Type": "application/x-www-form-urlencoded;charset=utf-8"
                 }, `commentId=${a}&type=4`);
-                return this.checkResponseStatus(r), "ok";
+                return this.checkResponseStatus(s), "ok";
             }
         }, this.settings = {
             signTask: {
@@ -254,15 +254,15 @@ function __veneraGetRuntimeGlobal() {
 }
 
 function __veneraNormalizeAuthorityPart(t, e, a) {
-    const s = String(null == t ? "" : t).trim() || e;
-    return a ? s.replace(/^\/+|\/+$/g, "") : s;
+    const r = String(null == t ? "" : t).trim() || e;
+    return a ? r.replace(/^\/+|\/+$/g, "") : r;
 }
 
 function resolvePluginUpdateUrl(t) {
-    const e = __veneraGetRuntimeGlobal(), a = e.__VENERA_RELEASE_AUTHORITY__ && "object" == typeof e.__VENERA_RELEASE_AUTHORITY__ ? e.__VENERA_RELEASE_AUTHORITY__ : {}, s = __veneraNormalizeAuthorityPart(a.cdnOrigin, "https://cdn.jsdelivr.net", !1).replace(/\/+$/, ""), r = __veneraNormalizeAuthorityPart(a.providerPath, "gh", !0), i = __veneraNormalizeAuthorityPart(a.repository, "mythic3011/venera-configs", !0), o = __veneraNormalizeAuthorityPart(a.releaseRef, "main", !1), n = __veneraNormalizeAuthorityPart(a.artifactPathPrefix, "dist/plugins", !0), c = String(t || "").replace(/^\/+/, "");
-    if (!c) return `${s}/${r}/${i}@${o}`;
-    const h = n ? `${n}/${c}` : c;
-    return `${s}/${r}/${i}@${o}/${c.startsWith(`${n}/`) ? c : h}`;
+    const e = __veneraGetRuntimeGlobal(), a = e.__VENERA_RELEASE_AUTHORITY__ && "object" == typeof e.__VENERA_RELEASE_AUTHORITY__ ? e.__VENERA_RELEASE_AUTHORITY__ : {}, r = __veneraNormalizeAuthorityPart(a.cdnOrigin, "https://cdn.jsdelivr.net", !1).replace(/\/+$/, ""), s = __veneraNormalizeAuthorityPart(a.providerPath, "gh", !0), o = __veneraNormalizeAuthorityPart(a.repository, "mythic3011/venera-configs", !0), i = __veneraNormalizeAuthorityPart(a.releaseRef, "main", !1), n = __veneraNormalizeAuthorityPart(a.artifactPathPrefix, "dist/plugins", !0), c = String(t || "").replace(/^\/+/, "");
+    if (!c) return `${r}/${s}/${o}@${i}`;
+    const l = n ? `${n}/${c}` : c;
+    return `${r}/${s}/${o}@${i}/${c.startsWith(`${n}/`) ? c : l}`;
 }
 
 Zaimanhua.categoryParamMap = {
@@ -317,6 +317,8 @@ Zaimanhua.categoryParamMap = {
     日常: "23388",
     画集: "30788",
     C100: "31137"
-};
+}, "undefined" != typeof module && module && module.exports && (module.exports = {
+    resolvePluginUpdateUrl
+});
 
 "use strict";

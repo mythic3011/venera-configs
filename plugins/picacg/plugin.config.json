@@ -12,7 +12,7 @@
     ]
   },
   "runtimeShared": [
-    "shared/families/picacg/index.js"
+    "support/plugin/index.js"
   ],
   "pipeline": {
     "mode": "standard"

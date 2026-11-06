@@ -284,9 +284,9 @@ class HComic extends ComicSource {
             load: async (t, a, e, r) => {
                 let i = e[0], o = "random" === i ? "/random" : "/", l = `${this.baseUrl}${o}?page=${r}&q=`;
                 l += a ? `&tag=${encodeURIComponent(a)}` : "&tag=";
-                let c = await this.getHtml(l), s = this.extractData(c), g = "random" === i ? null : this.extractMaxPage(c);
-                return s && s.comics ? {
-                    comics: s.comics.map(t => this.parseComic(t)),
+                let s = await this.getHtml(l), c = this.extractData(s), g = "random" === i ? null : this.extractMaxPage(s);
+                return c && c.comics ? {
+                    comics: c.comics.map(t => this.parseComic(t)),
                     maxPage: g
                 } : {
                     comics: [],
@@ -325,7 +325,7 @@ class HComic extends ComicSource {
                 }
                 let r = `${this.baseUrl}/comics/${encodeURIComponent(e)}/1?id=${a}`, i = await this.getHtml(r), o = this.extractData(i);
                 if (!o || !o.comic) throw "Failed to load comic info";
-                let l = o.comic, c = l.title.display || l.title.pretty || l.title.japanese, s = l.title.english, g = l.thumbnail;
+                let l = o.comic, s = l.title.display || l.title.pretty || l.title.japanese, c = l.title.english, g = l.thumbnail;
                 !g && l.comic_source && l.media_id && (g = `https://h-comic.link/api/${l.comic_source}/${l.media_id}/pages/1`);
                 let n = {};
                 l.tags && (n["标签"] = l.tags.map(t => t.name_zh || t.name));
@@ -336,8 +336,8 @@ class HComic extends ComicSource {
                 }
                 let m = l.title.japanese || "", u = `${l.comic_source}|${l.media_id}|${l.num_pages}`, y = new Map, b = new Map;
                 return b.set(u, "全一话"), y.set("章节", b), new ComicDetails({
-                    title: c,
-                    subTitle: s,
+                    title: s,
+                    subTitle: c,
                     cover: g,
                     description: m,
                     tags: n,
@@ -422,10 +422,14 @@ function __veneraNormalizeAuthorityPart(t, a, e) {
 }
 
 function resolvePluginUpdateUrl(t) {
-    const a = __veneraGetRuntimeGlobal(), e = a.__VENERA_RELEASE_AUTHORITY__ && "object" == typeof a.__VENERA_RELEASE_AUTHORITY__ ? a.__VENERA_RELEASE_AUTHORITY__ : {}, r = __veneraNormalizeAuthorityPart(e.cdnOrigin, "https://cdn.jsdelivr.net", !1).replace(/\/+$/, ""), i = __veneraNormalizeAuthorityPart(e.providerPath, "gh", !0), o = __veneraNormalizeAuthorityPart(e.repository, "mythic3011/venera-configs", !0), l = __veneraNormalizeAuthorityPart(e.releaseRef, "main", !1), c = __veneraNormalizeAuthorityPart(e.artifactPathPrefix, "dist/plugins", !0), s = String(t || "").replace(/^\/+/, "");
-    if (!s) return `${r}/${i}/${o}@${l}`;
-    const g = c ? `${c}/${s}` : s;
-    return `${r}/${i}/${o}@${l}/${s.startsWith(`${c}/`) ? s : g}`;
+    const a = __veneraGetRuntimeGlobal(), e = a.__VENERA_RELEASE_AUTHORITY__ && "object" == typeof a.__VENERA_RELEASE_AUTHORITY__ ? a.__VENERA_RELEASE_AUTHORITY__ : {}, r = __veneraNormalizeAuthorityPart(e.cdnOrigin, "https://cdn.jsdelivr.net", !1).replace(/\/+$/, ""), i = __veneraNormalizeAuthorityPart(e.providerPath, "gh", !0), o = __veneraNormalizeAuthorityPart(e.repository, "mythic3011/venera-configs", !0), l = __veneraNormalizeAuthorityPart(e.releaseRef, "main", !1), s = __veneraNormalizeAuthorityPart(e.artifactPathPrefix, "dist/plugins", !0), c = String(t || "").replace(/^\/+/, "");
+    if (!c) return `${r}/${i}/${o}@${l}`;
+    const g = s ? `${s}/${c}` : c;
+    return `${r}/${i}/${o}@${l}/${c.startsWith(`${s}/`) ? c : g}`;
 }
+
+"undefined" != typeof module && module && module.exports && (module.exports = {
+    resolvePluginUpdateUrl
+});
 
 "use strict";

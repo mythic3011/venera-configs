@@ -3,13 +3,25 @@
 
 // Canonical Venera source catalog. No duplicated hand-maintained metadata.
 // Input: .generated/build-manifest.json#publicIndex (from plugin configs).
-// Output: index.json, a standalone Venera-compatible JSON array.
+// Output: index.json, a standalone Venera-compatible JSON array, and CATALOG.md.
 const fs = require("node:fs");
 const path = require("node:path");
-const { REPO_ROOT, BUILD_MANIFEST_PATH, readJson } = require("./lib");
+const {
+  REPO_ROOT,
+  BUILD_MANIFEST_PATH,
+  PUBLIC_INDEX_PATH,
+  buildPublicIndexEntries,
+  readJson,
+} = require("./lib");
 
-const TARGET = path.join(REPO_ROOT, "index.json");
-const README_TARGET = path.join(REPO_ROOT, "CATALOG.md");
+const CATALOG_PATH = path.join(REPO_ROOT, "CATALOG.md");
+
+function indexFromManifest(manifest) {
+  if (!manifest || !Array.isArray(manifest.plugins)) {
+    throw new Error("build-manifest plugins are missing");
+  }
+  return buildPublicIndexEntries(manifest.plugins);
+}
 
 function buildPublicIndex(manifest) {
   if (!manifest || !Array.isArray(manifest.plugins) || !Array.isArray(manifest.publicIndex)) {
@@ -48,7 +60,6 @@ function buildPublicIndex(manifest) {
 }
 
 function buildCatalogReadme(manifest) {
-  // Force integrity validation before publishing generated prose.
   buildPublicIndex(manifest);
   const tick = String.fromCharCode(96);
   const text = value => String(value).replace(/[|<>\r\n]/g, " ").replace(/[\[\]]/g, "");
@@ -93,8 +104,8 @@ function main() {
   const check = process.argv.includes("--check");
   const manifest = readJson(BUILD_MANIFEST_PATH);
   const targets = [
-    [TARGET, buildPublicIndex(manifest)],
-    [README_TARGET, buildCatalogReadme(manifest)],
+    [PUBLIC_INDEX_PATH, buildPublicIndex(manifest)],
+    [CATALOG_PATH, buildCatalogReadme(manifest)],
   ];
   for (const [file, expected] of targets) {
     if (check) {
@@ -109,6 +120,8 @@ function main() {
     "Generated canonical index.json and CATALOG.md");
 }
 
-if (require.main === module) main();
+module.exports = { indexFromManifest, buildPublicIndex, buildCatalogReadme };
 
-module.exports = { buildPublicIndex, buildCatalogReadme };
+if (require.main === module) {
+  main();
+}

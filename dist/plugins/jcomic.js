@@ -7,15 +7,8 @@ class JComic extends ComicSource {
             type: "multiPageComicList",
             load: async t => {
                 t || (t = 1);
-                const e = encodeURI("最近更新"), r = 1 === t ? `/cat/${e}` : `/cat/${e}/${t}`, o = this._buildUrl(r), i = await Network.get(o, {
-                    referer: JCOMIC_REFERER
-                });
-                if (200 !== i.status) throw new Error(i.status);
-                const a = new HtmlDocument(i.body);
-                return {
-                    comics: parseComicList(a),
-                    maxPage: parseMaxPage(a)
-                };
+                const e = encodeURI("最近更新"), r = 1 === t ? `/cat/${e}` : `/cat/${e}/${t}`, o = this._buildUrl(r);
+                return await this._loadComicPage(o);
             },
             loadNext(t) {}
         } ], this.category = {
@@ -31,15 +24,8 @@ class JComic extends ComicSource {
         }, this.categoryComics = {
             load: async (t, e, r, o) => {
                 o || (o = 1);
-                const i = encodeURI(e), a = 1 === o ? `/cat/${i}` : `/cat/${i}/${o}`, n = this._buildUrl(a), c = await Network.get(n, {
-                    referer: JCOMIC_REFERER
-                });
-                if (200 !== c.status) throw new Error(c.status);
-                const s = new HtmlDocument(c.body);
-                return {
-                    comics: parseComicList(s),
-                    maxPage: parseMaxPage(s)
-                };
+                const i = encodeURI(e), a = 1 === o ? `/cat/${i}` : `/cat/${i}/${o}`, n = this._buildUrl(a);
+                return await this._loadComicPage(n);
             },
             optionList: [],
             ranking: null
@@ -51,15 +37,8 @@ class JComic extends ComicSource {
                     comics: [],
                     maxPage: 1
                 };
-                const i = encodeURIComponent(o), a = 1 === r ? `/search/${i}` : `/search/${i}/${r}`, n = this._buildUrl(a), c = await Network.get(n, {
-                    referer: JCOMIC_REFERER
-                });
-                if (200 !== c.status) throw new Error(c.status);
-                const s = new HtmlDocument(c.body);
-                return {
-                    comics: parseComicList(s),
-                    maxPage: parseMaxPage(s)
-                };
+                const i = encodeURIComponent(o), a = 1 === r ? `/search/${i}` : `/search/${i}/${r}`, n = this._buildUrl(a);
+                return await this._loadComicPage(n);
             },
             loadNext: async (t, e, r) => {},
             optionList: [ {
@@ -77,13 +56,13 @@ class JComic extends ComicSource {
                 if (200 !== o.status) throw new Error(o.status);
                 const i = new HtmlDocument(o.body), a = i.querySelector("div.row.col-md-6.col-xs-12");
                 if (!a) throw new Error("failed to parse comic info");
-                const n = a.querySelector("p.comic-title"), c = n ? n.text.trim() : t, s = trimTitle(c);
-                let l = 1;
+                const n = a.querySelector("p.comic-title"), c = n ? n.text.trim() : t, l = trimTitle(c);
+                let s = 1;
                 const u = /\((\d+)\)/.exec(c);
-                u && (l = parseInt(u[1], 10) || 1);
-                const m = a.querySelector("img.comic-thumb"), p = m ? m.attributes.src : "", h = a.querySelectorAll('a[href^="/author/"] button'), f = Array.from(h).map(t => t.text.trim()), d = a.querySelectorAll('a[href^="/cat/"] button'), g = Array.from(d).map(t => t.text.trim()), y = a.querySelector("p.comic-date"), E = y ? y.text.trim() : "", C = i.querySelectorAll('a[href^="/page/"]');
-                let _ = [];
-                C.forEach(e => {
+                u && (s = parseInt(u[1], 10) || 1);
+                const m = a.querySelector("img.comic-thumb"), p = m ? m.attributes.src : "", h = a.querySelectorAll('a[href^="/author/"] button'), d = Array.from(h).map(t => t.text.trim()), f = a.querySelectorAll('a[href^="/cat/"] button'), g = Array.from(f).map(t => t.text.trim()), y = a.querySelector("p.comic-date"), E = y ? y.text.trim() : "", _ = i.querySelectorAll('a[href^="/page/"]');
+                let C = [];
+                _.forEach(e => {
                     const r = e.attributes.href;
                     if (parseIdFromHref(r) === t) {
                         const t = parseEpIdFromHref(r);
@@ -93,7 +72,7 @@ class JComic extends ComicSource {
                                 const t = e.querySelector("button");
                                 t && (r = t.text.trim());
                             }
-                            _.push({
+                            C.push({
                                 id: t,
                                 title: r || `第${t}話`
                             });
@@ -101,23 +80,23 @@ class JComic extends ComicSource {
                     }
                 });
                 const R = new Map;
-                f.length && R.set("authors", f), g.length && R.set("categories", g);
-                const b = new Map;
-                return _.forEach(t => {
-                    b.set(t.id, t.title);
+                d.length && R.set("authors", d), g.length && R.set("categories", g);
+                const A = new Map;
+                return C.forEach(t => {
+                    A.set(t.id, t.title);
                 }), this.currentComic = {
                     id: t,
-                    title: s,
+                    title: l,
                     cover: p,
-                    authors: f,
+                    authors: d,
                     categories: g,
-                    eps: _
+                    eps: C
                 }, new ComicDetails({
-                    title: s,
+                    title: l,
                     cover: p,
                     tags: R,
-                    chapters: b,
-                    maxPage: l,
+                    chapters: A,
+                    maxPage: s,
                     thumbnails: [ p ],
                     uploadTime: E,
                     url: r,
@@ -169,6 +148,17 @@ class JComic extends ComicSource {
         return t.startsWith("http://") || t.startsWith("https://") ? t : (t.startsWith("/") || (t = "/" + t),
         JCOMIC_BASE + t);
     }
+    async _loadComicPage(t) {
+        const e = await Network.get(t, {
+            referer: JCOMIC_REFERER
+        });
+        if (200 !== e.status) throw new Error(e.status);
+        const r = new HtmlDocument(e.body);
+        return {
+            comics: parseComicList(r),
+            maxPage: parseMaxPage(r)
+        };
+    }
     init() {}
 }
 
@@ -182,11 +172,15 @@ function __veneraNormalizeAuthorityPart(t, e, r) {
 }
 
 function resolvePluginUpdateUrl(t) {
-    const e = __veneraGetRuntimeGlobal(), r = e.__VENERA_RELEASE_AUTHORITY__ && "object" == typeof e.__VENERA_RELEASE_AUTHORITY__ ? e.__VENERA_RELEASE_AUTHORITY__ : {}, o = __veneraNormalizeAuthorityPart(r.cdnOrigin, "https://cdn.jsdelivr.net", !1).replace(/\/+$/, ""), i = __veneraNormalizeAuthorityPart(r.providerPath, "gh", !0), a = __veneraNormalizeAuthorityPart(r.repository, "mythic3011/venera-configs", !0), n = __veneraNormalizeAuthorityPart(r.releaseRef, "main", !1), c = __veneraNormalizeAuthorityPart(r.artifactPathPrefix, "dist/plugins", !0), s = String(t || "").replace(/^\/+/, "");
-    if (!s) return `${o}/${i}/${a}@${n}`;
-    const l = c ? `${c}/${s}` : s;
-    return `${o}/${i}/${a}@${n}/${s.startsWith(`${c}/`) ? s : l}`;
+    const e = __veneraGetRuntimeGlobal(), r = e.__VENERA_RELEASE_AUTHORITY__ && "object" == typeof e.__VENERA_RELEASE_AUTHORITY__ ? e.__VENERA_RELEASE_AUTHORITY__ : {}, o = __veneraNormalizeAuthorityPart(r.cdnOrigin, "https://cdn.jsdelivr.net", !1).replace(/\/+$/, ""), i = __veneraNormalizeAuthorityPart(r.providerPath, "gh", !0), a = __veneraNormalizeAuthorityPart(r.repository, "mythic3011/venera-configs", !0), n = __veneraNormalizeAuthorityPart(r.releaseRef, "main", !1), c = __veneraNormalizeAuthorityPart(r.artifactPathPrefix, "dist/plugins", !0), l = String(t || "").replace(/^\/+/, "");
+    if (!l) return `${o}/${i}/${a}@${n}`;
+    const s = c ? `${c}/${l}` : l;
+    return `${o}/${i}/${a}@${n}/${l.startsWith(`${c}/`) ? l : s}`;
 }
+
+"undefined" != typeof module && module && module.exports && (module.exports = {
+    resolvePluginUpdateUrl
+});
 
 "use strict";
 
@@ -220,9 +214,9 @@ function parseComicCard(t) {
         if (!e) return null;
         const r = parseIdFromHref(e.attributes.href);
         if (!r) return null;
-        const o = t.querySelector("img.comic-thumb"), i = o ? o.attributes.src : "", a = t.querySelector("p.comic-title"), n = trimTitle(a ? a.text.trim() : r), c = t.querySelectorAll('a[href^="/author/"] button'), s = Array.from(c).map(t => t.text.trim()).join(" "), l = t.querySelectorAll('a[href^="/cat/"] button');
+        const o = t.querySelector("img.comic-thumb"), i = o ? o.attributes.src : "", a = t.querySelector("p.comic-title"), n = trimTitle(a ? a.text.trim() : r), c = t.querySelectorAll('a[href^="/author/"] button'), l = Array.from(c).map(t => t.text.trim()).join(" "), s = t.querySelectorAll('a[href^="/cat/"] button');
         let u = [];
-        if (l.length) u = Array.from(l).map(t => t.text.trim()); else {
+        if (s.length) u = Array.from(s).map(t => t.text.trim()); else {
             const e = t.querySelectorAll('a[href^="/cat/"]');
             u = Array.from(e).map(t => t.text.trim()).filter(Boolean);
         }
@@ -230,7 +224,7 @@ function parseComicCard(t) {
         return new Comic({
             id: r,
             title: n,
-            subTitle: s,
+            subTitle: l,
             cover: i,
             tags: u,
             language: "zh-Hant",

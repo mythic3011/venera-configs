@@ -96,51 +96,23 @@ class ComicWalker extends ComicSource {
 
         const result = {};
 
-        const newArrivals = res.resources.new_arrival_comics.map(
-          (item) =>
-            new Comic({
-              id: item.id,
-              title: item.title,
-              cover: item.thumbnail_1x1 || "",
-              tags: item.comic_labels?.map((l) => l.name) || [],
-            }),
+        result["今日の更新"] = res.resources.new_arrival_comics.map((item) =>
+          mapComicWalkerCard(item, "id", "thumbnail_1x1"),
         );
-        result["今日の更新"] = newArrivals;
 
-        const attention = res.resources.attention_comics.map(
-          (item) =>
-            new Comic({
-              id: item.comic_id,
-              title: item.title,
-              cover: item.image_url || "",
-              tags: item.comic_labels?.map((l) => l.name) || [],
-            }),
+        result["注目作品"] = res.resources.attention_comics.map((item) =>
+          mapComicWalkerCard(item, "comic_id", "image_url"),
         );
-        result["注目作品"] = attention;
 
         for (const pickup of res.resources.pickup_comics) {
-          const comics = pickup.comics.map(
-            (item) =>
-              new Comic({
-                id: item.id,
-                title: item.title,
-                cover: item.thumbnail_1x1 || "",
-                tags: item.comic_labels?.map((l) => l.name) || [],
-              }),
+          result[pickup.name] = pickup.comics.map((item) =>
+            mapComicWalkerCard(item, "id", "thumbnail_1x1"),
           );
-          result[pickup.name] = comics;
         }
 
-        const newSerialization = res.resources.new_serialization_comics.map(
-          (item) =>
-            new Comic({
-              id: item.id,
-              title: item.title,
-              cover: item.thumbnail_1x1 || "",
-              tags: item.comic_labels?.map((l) => l.name) || [],
-            }),
+        result["新連載"] = res.resources.new_serialization_comics.map((item) =>
+          mapComicWalkerCard(item, "id", "thumbnail_1x1"),
         );
-        result["新連載"] = newSerialization;
 
         return result;
       },
@@ -362,4 +334,13 @@ class ComicWalker extends ComicSource {
       throw "未支持此类Tag检索";
     },
   };
+}
+
+function mapComicWalkerCard(item, idField, coverField) {
+  return new Comic({
+    id: item[idField],
+    title: item.title,
+    cover: item[coverField] || "",
+    tags: item.comic_labels?.map((label) => label.name) || [],
+  });
 }

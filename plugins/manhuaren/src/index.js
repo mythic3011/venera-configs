@@ -16,6 +16,46 @@ class ManHuaRen extends ComicSource {
     return "https://www.manhuaren.com";
   }
 
+  _mapComment(item, page, isReply) {
+    return new Comment({
+      id: isReply ? item.Id.toString() : `${item.Id}//${page}`,
+      userName: item.Poster,
+      content: item.PostContent,
+      time: item.PostTime,
+      avatar: item.HeadUrl,
+      likeCount: item.PraiseCount,
+      isLiked: item.IsPraise,
+      replyCount: isReply
+        ? 0
+        : item.ToPostShowDataItems
+          ? item.ToPostShowDataItems.length
+          : 0,
+    });
+  }
+
+  _parseComments(data, page, targetCommentId, replyTo) {
+    let comments = [];
+    let maxPage = 0;
+    if (replyTo) {
+      let target = data.find(
+        (item) => item.Id.toString() === targetCommentId,
+      );
+      if (target && target.ToPostShowDataItems) {
+        comments = target.ToPostShowDataItems.map((item) =>
+          this._mapComment(item, page, true),
+        );
+      }
+    } else {
+      comments = data.map((item) => this._mapComment(item, page, false));
+      if (comments == []) {
+        maxPage = page;
+      } else {
+        maxPage = null;
+      }
+    }
+    return { comments, maxPage: replyTo ? 1 : maxPage };
+  }
+
   // helper to build common request headers
   _buildHeaders() {
     return {
@@ -32,6 +72,24 @@ class ManHuaRen extends ComicSource {
       "sec-ch-ua-platform": '"Android"',
       host: "www.manhuaren.com",
     };
+  }
+
+  _buildCommentHeaders(referer, userAgent, includeClientHints) {
+    const headers = this._buildHeaders();
+    if (userAgent) headers["user-agent"] = userAgent;
+    if (!includeClientHints) {
+      delete headers["sec-ch-ua"];
+      delete headers["sec-ch-ua-mobile"];
+      delete headers["sec-ch-ua-platform"];
+    }
+    return Object.assign(headers, {
+      connection: "keep-alive",
+      referer,
+      "sec-fetch-dest": "empty",
+      "sec-fetch-mode": "cors",
+      "sec-fetch-site": "same-origin",
+      "x-requested-with": "XMLHttpRequest",
+    });
   }
 
   _buildImageHeaders(imageUrl, referer) {
@@ -854,26 +912,11 @@ class ManHuaRen extends ComicSource {
         .join("&");
       url += "?" + query;
 
-      let headers = {
-        accept: "*/*",
-        "accept-encoding": "gzip, deflate, br, zstd",
-        "accept-language": "zh-CN,zh;q=0.9,en;q=0.8",
-        "cache-control": "no-cache",
-        connection: "keep-alive",
-        host: "www.manhuaren.com",
-        pragma: "no-cache",
-        referer: `${this.baseUrl}/manhua-${comicId}/`,
-        "sec-ch-ua":
-          '"Chromium";v="142", "Google Chrome";v="142", "Not_A Brand";v="99"',
-        "sec-ch-ua-mobile": "?1",
-        "sec-ch-ua-platform": '"Android"',
-        "sec-fetch-dest": "empty",
-        "sec-fetch-mode": "cors",
-        "sec-fetch-site": "same-origin",
-        "user-agent":
-          "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Mobile Safari/537.36",
-        "x-requested-with": "XMLHttpRequest",
-      };
+      let headers = this._buildCommentHeaders(
+        `${this.baseUrl}/manhua-${comicId}/`,
+        null,
+        true,
+      );
 
       let res = await Network.get(url, headers);
       if (res.status !== 200) {
@@ -881,55 +924,7 @@ class ManHuaRen extends ComicSource {
       }
 
       let data = JSON.parse(res.body);
-      let comments = [];
-
-      let maxPage = 0;
-      if (replyTo) {
-        let target = data.find(
-          (item) => item.Id.toString() === targetCommentId,
-        );
-        if (target && target.ToPostShowDataItems) {
-          comments = target.ToPostShowDataItems.map(
-            (item) =>
-              new Comment({
-                id: item.Id.toString(),
-                userName: item.Poster,
-                content: item.PostContent,
-                time: item.PostTime,
-                avatar: item.HeadUrl,
-                likeCount: item.PraiseCount,
-                isLiked: item.IsPraise,
-                replyCount: 0,
-              }),
-          );
-        }
-      } else {
-        comments = data.map(
-          (item) =>
-            new Comment({
-              id: `${item.Id}//${page}`,
-              userName: item.Poster,
-              content: item.PostContent,
-              time: item.PostTime,
-              avatar: item.HeadUrl,
-              likeCount: item.PraiseCount,
-              isLiked: item.IsPraise,
-              replyCount: item.ToPostShowDataItems
-                ? item.ToPostShowDataItems.length
-                : 0,
-            }),
-        );
-        if (comments == []) {
-          maxPage = page;
-        } else {
-          maxPage = null;
-        }
-      }
-
-      return {
-        comments: comments,
-        maxPage: replyTo ? 1 : maxPage,
-      };
+      return this._parseComments(data, page, targetCommentId, replyTo);
     },
 
     /**
@@ -961,22 +956,11 @@ class ManHuaRen extends ComicSource {
       let pageSize = 20;
       let url = `https://www.manhuaren.com/showcomment/pagerdata.ashx?d=${Date.now()}&pageindex=${requestPage}&pagesize=${pageSize}&cid=${cid}&t=9`;
 
-      let headers = {
-        accept: "*/*",
-        "accept-encoding": "gzip, deflate, br, zstd",
-        "accept-language": "zh-CN,zh;q=0.9,en;q=0.8",
-        "cache-control": "no-cache",
-        connection: "keep-alive",
-        host: "www.manhuaren.com",
-        pragma: "no-cache",
-        referer: `https://www.manhuaren.com/showcomment/?cid=${cid}`,
-        "sec-fetch-dest": "empty",
-        "sec-fetch-mode": "cors",
-        "sec-fetch-site": "same-origin",
-        "user-agent":
-          "Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1",
-        "x-requested-with": "XMLHttpRequest",
-      };
+      let headers = this._buildCommentHeaders(
+        `https://www.manhuaren.com/showcomment/?cid=${cid}`,
+        "Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1",
+        false,
+      );
 
       let res = await Network.get(url, headers);
       if (res.status !== 200) return { comments: [], maxPage: page };
@@ -988,54 +972,7 @@ class ManHuaRen extends ComicSource {
 
       if (!Array.isArray(data)) return { comments: [], maxPage: page };
 
-      let comments = [];
-      let maxPage = 0;
-      if (replyTo) {
-        let target = data.find(
-          (item) => item.Id.toString() === targetCommentId,
-        );
-        if (target && target.ToPostShowDataItems) {
-          comments = target.ToPostShowDataItems.map(
-            (item) =>
-              new Comment({
-                id: item.Id.toString(),
-                userName: item.Poster,
-                content: item.PostContent,
-                time: item.PostTime,
-                avatar: item.HeadUrl,
-                likeCount: item.PraiseCount,
-                isLiked: item.IsPraise,
-                replyCount: 0,
-              }),
-          );
-        }
-      } else {
-        comments = data.map(
-          (item) =>
-            new Comment({
-              id: `${item.Id}//${page}`,
-              userName: item.Poster,
-              content: item.PostContent,
-              time: item.PostTime,
-              avatar: item.HeadUrl,
-              likeCount: item.PraiseCount,
-              isLiked: item.IsPraise,
-              replyCount: item.ToPostShowDataItems
-                ? item.ToPostShowDataItems.length
-                : 0,
-            }),
-        );
-        if (comments == []) {
-          maxPage = page;
-        } else {
-          maxPage = null;
-        }
-      }
-
-      return {
-        comments: comments,
-        maxPage: replyTo ? 1 : maxPage,
-      };
+      return this._parseComments(data, page, targetCommentId, replyTo);
     },
   };
 }

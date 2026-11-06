@@ -301,40 +301,14 @@ class HotManga extends ComicSource {
 
   favorites = {
     multiFolder: false,
-    addOrDelFavorite: async (comicId, folderId, isAdding) => {
-      let is_collect = isAdding ? 1 : 0;
-      let token = this.loadData("token");
-
-      let comicData = await Network.get(
-        buildCopyLikeComicDetailUrl({
-          apiUrl: this.apiUrl,
-          id: comicId,
-          inMainland: true,
-          platform: 3,
-        }),
-        this.headers,
-      );
-      if (comicData.status !== 200) {
-        throw `Invalid status code: ${comicData.status}`;
-      }
-      let comic_id = JSON.parse(comicData.body).results.comic.uuid;
-      let res = await Network.post(
-        buildCopyLikeEndpointUrl(
-          this.apiUrl,
-          COPY_LIKE_ENDPOINT_PATHS.FAVORITE_COMIC_ACTION,
-        ),
-        withCopyLikeFormHeaders(this.headers),
-        `comic_id=${comic_id}&is_collect=${is_collect}&authorization=Token+${token}`,
-      );
-      if (res.status === 401) {
-        throw `Login expired`;
-      }
-      if (res.status !== 200) {
-        throw `Invalid status code: ${res.status}`;
-      }
-      return "ok";
-    },
-
+    addOrDelFavorite: (comicId, folderId, isAdding) =>
+      updateCopyLikeFavorite({
+        apiUrl: this.apiUrl,
+        comicId,
+        isAdding,
+        token: this.loadData("token"),
+        getHeaders: () => this.headers,
+      }),
     loadComics: async (page, folder) => {
       let ordering =
         this.loadSetting("favorites_ordering") || "-datetime_updated";
@@ -350,11 +324,11 @@ class HotManga extends ComicSource {
       );
 
       if (res.status === 401) {
-        throw `Login expired`;
+        throw COPY_LIKE_LOGIN_EXPIRED;
       }
 
       if (res.status !== 200) {
-        throw `Invalid status code: ${res.status}`;
+        throw copyLikeStatusError(res.status);
       }
 
       let data = JSON.parse(res.body);
@@ -393,102 +367,6 @@ class HotManga extends ComicSource {
 
   comic = {
     loadInfo: async (id) => {
-      let getChapters = async (id, groups) => {
-        let fetchSingle = async (id, path) => {
-          let res = await Network.get(
-            buildCopyLikeGroupChaptersUrl({
-              apiUrl: this.apiUrl,
-              id,
-              groupPath: path,
-              limit: 100,
-              offset: 0,
-            }),
-            this.headers,
-          );
-          if (res.status !== 200) {
-            throw `Invalid status code: ${res.status}`;
-          }
-          let data = JSON.parse(res.body);
-          let eps = new Map();
-          data.results.list.forEach((e) => {
-            let title = e.name;
-            let id = e.uuid;
-            eps.set(id, title);
-          });
-          let maxChapter = data.results.total;
-          if (maxChapter > 100) {
-            let offset = 100;
-            while (offset < maxChapter) {
-              res = await Network.get(
-                buildCopyLikeGroupChaptersUrl({
-                  apiUrl: this.apiUrl,
-                  id,
-                  groupPath: path,
-                  limit: 100,
-                  offset,
-                }),
-                this.headers,
-              );
-              if (res.status !== 200) {
-                throw `Invalid status code: ${res.status}`;
-              }
-              data = JSON.parse(res.body);
-              data.results.list.forEach((e) => {
-                let title = e.name;
-                let id = e.uuid;
-                eps.set(id, title);
-              });
-              offset += 100;
-            }
-          }
-          return eps;
-        };
-        let keys = Object.keys(groups);
-        let result = {};
-        let futures = [];
-        for (let group of keys) {
-          let path = groups[group]["path_word"];
-          futures.push(
-            (async () => {
-              result[group] = await fetchSingle(id, path);
-            })(),
-          );
-        }
-        await Promise.all(futures);
-        if (this.isAppVersionAfter("1.3.0")) {
-          // 支持多分组
-          let sortedResult = new Map();
-          for (let key of keys) {
-            let name = groups[key]["name"];
-            sortedResult.set(name, result[key]);
-          }
-          return sortedResult;
-        } else {
-          // 合并所有分组
-          let merged = new Map();
-          for (let key of keys) {
-            for (let [k, v] of result[key]) {
-              merged.set(k, v);
-            }
-          }
-          return merged;
-        }
-      };
-
-      let getFavoriteStatus = async (id) => {
-        let res = await Network.get(
-          buildCopyLikeComicQueryUrl({
-            apiUrl: this.apiUrl,
-            id,
-          }),
-          this.headers,
-        );
-        if (res.status !== 200) {
-          throw `Invalid status code: ${res.status}`;
-        }
-        return JSON.parse(res.body).results.collect != null;
-      };
-
       let results = await Promise.all([
         Network.get(
           buildCopyLikeComicDetailUrl({
@@ -499,124 +377,65 @@ class HotManga extends ComicSource {
           }),
           this.headers,
         ),
-        getFavoriteStatus.bind(this)(id),
+        loadCopyLikeFavoriteStatus({
+          apiUrl: this.apiUrl,
+          id,
+          headers: this.headers,
+        }),
       ]);
 
       if (results[0].status !== 200) {
-        throw `Invalid status code: ${res.status}`;
+        throw copyLikeStatusError(results[0].status);
       }
 
       let data = JSON.parse(results[0].body).results;
       let comicData = data.comic;
-
       let title = comicData.name;
       let cover = comicData.cover;
-      // author_path_word_dict长度限制为最大100
       if (Object.keys(this.author_path_word_dict).length > 100) {
         this.author_path_word_dict = {};
       }
-      // 储存author对应的path_word
       comicData.author.forEach(
-        (e) => (this.author_path_word_dict[e.name] = e.path_word),
+        (author) => (this.author_path_word_dict[author.name] = author.path_word),
       );
-      let description = comicData.brief;
-      let chapters = await getChapters(id, data.groups);
+      let chapters = await loadCopyLikeGroupChapters({
+        apiUrl: this.apiUrl,
+        id,
+        groups: data.groups,
+        getHeaders: () => this.headers,
+        appVersion: APP.version,
+      });
       const mapDetailTags = createCopyLikeDetailTagMapper({});
-
       return {
-        title: title,
-        cover: cover,
-        description: description,
+        title,
+        cover,
+        description: comicData.brief,
         tags: mapDetailTags(comicData),
-        chapters: chapters,
+        chapters,
         isFavorite: results[1],
         subId: comicData.uuid,
       };
     },
-    loadEp: async (comicId, epId) => {
-      let attempt = 0;
-      const maxAttempts = 5;
-      let res;
-      let data;
-
-      while (attempt < maxAttempts) {
-        try {
-          res = await Network.get(
-            buildCopyLikeChapterUrl({
-              apiUrl: this.apiUrl,
-              comicId,
-              chapterId: epId,
-              chapterEndpoint: "chapter",
-              platform: 3,
-              update: true,
-            }),
-            {
-              ...this.headers,
-            },
-          );
-
-          if (res.status === 210) {
-            // 210 indicates too frequent access, extract wait time
-            let waitTime = 40000; // Default wait time 40s
-            try {
-              let responseBody = JSON.parse(res.body);
-              if (
-                responseBody.message &&
-                responseBody.message.includes("Expected available in")
-              ) {
-                let match = responseBody.message.match(/(\d+)\s*seconds/);
-                if (match && match[1]) {
-                  waitTime = parseInt(match[1]) * 1000;
-                }
-              }
-            } catch (e) {
-              console.log(
-                "Unable to parse wait time, using default wait time 40s",
-              );
-            }
-            console.log(
-              `Chapter${epId} access too frequent, waiting ${waitTime / 1000}s`,
-            );
-            await new Promise((resolve) => setTimeout(resolve, waitTime));
-            throw "Retry";
-          }
-
-          if (res.status !== 200) {
-            throw `Invalid status code: ${res.status}`;
-          }
-
-          data = JSON.parse(res.body);
-          // console.log(data.results.chapter);
-          // Handle image link sorting
-          let imagesUrls = data.results.chapter.contents.map((e) => e.url);
-
-          // Replace origin images urls to selected quality images urls
-          let hdImagesUrls = imagesUrls.map((url) =>
-            url.replace(
-              /\.jpg\.h\d+x\.jpg$/,
-              `.jpg.h${this.imageQuality}x.jpg`,
-            ),
-          );
-
+    loadEp: async (comicId, epId) =>
+      loadCopyLikeChapterData({
+        apiUrl: this.apiUrl,
+        comicId,
+        chapterId: epId,
+        chapterEndpoint: "chapter",
+        platform: 3,
+        update: true,
+        getHeaders: () => this.headers,
+        mapResponse: (data) => {
+          const urls = data.results.chapter.contents.map((entry) => entry.url);
           return {
-            images: hdImagesUrls,
+            images: urls.map((url) =>
+              url.replace(/\.jpg\.h\d+x\.jpg$/, `.jpg.h${this.imageQuality}x.jpg`),
+            ),
           };
-        } catch (error) {
-          if (error !== "Retry") {
-            throw error;
-          }
-          attempt++;
-          if (attempt >= maxAttempts) {
-            throw error;
-          }
-        }
-      }
-    },
+        },
+      }),
 
-    onClickTag: (namespace, tag) => {
-      const resolveTagAction = createCopyLikeTagClickActionHandler({});
-      return resolveTagAction(namespace, tag);
-    },
+    onClickTag: createCopyLikeTagClickActionHandler({}),
   };
 
   settings = {
@@ -669,20 +488,4 @@ class HotManga extends ComicSource {
     },
   };
 
-  /**
-   * Check if the current app version is after the target version
-   * @param target {string} target version
-   * @returns {boolean} true if the current app version is after the target version
-   */
-  isAppVersionAfter(target) {
-    let current = APP.version;
-    let targetArr = target.split(".");
-    let currentArr = current.split(".");
-    for (let i = 0; i < 3; i++) {
-      if (parseInt(currentArr[i]) < parseInt(targetArr[i])) {
-        return false;
-      }
-    }
-    return true;
-  }
 }

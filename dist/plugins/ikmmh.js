@@ -61,12 +61,7 @@ class Ikm extends ComicSource {
                         if (o = await Network.get(`${Ikm.baseUrl}/update/${t}.html`, Ikm.webHeaders), 200 !== o.status) throw new Error(`分类请求失败，状态码：${o.status}`);
                         return needPassValidator(o.body) && (o = await Network.get(`${Ikm.baseUrl}/update/${t}.html`, Ikm.webHeaders)),
                         {
-                            comics: new HtmlDocument(o.body).querySelectorAll("li.comic-item").map(e => ({
-                                title: e.querySelector("p.title").text.split("~")[0],
-                                cover: e.querySelector("img").attributes.src,
-                                id: `${Ikm.baseUrl}${e.querySelector("a").attributes.href}`,
-                                subTitle: e.querySelector("span.chapter").text
-                            })),
+                            comics: parseIkmComicCards(new HtmlDocument(o.body)),
                             maxPage: 1
                         };
                     }
@@ -93,11 +88,11 @@ class Ikm extends ComicSource {
             onThumbnailLoad: Ikm.thumbConfig,
             optionList: [ {
                 options: [ "3-全部", "4-连载中", "1-已完结" ],
-                notShowWhen: [ "星期一", "星期二", "星期三", "星期四", "星期五", "星期六", "星期日" ],
+                notShowWhen: IKMMH_WEEKDAYS.slice(),
                 showWhen: null
             }, {
                 options: [ "9-全部", "1-日漫", "2-港台", "3-美漫", "4-国漫", "5-韩漫", "6-未分类" ],
-                notShowWhen: [ "星期一", "星期二", "星期三", "星期四", "星期五", "星期六", "星期日" ],
+                notShowWhen: IKMMH_WEEKDAYS.slice(),
                 showWhen: null
             } ]
         }, this.search = {
@@ -106,12 +101,7 @@ class Ikm extends ComicSource {
                     let t = await Network.get(`${Ikm.baseUrl}/search?searchkey=${encodeURIComponent(e)}`, Ikm.webHeaders);
                     return needPassValidator(t.body) && (t = await Network.get(`${Ikm.baseUrl}/search?searchkey=${encodeURIComponent(e)}`, Ikm.webHeaders)),
                     {
-                        comics: new HtmlDocument(t.body).querySelectorAll("li.comic-item").map(e => ({
-                            title: e.querySelector("p.title").text.split("~")[0],
-                            cover: e.querySelector("img").attributes.src,
-                            id: `${Ikm.baseUrl}${e.querySelector("a").attributes.href}`,
-                            subTitle: e.querySelector("span.chapter").text
-                        })),
+                        comics: parseIkmComicCards(new HtmlDocument(t.body)),
                         maxPage: 1
                     };
                 } catch (e) {
@@ -178,11 +168,11 @@ class Ikm extends ComicSource {
                     let t = e.name, r = `${Ikm.baseUrl}${e.url}`;
                     m.set(r, t);
                 });
-                let c = i.querySelector("div.book-hero__detail > div.title").text, d = c.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), u = (null == (t = i.querySelector("div.coverimg").attributes.style.match(/\((.*?)\)/)) ? void 0 : t[1]) || "", b = i.querySelector("article.book-container__detail").text.match(new RegExp(`漫画名：${d}(?:(?:[^。]*?(?:简介|漫画简介)\\s*[:：]?\\s*)|(?:[^。]*?))([\\s\\S]+?)\\.\\.\\.。`)), k = (null == b || null == (r = b[1]) ? void 0 : r.trim().replace(/\s+/g, " ")) || "";
+                let c = i.querySelector("div.book-hero__detail > div.title").text, d = c.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), u = (null == (t = i.querySelector("div.coverimg").attributes.style.match(/\((.*?)\)/)) ? void 0 : t[1]) || "", k = i.querySelector("article.book-container__detail").text.match(new RegExp(`漫画名：${d}(?:(?:[^。]*?(?:简介|漫画简介)\\s*[:：]?\\s*)|(?:[^。]*?))([\\s\\S]+?)\\.\\.\\.。`)), b = (null == k || null == (r = k[1]) ? void 0 : r.trim().replace(/\s+/g, " ")) || "";
                 return {
                     title: c.split("~")[0],
                     cover: u,
-                    description: k,
+                    description: b,
                     tags: {
                         作者: [ i.querySelector("div.book-container__author").text.split("作者：")[1] ],
                         更新: [ i.querySelector("div.update > a > em").text ],
@@ -251,11 +241,24 @@ Ikm.webHeaders = {
         ..._Ikm.webHeaders,
         referer: _Ikm.baseUrl
     }
+}), "undefined" != typeof module && module && module.exports && (module.exports = {
+    resolvePluginUpdateUrl
 });
 
 "use strict";
 
 var _Ikm;
+
+function parseIkmComicCards(e) {
+    return e.querySelectorAll("li.comic-item").map(e => ({
+        title: e.querySelector("p.title").text.split("~")[0],
+        cover: e.querySelector("img").attributes.src,
+        id: Ikm.baseUrl + e.querySelector("a").attributes.href,
+        subTitle: e.querySelector("span.chapter").text
+    }));
+}
+
+const IKMMH_WEEKDAYS = [ "星期一", "星期二", "星期三", "星期四", "星期五", "星期六", "星期日" ];
 
 function getValidatorCookie(e) {
     const t = e.match(/document\.cookie\s*=\s*"([^"]+)"/);

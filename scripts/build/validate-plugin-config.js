@@ -3,19 +3,7 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const { REPO_ROOT, loadPluginConfigs } = require("./lib");
-
-function readSourceMetadata(config) {
-  // Config is the single source of truth for plugin metadata.
-  // Plugin.config.json defines id, name, version, minAppVersion.
-  // JS source should not duplicate these values.
-  return {
-    key: config.id,
-    name: config.name,
-    version: config.version,
-    minAppVersion: config.minAppVersion,
-    url: undefined, // URL is set dynamically at runtime via resolvePluginUpdateUrl()
-  };
-}
+const { resolveSupportSpecifierPath } = require("./support-boundaries");
 
 function main() {
   const configs = loadPluginConfigs();
@@ -52,16 +40,14 @@ function main() {
       }
     }
 
-    const metadata = readSourceMetadata(config);
-    // Config is the single source of truth; no need to validate against JS
-    // (JS metadata has been removed to avoid duplication)
-
     if (config.runtimeShared) {
-      for (const sharedPath of config.runtimeShared) {
-        const fullPath = path.join(REPO_ROOT, sharedPath);
+      for (const supportPath of config.runtimeShared) {
+        const fullPath = resolveSupportSpecifierPath(supportPath, configPath, {
+          allowTesting: false,
+        });
         if (!fs.existsSync(fullPath)) {
           throw new Error(
-            `Missing runtimeShared helper ${sharedPath} referenced by ${path.relative(REPO_ROOT, configPath)}`,
+            `Missing runtimeShared helper ${supportPath} referenced by ${path.relative(REPO_ROOT, configPath)}`,
           );
         }
       }

@@ -5,7 +5,7 @@ const path = require("node:path");
 const {
   REPO_ROOT,
   BUILD_MANIFEST_PATH,
-  readJson,
+  PUBLIC_INDEX_PATH,
   writeJson,
   ensureDir,
   sha256Hex,
@@ -13,18 +13,10 @@ const {
 const { bundlePlugin } = require("./bundle-plugin");
 const { compatTransform } = require("./compat-transform");
 const { finalMinify } = require("./final-minify");
+const { buildManifest } = require("./write-build-manifest");
+const { indexFromManifest } = require("./write-public-index");
 
-const { spawnSync } = require("node:child_process");
-
-function runScript(scriptPath, args = []) {
-  const result = spawnSync(process.execPath, [scriptPath, ...args], {
-    cwd: REPO_ROOT,
-    stdio: "inherit",
-  });
-  if (result.status !== 0) {
-    throw new Error(`Script failed: ${scriptPath}`);
-  }
-}
+const { runNodeScript } = require("./run-node-script");
 
 function parseArgs(argv) {
   const args = {
@@ -43,10 +35,9 @@ function parseArgs(argv) {
 async function main() {
   const args = parseArgs(process.argv.slice(2));
 
-  runScript(path.join("scripts", "build", "validate-plugin-config.js"));
-  runScript(path.join("scripts", "build", "write-build-manifest.js"));
+  runNodeScript(path.join("scripts", "build", "validate-plugin-config.js"));
 
-  const manifest = readJson(BUILD_MANIFEST_PATH);
+  const manifest = buildManifest();
   const plugins = manifest.plugins.filter((plugin) => {
     if (!args.pluginId) return true;
     return plugin.id === args.pluginId;
@@ -72,8 +63,10 @@ async function main() {
   }
 
   manifest.generatedAt = new Date().toISOString();
+  manifest.publicIndex = indexFromManifest(manifest);
   writeJson(BUILD_MANIFEST_PATH, manifest);
-  runScript(path.join("scripts", "build", "write-public-index.js"));
+  writeJson(PUBLIC_INDEX_PATH, manifest.publicIndex);
+  console.log("Updated index.json");
 
   console.log(
     args.pluginId

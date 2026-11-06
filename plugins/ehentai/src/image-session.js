@@ -1,6 +1,7 @@
 class ImageLoadingSessionManager {
   constructor(source) {
     this.source = source;
+    this.pendingSessions = new Map();
   }
 
   async ensureSession(comicId) {
@@ -9,92 +10,174 @@ class ImageLoadingSessionManager {
       return cached;
     }
 
+    if (this.pendingSessions.has(comicId)) {
+      return this.pendingSessions.get(comicId);
+    }
+
+    const pending = this._createSession(comicId);
+    this.pendingSessions.set(comicId, pending);
+
+    try {
+      return await pending;
+    } finally {
+      this.pendingSessions.delete(comicId);
+    }
+  }
+
+  async _createSession(comicId) {
     const firstPage = await this.source.comic.loadThumbnails(comicId, null);
+
+    if (!firstPage.urls || firstPage.urls.length === 0) {
+      throw "Failed to load image session: no thumbnail page URLs";
+    }
+
     const key = await this.source.comic.getKey(firstPage.urls[0]);
+
     const session = {
       comicId,
       firstPage,
       key,
       attempts: new Map(),
     };
+
     this.source.imageSessionCache.set(comicId, session);
     return session;
   }
 
   async getPageUrl(session, page) {
+    if (page < 0) {
+      throw `Invalid page index: ${page}`;
+    }
+
     if (page < session.firstPage.urls.length) {
       return session.firstPage.urls[page];
     }
 
     const onePageLength = session.firstPage.thumbnails.length;
-    const shouldLoadPage = Math.floor(page / onePageLength);
+    if (!onePageLength) {
+      throw "Failed to resolve page URL: empty thumbnail page";
+    }
+
+    const thumbnailPage = Math.floor(page / onePageLength);
     const index = page % onePageLength;
+
     const thumbnails = await this.source.comic.loadThumbnails(
       session.comicId,
-      shouldLoadPage.toString(),
+      thumbnailPage.toString(),
     );
-    return thumbnails.urls[index];
+
+    const pageUrl = thumbnails.urls?.[index];
+    if (!pageUrl) {
+      throw `Failed to resolve page URL for page ${page}`;
+    }
+
+    return pageUrl;
   }
 
   async dispatchImage({ comicId, page, nl }) {
     const session = await this.ensureSession(comicId);
     const parsed = this.source.parseUrl(comicId);
+    const nlKey = nl || "initial";
 
     if (session.key.mpvkey) {
+      const imgKey = session.key.imageKeys?.[page];
+
+      if (!imgKey) {
+        throw `Failed to dispatch image: missing mpv image key for page ${page}`;
+      }
+
       const payload = buildImageDispatchPayload({
         galleryId: parsed.id,
-        imgKey: session.key.imageKeys[page],
+        imgKey,
         page: page + 1,
         mpvkey: session.key.mpvkey,
         nl,
       });
+
       const response = await this.source.requestClient.post(
         this.source.apiUrl,
-        { "Content-Type": "application/json" },
+        {},
         payload,
         {
           action: "Failed to dispatch image",
+          requestKey: `image:mpv:${comicId}:${page}:${imgKey}:${nlKey}`,
           mutation: true,
+          allowDedup: false,
           maxRetries: 0,
           classifyBody: false,
+          headerProfile: "json-api",
         },
       );
-      const json = JSON.parse(response.body);
-      return {
-        url: String(json.i),
-        nl: String(json.s),
-      };
+
+      const json = this.source.parseJsonResponse(
+        "Failed to dispatch image",
+        response,
+      );
+      const url = String(json.i || "");
+      const nextNl = String(json.s || "");
+
+      if (!url) {
+        throw "Failed to dispatch image: response missing image URL";
+      }
+
+      return { url, nl: nextNl };
     }
 
     const pageUrl = await this.getPageUrl(session, page);
+    const imgKey = imageKeyFromPageUrl(pageUrl);
+
+    if (!imgKey) {
+      throw `Failed to dispatch image: missing showpage image key for page ${page}`;
+    }
+
     const payload = buildShowPagePayload({
       galleryId: parsed.id,
-      imgKey: imageKeyFromPageUrl(pageUrl),
+      imgKey,
       page: page + 1,
       showkey: session.key.showkey,
       nl,
     });
+
     const response = await this.source.requestClient.post(
       this.source.apiUrl,
-      { "Content-Type": "application/json" },
+      {},
       payload,
       {
         action: "Failed to dispatch image",
+        requestKey: `image:show:${comicId}:${page}:${imgKey}:${nlKey}`,
         mutation: true,
+        allowDedup: false,
         maxRetries: 0,
         classifyBody: false,
+        headerProfile: "json-api",
       },
     );
-    const json = JSON.parse(response.body);
-    const i6 = json.i6;
-    const match = RegExp("nl\\('(.+?)'\\)").exec(i6);
-    const nextNl = match ? match[1] : null;
-    let image = json.i3;
-    image = image.substring(image.indexOf('src="') + 5, image.indexOf('" style'));
-    return {
-      url: image,
-      nl: nextNl,
-    };
+
+    const json = this.source.parseJsonResponse(
+      "Failed to dispatch image",
+      response,
+    );
+    const nextNl = this._parseNl(json.i6);
+    const url = this._parseImageSrc(json.i3);
+
+    return { url, nl: nextNl };
+  }
+
+  _parseNl(value) {
+    const text = String(value || "");
+    const match = /nl\('([^']+)'\)/.exec(text);
+    return match ? match[1] : null;
+  }
+
+  _parseImageSrc(value) {
+    const text = String(value || "");
+    const match = /<img\b[^>]*\bsrc="([^"]+)"/i.exec(text);
+
+    if (!match || !match[1]) {
+      throw "Failed to parse image URL from dispatch response";
+    }
+
+    return match[1];
   }
 
   createRetry({ image, comicId, epId, nl, attempt }) {

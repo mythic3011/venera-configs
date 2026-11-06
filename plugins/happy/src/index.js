@@ -271,17 +271,19 @@ class Happy extends ComicSource {
   };
 
   // 通用评论加载功能
+  async _getCommentData(api) {
+    const res = await Network.get(api);
+    if (res.status !== 200) {
+      throw `评论接口请求失败: ${res.status}`;
+    }
+    return JSON.parse(res.body);
+  }
+
   loadCommentsCommon = async (comicId, epId, page, replyTo, from) => {
     if (replyTo) {
       // 加载楼中楼评论列表
       const api = `${this.baseUrl}/v2.0/apis/comment/subComments?root_id=${replyTo}&pn=${page}&ps=10`;
-      const res = await Network.get(api);
-
-      if (res.status !== 200) {
-        throw `评论接口请求失败: ${res.status}`;
-      }
-
-      const data = JSON.parse(res.body);
+      const data = await this._getCommentData(api);
       return {
         comments: data.data.items.map(this.parseComment),
         maxPage: data.data.is_end ? page : null,
@@ -291,13 +293,7 @@ class Happy extends ComicSource {
       const order = this.loadSetting("commentOrder");
       const ch_id = epId ? `&ch_id=${epId}` : "";
       const api = `${this.baseUrl}/v2.0/apis/comment?code=${comicId}${ch_id}&pn=${page}&order=${order}&from=${from}`;
-      const res = await Network.get(api);
-
-      if (res.status !== 200) {
-        throw `评论接口请求失败: ${res.status}`;
-      }
-
-      const data = JSON.parse(res.body);
+      const data = await this._getCommentData(api);
       return {
         comments: data.data.items.map(this.parseComment),
         maxPage: data.data.isEnd ? page : null,

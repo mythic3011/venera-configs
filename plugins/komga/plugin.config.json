@@ -12,11 +12,9 @@
     ]
   },
   "runtimeShared": [
-    "shared/families/self_hosted_library/index.js",
-    "shared/url/self_hosted_url.js",
-    "shared/http/self_hosted_json.js",
-    "shared/features/self_hosted/reference_cache.js",
-    "shared/features/self_hosted/category_parts.js"
+    "support/http/index.js",
+    "support/security/index.js",
+    "support/plugin/index.js"
   ],
   "pipeline": {
     "mode": "standard"

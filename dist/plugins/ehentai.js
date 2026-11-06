@@ -28,332 +28,120 @@ class Ehentai extends ComicSource {
         this._imageSessions;
     }
     getErrorMessage(e) {
-        return null == e ? "Unknown error" : "string" == typeof e ? e : e instanceof Error && e.message || "string" == typeof e.message && e.message.length > 0 ? e.message : String(e);
+        return ehentaiGetErrorMessage(e);
     }
     isRedirectError(e) {
-        return this.getErrorMessage(e).toLowerCase().includes("redirect");
+        return ehentaiIsRedirectError(e);
     }
     isAbuseResponseBody(e) {
-        let t = String(e && e.body || e || "");
-        return !this.hasNonWhitespace(t) || this._abuseResponsePattern.test(t);
+        return ehentaiIsAbuseResponseBody(this, e);
     }
     hasNonWhitespace(e) {
-        for (let t = 0; t < e.length; t++) {
-            let r = e.charCodeAt(t);
-            if (32 !== r && 9 !== r && 10 !== r && 13 !== r) return !0;
-        }
-        return !1;
+        return hasNonWhitespaceText(e);
     }
     firstNonWhitespaceChar(e) {
-        for (let t = 0; t < e.length; t++) {
-            let r = e.charCodeAt(t);
-            if (32 !== r && 9 !== r && 10 !== r && 13 !== r) return e[t];
-        }
-        return "";
+        return ehentaiFirstNonWhitespaceChar(e);
     }
     formatRequestError(e, t) {
-        let r = this.getErrorMessage(t);
-        return this.isRedirectError(r) ? `${e} failed: request was redirected by the server` : r.toLowerCase().includes("timeout") || r.toLowerCase().includes("network") || r.toLowerCase().includes("socket") ? `${e} failed: network error (${r})` : `${e} failed: ${r}`;
+        return ehentaiFormatRequestError(e, t);
     }
     formatResponseError(e, t) {
-        var r;
-        let i = null == t ? void 0 : t.status, a = String(null != (r = null == t ? void 0 : t.body) ? r : "").trim();
-        return 403 === i || 429 === i ? `${e} failed: server returned ${i}` : 0 === a.length ? `${e} failed: empty response from server` : this.isAbuseResponseBody(a) ? `${e} failed: access was denied by the server` : `${e} failed: invalid status code ${i}`;
+        return ehentaiFormatResponseError(this, e, t);
     }
     requireStatus(e, t, r = 200) {
-        if (!t || t.status !== r) throw this.formatResponseError(e, t || {});
+        return ehentaiRequireStatus(this, e, t, r);
     }
     requireNonEmptyBody(e, t) {
-        const r = String(t && t.body || "");
-        if (!this.hasNonWhitespace(r)) throw this.formatResponseError(e, t || {});
-        return r;
+        return ehentaiRequireNonEmptyBody(this, e, t);
     }
     requireHtmlBody(e, t) {
-        const r = this.requireNonEmptyBody(e, t);
-        if ("<" !== this.firstNonWhitespaceChar(r)) throw `${e} failed: invalid HTML response`;
-        return r;
+        return ehentaiRequireHtmlBody(this, e, t);
     }
     parseJsonResponse(e, t) {
-        this.requireNonEmptyBody(e, t);
-        try {
-            return JSON.parse(t.body);
-        } catch (t) {
-            throw `${e} failed: invalid JSON response`;
-        }
+        return ehentaiParseJsonResponse(this, e, t);
     }
     async withDocument(e, t) {
-        const r = new HtmlDocument(e);
-        try {
-            return await t(r);
-        } finally {
-            r.dispose();
-        }
+        return ehentaiWithDocument(e, t);
     }
-    buildRequestHeaders(e, t, r, i) {
-        const a = {
-            ...r || {}
-        };
-        return "json-api" === i.headerProfile && (a["Content-Type"] || (a["Content-Type"] = "application/json")),
-        "form-urlencoded" === i.headerProfile && (a["Content-Type"] || (a["Content-Type"] = "application/x-www-form-urlencoded")),
-        "gallery-view" === i.headerProfile && (a.cookie || (a.cookie = "nw=1")), "thumbnail" === i.headerProfile && (a.referer || (a.referer = this.baseUrl)),
-        "forums-browser" === i.headerProfile && (a.accept || (a.accept = "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"),
-        a["accept-encoding"] || (a["accept-encoding"] = "gzip, deflate, br"), a["accept-language"] || (a["accept-language"] = "zh-CN,zh;q=0.9,en-US;q=0.8,en;q=0.7")),
-        i.refererUrl && !a.referer && (a.referer = i.refererUrl), "dart-io" !== i.networkClient || a.http_client || (a.http_client = "dart:io"),
-        a;
+    buildRequestHeaders(e, t, r, n) {
+        return ehentaiBuildRequestHeaders(this, e, t, r, n);
     }
     async checkEHEvent() {
-        if (this.isLogged && this.loadSetting("ehevent")) try {
-            const e = this.loadData("lastEventTime"), t = (new Date).toISOString().split("T")[0];
-            if (e == t) return;
-            const r = await this.requestClient.get(buildEhNewsUrl(), {}, {
-                action: "Failed to load event news",
-                requestKey: "event-news"
-            });
-            if (200 !== r.status || this.isAbuseResponseBody(r.body)) return;
-            this.saveData("lastEventTime", t), await this.withDocument(r.body, async e => {
-                const t = e.getElementById("eventpane");
-                if (null == t) return;
-                const r = t.querySelector("div > p:nth-child(2)");
-                null != r && UI.showMessage(r.text);
-            });
-        } catch (e) {}
+        return ehentaiCheckEvent(this);
     }
     get baseUrl() {
-        const e = this.loadSetting("domain");
-        return e === this._cachedDomain && this._cachedBaseUrl || (this._cachedDomain = e,
-        this._cachedBaseUrl = buildBaseUrl(e), this._cachedApiUrl = buildApiUrl(this._cachedBaseUrl)),
-        this._cachedBaseUrl;
+        return ehentaiResolveBaseUrl(this);
     }
     get apiUrl() {
-        return this._cachedApiUrl || (this._cachedApiUrl = buildApiUrl(this.baseUrl)), this._cachedApiUrl;
+        return ehentaiResolveApiUrl(this);
     }
     get accountFieldNames() {
         return this._accountFieldNames;
     }
     normalizeAccountValues(e) {
-        let t = [];
-        for (let r = 0; r < this.accountFieldNames.length; r++) t.push(String(e && e[r] || ""));
-        return t;
+        return ehentaiNormalizeAccountValues(this, e);
     }
     createAccountCookies(e) {
-        let t = this.normalizeAccountValues(e), r = [];
-        for (let e = 0; e < this.accountFieldNames.length; e++) {
-            let i = this.accountFieldNames[e], a = t[e];
-            r.push(new Cookie({
-                name: i,
-                value: a,
-                domain: ".e-hentai.org"
-            })), r.push(new Cookie({
-                name: i,
-                value: a,
-                domain: ".exhentai.org"
-            }));
-        }
-        return r;
+        return ehentaiCreateAccountCookies(this, e);
     }
     applyCookiesFromValues(e) {
-        let t = this.createAccountCookies(e);
-        Network.deleteCookies(buildEhCookieUrl()), Network.deleteCookies(buildExCookieUrl()),
-        Network.setCookies(buildEhCookieUrl(), t), Network.setCookies(buildExCookieUrl(), t);
+        return ehentaiApplyCookiesFromValues(this, e);
     }
     clearRuntimeCaches() {
-        this.responseCache.clear(), this.thumbnailCache.clear(), this.keyCache.clear(),
-        this.galleryInfoCache.clear(), this.imageSessionCache.clear(), this.apikey = null,
-        this.uid = null;
+        return ehentaiClearRuntimeCaches(this);
     }
     clearSessionCookies() {
-        Network.deleteCookies(buildEhCookieUrl()), Network.deleteCookies(buildForumsCookieUrl()),
-        Network.deleteCookies(buildExCookieUrl());
+        return ehentaiClearSessionCookies();
     }
     loadAccountStore() {
-        if (this._accountStoreCache) return this._accountStoreCache;
-        let e = this.loadData("accountStore"), t = null;
-        if (!e) return this._accountStoreCache = {
-            version: 1,
-            activeProfileId: null,
-            profiles: []
-        }, this._accountStoreCache;
-        if ("string" == typeof e) try {
-            t = JSON.parse(e);
-        } catch (e) {
-            t = null;
-        } else "object" == typeof e && (t = e);
-        if (!t || !Array.isArray(t.profiles)) return this._accountStoreCache = {
-            version: 1,
-            activeProfileId: null,
-            profiles: []
-        }, this._accountStoreCache;
-        let r = t.profiles.map((e, t) => {
-            let r = this.normalizeAccountValues(e && e.values);
-            return {
-                id: String(e && e.id || `${Date.now()}_${t}`),
-                name: e && e.name ? String(e.name) : "",
-                values: r,
-                createdAt: String(e && e.createdAt || (new Date).toISOString()),
-                lastUsedAt: String(e && e.lastUsedAt || (new Date).toISOString())
-            };
-        }).filter(e => e.values[0] && e.values[1]), i = t.activeProfileId && r.some(e => e.id === t.activeProfileId) ? String(t.activeProfileId) : null;
-        return this._accountStoreCache = {
-            version: 1,
-            activeProfileId: i,
-            profiles: r
-        }, this._accountStoreCache;
+        return ehentaiLoadAccountStore(this);
     }
     saveAccountStore(e) {
-        let t = {
-            version: 1,
-            activeProfileId: e.activeProfileId || null,
-            profiles: e.profiles || []
-        };
-        this._accountStoreCache = t, this.saveData("accountStore", JSON.stringify(t));
+        return ehentaiSaveAccountStore(this, e);
     }
     getAccountDisplayName(e, t) {
-        let r = e && e.name ? e.name : `${this.translate("account")} ${t + 1}`, i = e && e.values ? e.values[0] : "";
-        return i ? `${r} (${i})` : r;
+        return ehentaiGetAccountDisplayName(this, e, t);
     }
     upsertAccountProfile(e, t) {
-        let r = this.normalizeAccountValues(e);
-        if (!r[0] || !r[1]) return null;
-        let i = this.loadAccountStore(), a = (new Date).toISOString(), l = i.profiles.find(e => e.values[0] === r[0] && e.values[1] === r[1]);
-        if (l) return l.values = r, t && (l.name = t), l.lastUsedAt = a, i.activeProfileId = l.id,
-        this.saveAccountStore(i), l.id;
-        let n = `${Date.now()}_${Math.floor(1e5 * Math.random())}`;
-        return i.profiles.push({
-            id: n,
-            name: t || "",
-            values: r,
-            createdAt: a,
-            lastUsedAt: a
-        }), i.activeProfileId = n, this.saveAccountStore(i), n;
+        return ehentaiUpsertAccountProfile(this, e, t);
     }
     async captureAccountFromCookieJar(e) {
-        let t = await this.collectAccountValuesFromCookieDomains();
-        return this.upsertAccountProfile(t, e || "");
+        return ehentaiCaptureAccountFromCookieJar(this, e);
     }
     async collectAccountValuesFromCookieDomains() {
-        let e = [ buildForumsCookieUrl(), buildEhCookieUrl(), buildExCookieUrl() ], t = new Map;
-        for (let r of e) {
-            let e = [];
-            try {
-                e = await Network.getCookies(r);
-            } catch (t) {
-                e = [];
-            }
-            for (let r of e) {
-                if (!r || !r.name) continue;
-                let e = String(r.name), i = String(r.value || "");
-                0 !== i.length && (t.has(e) || t.set(e, i));
-            }
-        }
-        let r = [];
-        for (let e of this.accountFieldNames) r.push(t.get(e) || "");
-        return r;
+        return ehentaiCollectAccountValuesFromCookieDomains(this);
     }
     async activateAccountProfile(e) {
-        let t = this.loadAccountStore(), r = t.profiles.find(t => t.id === e);
-        if (!r) throw "Account profile not found";
-        return this.applyCookiesFromValues(r.values), this.clearRuntimeCaches(), r.lastUsedAt = (new Date).toISOString(),
-        t.activeProfileId = r.id, this.saveAccountStore(t), r;
+        return ehentaiActivateAccountProfile(this, e);
     }
     logoutAccountSession() {
-        this.clearSessionCookies(), this.clearRuntimeCaches();
-        let e = this.loadAccountStore();
-        e.activeProfileId = null, this.saveAccountStore(e);
+        return ehentaiLogoutAccountSession(this);
     }
     getStarsFromPosition(e) {
-        let t = 0;
-        for (;";" !== e[t] && (t++, t !== e.length); ) ;
-        switch (e.substring(0, t)) {
-          case "background-position:0px -1px":
-            return 5;
-
-          case "background-position:0px -21px":
-            return 4.5;
-
-          case "background-position:-16px -1px":
-            return 4;
-
-          case "background-position:-16px -21px":
-            return 3.5;
-
-          case "background-position:-32px -1px":
-            return 3;
-
-          case "background-position:-32px -21px":
-            return 2.5;
-
-          case "background-position:-48px -1px":
-            return 2;
-
-          case "background-position:-48px -21px":
-            return 1.5;
-
-          case "background-position:-64px -1px":
-            return 1;
-
-          case "background-position:-64px -21px":
-            return .5;
-        }
-        return .5;
+        return ehentaiParseStarsFromPosition(e);
     }
     async onLoadFailed(e = null) {
-        let t;
-        try {
-            t = await Network.getCookies(buildEhCookieUrl());
-        } catch (e) {
-            throw this.formatRequestError("Failed to recover session cookies", e);
-        }
-        throw t.forEach(e => {
-            e.domain = ".exhentai.org";
-        }), t = t.filter(e => "igneous" !== e.name), Network.deleteCookies(buildExCookieUrl()),
-        Network.setCookies(buildExCookieUrl(), t), `You may not have permission to access this page${e ? ` (${e})` : ""}. Please check your network or try to login again.`;
+        return ehentaiOnLoadFailed(this, e);
     }
     async getGalleries(e, t) {
-        try {
-            await this.checkEHEvent();
-        } catch (e) {}
-        let r;
-        try {
-            r = await this.requestClient.get(e, {}, {
-                action: "Failed to load gallery list",
-                requestKey: `galleries:${e}`
-            });
-        } catch (e) {
-            throw this.isRedirectError(e) && await this.onLoadFailed("request was redirected"),
-            this.formatRequestError("Failed to load gallery list", e);
-        }
-        if (200 !== r.status) throw this.formatResponseError("Failed to load gallery list", r);
-        if (0 === r.body.trim().length && await this.onLoadFailed("empty response from gallery list"),
-        "<" !== r.body[0]) {
-            if (this.isAbuseResponseBody(r.body)) throw "Your IP address has been banned";
-            throw "Failed to load gallery list";
-        }
-        let i = new HtmlDocument(r.body);
-        try {
-            return parseGalleryList({
-                document: i,
-                source: this,
-                url: e,
-                isLeaderBoard: t
-            });
-        } finally {
-            i.dispose();
-        }
+        return ehentaiGetGalleries(this, e, t);
     }
 }
-
-const parsers = {}, features = {};
 
 function hasValue(e) {
     return null != e && "" !== e;
 }
 
+function buildEncodedPairs(e, t) {
+    return Object.entries(e).filter(([, e]) => t(e)).map(([e, t]) => `${encodeURIComponent(e)}=${encodeURIComponent(String(t))}`).join("&");
+}
+
 function buildQuery(e) {
-    return Object.entries(e).filter(([, e]) => hasValue(e)).map(([e, t]) => `${encodeURIComponent(e)}=${encodeURIComponent(String(t))}`).join("&");
+    return buildEncodedPairs(e, hasValue);
 }
 
 function buildFormBody(e) {
-    return Object.entries(e).filter(([, e]) => null != e).map(([e, t]) => `${encodeURIComponent(e)}=${encodeURIComponent(String(t))}`).join("&");
+    return buildEncodedPairs(e, e => null != e);
 }
 
 const URL_HOSTS = {
@@ -361,11 +149,6 @@ const URL_HOSTS = {
     EX: "exhentai.org",
     FORUMS: "forums.e-hentai.org",
     API_EH: "api.e-hentai.org"
-}, RELEASE_AUTHORITY_DEFAULTS = {
-    cdnOrigin: "https://cdn.jsdelivr.net",
-    providerPath: "gh",
-    repository: "mythic3011/venera-configs",
-    releaseRef: "main"
 };
 
 function buildBaseUrl(e) {
@@ -377,34 +160,9 @@ function buildPathUrl(e, t) {
     return r ? `${e}/${r}` : String(e);
 }
 
-function buildPathQueryUrl(e, t, r, i = !1) {
-    const a = buildPathUrl(e, t), l = buildQuery(r || {});
-    return l ? `${a}?${l}` : i ? `${a}?` : a;
-}
-
-function sanitizeAuthorityValue(e, t) {
-    return String(e || "").trim() || t;
-}
-
-function getReleaseAuthorityOverrides() {
-    if ("object" != typeof globalThis || null === globalThis) return {};
-    const e = globalThis.__VENERA_RELEASE_AUTHORITY__;
-    return e && "object" == typeof e ? e : {};
-}
-
-function buildReleaseAuthority() {
-    const e = getReleaseAuthorityOverrides();
-    return {
-        cdnOrigin: sanitizeAuthorityValue(e.cdnOrigin, RELEASE_AUTHORITY_DEFAULTS.cdnOrigin).replace(/\/+$/, ""),
-        providerPath: sanitizeAuthorityValue(e.providerPath, RELEASE_AUTHORITY_DEFAULTS.providerPath).replace(/^\/+|\/+$/g, ""),
-        repository: sanitizeAuthorityValue(e.repository, RELEASE_AUTHORITY_DEFAULTS.repository).replace(/^\/+|\/+$/g, ""),
-        releaseRef: sanitizeAuthorityValue(e.releaseRef, RELEASE_AUTHORITY_DEFAULTS.releaseRef)
-    };
-}
-
-function buildCdnSourceUrl(e) {
-    const t = buildReleaseAuthority(), r = `${t.providerPath}/${t.repository}@${t.releaseRef}`, i = buildPathUrl(t.cdnOrigin, r);
-    return buildPathUrl(i, e);
+function buildPathQueryUrl(e, t, r, n = !1) {
+    const i = buildPathUrl(e, t), a = buildQuery(r || {});
+    return a ? `${i}?${a}` : n ? `${i}?` : i;
 }
 
 function buildApiUrl(e) {
@@ -470,11 +228,11 @@ function buildFavoritesUrl(e, t) {
     }) : buildPathUrl(e, "favorites.php");
 }
 
-function buildSearchUrl(e, t, r, i) {
+function buildSearchUrl(e, t, r, n) {
     return buildPathQueryUrl(e, "", {
         f_search: t,
         f_cats: r ? String(r) : null,
-        f_srdd: i || null
+        f_srdd: n || null
     });
 }
 
@@ -529,48 +287,381 @@ function imageKeyFromPageUrl(e) {
     return String(e || "").split("/")[4] || "";
 }
 
-function buildRateGalleryPayload({galleryId: e, token: t, rating: r, apikey: i, apiuid: a}) {
+function ehentaiGetErrorMessage(e) {
+    return null == e ? "Unknown error" : "string" == typeof e ? e : e instanceof Error && e.message || "object" == typeof e && null !== e && "string" == typeof e.message && e.message.length > 0 ? e.message : String(e);
+}
+
+function ehentaiIsRedirectError(e) {
+    return ehentaiGetErrorMessage(e).toLowerCase().includes("redirect");
+}
+
+function ehentaiIsAbuseResponseBody(e, t) {
+    let r = String(t && t.body || t || "");
+    return !hasNonWhitespaceText(r) || e._abuseResponsePattern.test(r);
+}
+
+function ehentaiFirstNonWhitespaceChar(e) {
+    let t = String(e || "");
+    for (let e = 0; e < t.length; e++) {
+        let r = t.charCodeAt(e);
+        if (32 !== r && 9 !== r && 10 !== r && 13 !== r) return t[e];
+    }
+    return "";
+}
+
+function ehentaiFormatRequestError(e, t) {
+    let r = ehentaiGetErrorMessage(t), n = r.toLowerCase();
+    return n.includes("redirect") ? `${e} failed: request was redirected by the server` : n.includes("timeout") || n.includes("network") || n.includes("socket") ? `${e} failed: network error (${r})` : `${e} failed: ${r}`;
+}
+
+function ehentaiFormatResponseError(e, t, r) {
+    let n = r ? r.status : null, i = String(r && r.body ? r.body : "").trim();
+    return 403 === n || 429 === n ? `${t} failed: server returned ${n}` : 0 === i.length ? `${t} failed: empty response from server` : e.isAbuseResponseBody(i) ? `${t} failed: access was denied by the server` : `${t} failed: invalid status code ${n}`;
+}
+
+function ehentaiRequireStatus(e, t, r, n) {
+    let i = null == n ? 200 : n;
+    if (!r || r.status !== i) throw e.formatResponseError(t, r || {});
+}
+
+function ehentaiRequireNonEmptyBody(e, t, r) {
+    const n = String(r && r.body || "");
+    if (!hasNonWhitespaceText(n)) throw e.formatResponseError(t, r || {});
+    return n;
+}
+
+function ehentaiRequireHtmlBody(e, t, r) {
+    const n = ehentaiRequireNonEmptyBody(e, t, r);
+    if ("<" !== ehentaiFirstNonWhitespaceChar(n)) throw `${t} failed: invalid HTML response`;
+    return n;
+}
+
+function ehentaiParseJsonResponse(e, t, r) {
+    ehentaiRequireNonEmptyBody(e, t, r);
+    try {
+        return JSON.parse(r.body);
+    } catch (e) {
+        throw `${t} failed: invalid JSON response`;
+    }
+}
+
+async function ehentaiWithDocument(e, t) {
+    const r = new HtmlDocument(e);
+    try {
+        return await t(r);
+    } finally {
+        r.dispose();
+    }
+}
+
+function ehentaiBuildRequestHeaders(e, t, r, n, i) {
+    const a = i || {}, o = {
+        ...n || {}
+    };
+    return "json-api" !== a.headerProfile || o["Content-Type"] || (o["Content-Type"] = "application/json"),
+    "form-urlencoded" !== a.headerProfile || o["Content-Type"] || (o["Content-Type"] = "application/x-www-form-urlencoded"),
+    "gallery-view" !== a.headerProfile || o.cookie || (o.cookie = "nw=1"), "thumbnail" !== a.headerProfile || o.referer || (o.referer = e.baseUrl),
+    "forums-browser" === a.headerProfile && (o.accept || (o.accept = "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"),
+    o["accept-encoding"] || (o["accept-encoding"] = "gzip, deflate, br"), o["accept-language"] || (o["accept-language"] = "zh-CN,zh;q=0.9,en-US;q=0.8,en;q=0.7")),
+    a.refererUrl && !o.referer && (o.referer = a.refererUrl), "dart-io" !== a.networkClient || o.http_client || (o.http_client = "dart:io"),
+    o;
+}
+
+async function ehentaiCheckEvent(e) {
+    if (e.isLogged && e.loadSetting("ehevent")) try {
+        const t = e.loadData("lastEventTime"), r = (new Date).toISOString().split("T")[0];
+        if (t === r) return;
+        const n = await e.requestClient.get(buildEhNewsUrl(), {}, {
+            action: "Failed to load event news",
+            requestKey: "event-news"
+        });
+        if (200 !== n.status || e.isAbuseResponseBody(n.body)) return;
+        e.saveData("lastEventTime", r), await e.withDocument(n.body, async e => {
+            const t = e.getElementById("eventpane");
+            if (null == t) return;
+            const r = t.querySelector("div > p:nth-child(2)");
+            null != r && UI.showMessage(r.text);
+        });
+    } catch (e) {}
+}
+
+function ehentaiResolveBaseUrl(e) {
+    const t = e.loadSetting("domain");
+    return t === e._cachedDomain && e._cachedBaseUrl || (e._cachedDomain = t, e._cachedBaseUrl = buildBaseUrl(t),
+    e._cachedApiUrl = buildApiUrl(e._cachedBaseUrl)), e._cachedBaseUrl;
+}
+
+function ehentaiResolveApiUrl(e) {
+    return e._cachedApiUrl || (e._cachedApiUrl = buildApiUrl(e.baseUrl)), e._cachedApiUrl;
+}
+
+function ehentaiParseStarsFromPosition(e) {
+    let t = String(e || ""), r = 0;
+    for (;";" !== t[r] && (r++, r !== t.length); ) ;
+    switch (t.substring(0, r)) {
+      case "background-position:0px -1px":
+        return 5;
+
+      case "background-position:0px -21px":
+        return 4.5;
+
+      case "background-position:-16px -1px":
+        return 4;
+
+      case "background-position:-16px -21px":
+        return 3.5;
+
+      case "background-position:-32px -1px":
+        return 3;
+
+      case "background-position:-32px -21px":
+        return 2.5;
+
+      case "background-position:-48px -1px":
+        return 2;
+
+      case "background-position:-48px -21px":
+        return 1.5;
+
+      case "background-position:-64px -1px":
+        return 1;
+
+      default:
+        return .5;
+    }
+}
+
+async function ehentaiOnLoadFailed(e, t) {
+    let r;
+    try {
+        r = await Network.getCookies(buildEhCookieUrl());
+    } catch (t) {
+        throw e.formatRequestError("Failed to recover session cookies", t);
+    }
+    throw r.forEach(e => {
+        e.domain = ".exhentai.org";
+    }), r = r.filter(e => "igneous" !== e.name), Network.deleteCookies(buildExCookieUrl()),
+    Network.setCookies(buildExCookieUrl(), r), `You may not have permission to access this page${t ? ` (${t})` : ""}. Please check your network or try to login again.`;
+}
+
+async function ehentaiGetGalleries(e, t, r) {
+    try {
+        await e.checkEHEvent();
+    } catch (e) {}
+    let n;
+    try {
+        n = await e.requestClient.get(t, {}, {
+            action: "Failed to load gallery list",
+            requestKey: `galleries:${t}`
+        });
+    } catch (t) {
+        throw e.isRedirectError(t) && await e.onLoadFailed("request was redirected"), e.formatRequestError("Failed to load gallery list", t);
+    }
+    if (200 !== n.status) throw e.formatResponseError("Failed to load gallery list", n);
+    if (hasNonWhitespaceText(n.body) || await e.onLoadFailed("empty response from gallery list"),
+    "<" !== ehentaiFirstNonWhitespaceChar(n.body)) {
+        if (e.isAbuseResponseBody(n.body)) throw "Your IP address has been banned";
+        throw "Failed to load gallery list";
+    }
+    const i = new HtmlDocument(n.body);
+    try {
+        return parseGalleryList({
+            document: i,
+            source: e,
+            url: t,
+            isLeaderBoard: r
+        });
+    } finally {
+        i.dispose();
+    }
+}
+
+function ehentaiCreateEmptyAccountStore() {
+    return {
+        version: 1,
+        activeProfileId: null,
+        profiles: []
+    };
+}
+
+function ehentaiNormalizeAccountValues(e, t) {
+    let r = [];
+    for (let n = 0; n < e.accountFieldNames.length; n++) r.push(String(t && t[n] || ""));
+    return r;
+}
+
+function ehentaiCreateAccountCookies(e, t) {
+    let r = ehentaiNormalizeAccountValues(e, t), n = [];
+    for (let t = 0; t < e.accountFieldNames.length; t++) {
+        let i = e.accountFieldNames[t], a = r[t];
+        n.push(new Cookie({
+            name: i,
+            value: a,
+            domain: ".e-hentai.org"
+        })), n.push(new Cookie({
+            name: i,
+            value: a,
+            domain: ".exhentai.org"
+        }));
+    }
+    return n;
+}
+
+function ehentaiApplyCookiesFromValues(e, t) {
+    let r = e.createAccountCookies(t);
+    Network.deleteCookies(buildEhCookieUrl()), Network.deleteCookies(buildExCookieUrl()),
+    Network.setCookies(buildEhCookieUrl(), r), Network.setCookies(buildExCookieUrl(), r);
+}
+
+function ehentaiClearRuntimeCaches(e) {
+    e.responseCache.clear(), e.thumbnailCache.clear(), e.keyCache.clear(), e.galleryInfoCache.clear(),
+    e.imageSessionCache.clear(), e.apikey = null, e.uid = null;
+}
+
+function ehentaiClearSessionCookies() {
+    Network.deleteCookies(buildEhCookieUrl()), Network.deleteCookies(buildForumsCookieUrl()),
+    Network.deleteCookies(buildExCookieUrl());
+}
+
+function ehentaiLoadAccountStore(e) {
+    if (e._accountStoreCache) return e._accountStoreCache;
+    let t = e.loadData("accountStore");
+    if (!t) return e._accountStoreCache = ehentaiCreateEmptyAccountStore(), e._accountStoreCache;
+    let r = null;
+    if ("string" == typeof t) try {
+        r = JSON.parse(t);
+    } catch (e) {
+        r = null;
+    } else "object" == typeof t && (r = t);
+    if (!r || !Array.isArray(r.profiles)) return e._accountStoreCache = ehentaiCreateEmptyAccountStore(),
+    e._accountStoreCache;
+    let n = r.profiles.map((t, r) => {
+        let n = ehentaiNormalizeAccountValues(e, t && t.values);
+        return {
+            id: String(t && t.id || `${Date.now()}_${r}`),
+            name: t && t.name ? String(t.name) : "",
+            values: n,
+            createdAt: String(t && t.createdAt || (new Date).toISOString()),
+            lastUsedAt: String(t && t.lastUsedAt || (new Date).toISOString())
+        };
+    }).filter(e => e.values[0] && e.values[1]), i = r.activeProfileId && n.some(e => e.id === r.activeProfileId) ? String(r.activeProfileId) : null;
+    return e._accountStoreCache = {
+        version: 1,
+        activeProfileId: i,
+        profiles: n
+    }, e._accountStoreCache;
+}
+
+function ehentaiSaveAccountStore(e, t) {
+    let r = {
+        version: 1,
+        activeProfileId: t.activeProfileId || null,
+        profiles: t.profiles || []
+    };
+    e._accountStoreCache = r, e.saveData("accountStore", JSON.stringify(r));
+}
+
+function ehentaiGetAccountDisplayName(e, t, r) {
+    let n = t && t.name ? t.name : `${e.translate("account")} ${r + 1}`, i = t && t.values ? t.values[0] : "";
+    return i ? `${n} (${i})` : n;
+}
+
+function ehentaiUpsertAccountProfile(e, t, r) {
+    let n = ehentaiNormalizeAccountValues(e, t);
+    if (!n[0] || !n[1]) return null;
+    let i = e.loadAccountStore(), a = (new Date).toISOString(), o = i.profiles.find(e => e.values[0] === n[0] && e.values[1] === n[1]);
+    if (o) return o.values = n, r && (o.name = r), o.lastUsedAt = a, i.activeProfileId = o.id,
+    e.saveAccountStore(i), o.id;
+    let l = `${Date.now()}_${Math.floor(1e5 * Math.random())}`;
+    return i.profiles.push({
+        id: l,
+        name: r || "",
+        values: n,
+        createdAt: a,
+        lastUsedAt: a
+    }), i.activeProfileId = l, e.saveAccountStore(i), l;
+}
+
+async function ehentaiCaptureAccountFromCookieJar(e, t) {
+    let r = await e.collectAccountValuesFromCookieDomains();
+    return e.upsertAccountProfile(r, t || "");
+}
+
+async function ehentaiCollectAccountValuesFromCookieDomains(e) {
+    let t = [ buildForumsCookieUrl(), buildEhCookieUrl(), buildExCookieUrl() ], r = new Map;
+    for (let e of t) {
+        let t = [];
+        try {
+            t = await Network.getCookies(e);
+        } catch (e) {
+            t = [];
+        }
+        for (let e of t) {
+            if (!e || !e.name) continue;
+            let t = String(e.name), n = String(e.value || "");
+            0 !== n.length && (r.has(t) || r.set(t, n));
+        }
+    }
+    let n = [];
+    for (let t of e.accountFieldNames) n.push(r.get(t) || "");
+    return n;
+}
+
+async function ehentaiActivateAccountProfile(e, t) {
+    let r = e.loadAccountStore(), n = r.profiles.find(e => e.id === t);
+    if (!n) throw "Account profile not found";
+    return e.applyCookiesFromValues(n.values), e.clearRuntimeCaches(), n.lastUsedAt = (new Date).toISOString(),
+    r.activeProfileId = n.id, e.saveAccountStore(r), n;
+}
+
+function ehentaiLogoutAccountSession(e) {
+    e.clearSessionCookies(), e.clearRuntimeCaches();
+    let t = e.loadAccountStore();
+    t.activeProfileId = null, e.saveAccountStore(t);
+}
+
+function buildRateGalleryPayload({galleryId: e, token: t, rating: r, apikey: n, apiuid: i}) {
     return {
         gid: e,
         token: t,
         method: "rategallery",
         rating: r,
-        apikey: i,
-        apiuid: a
+        apikey: n,
+        apiuid: i
     };
 }
 
-function buildVoteCommentPayload({galleryId: e, token: t, commentId: r, isUp: i, apikey: a, apiuid: l}) {
+function buildVoteCommentPayload({galleryId: e, token: t, commentId: r, isUp: n, apikey: i, apiuid: a}) {
     return {
         gid: e,
         token: t,
         method: "votecomment",
         comment_id: r,
-        comment_vote: i ? 1 : -1,
-        apikey: a,
-        apiuid: l
+        comment_vote: n ? 1 : -1,
+        apikey: i,
+        apiuid: a
     };
 }
 
-function buildImageDispatchPayload({galleryId: e, imgKey: t, page: r, mpvkey: i, nl: a}) {
+function buildImageDispatchPayload({galleryId: e, imgKey: t, page: r, mpvkey: n, nl: i}) {
     return {
         gid: e,
         imgkey: t,
         method: "imagedispatch",
         page: r,
-        mpvkey: i,
-        nl: a
+        mpvkey: n,
+        nl: i
     };
 }
 
-function buildShowPagePayload({galleryId: e, imgKey: t, page: r, showkey: i, nl: a}) {
+function buildShowPagePayload({galleryId: e, imgKey: t, page: r, showkey: n, nl: i}) {
     return {
         gid: e,
         imgkey: t,
         method: "showpage",
         page: r,
-        showkey: i,
-        nl: a
+        showkey: n,
+        nl: i
     };
 }
 
@@ -628,245 +719,238 @@ function thumbnailCacheKey(e, t) {
     return `${e}::${null != t ? t : "0"}`;
 }
 
-function parseGalleryList({document: e, source: t, url: r, isLeaderBoard: i}) {
-    function a(e, t) {
-        return e && "string" == typeof e.text ? e.text : t;
-    }
-    function l(e, t, r) {
-        return e && e.attributes && void 0 !== e.attributes[t] ? e.attributes[t] : r;
-    }
-    function n(e, t) {
+function ehSafeText(e, t) {
+    return e && "string" == typeof e.text ? e.text : t;
+}
+
+function ehSafeAttr(e, t, r) {
+    return e && e.attributes && void 0 !== e.attributes[t] ? e.attributes[t] : r;
+}
+
+function parseGalleryList({document: e, source: t, url: r, isLeaderBoard: n}) {
+    function i(e, t) {
         let r = e ? e.match(/\d+/) : null;
         if (!r) return t;
-        let i = Number(r[0]);
-        return isNaN(i) ? t : i;
+        let n = Number(r[0]);
+        return isNaN(n) ? t : n;
     }
-    const o = i ? 1 : 0, s = [];
-    for (let i of e.querySelectorAll("table.itg.gltc > tbody > tr")) try {
-        let e = i.children.length > 1 + o ? i.children[1 + o] : null;
+    const a = n ? 1 : 0, o = [];
+    for (let n of e.querySelectorAll("table.itg.gltc > tbody > tr")) try {
+        let e = n.children.length > 1 + a ? n.children[1 + a] : null;
         if (!e) continue;
-        let u = e.children.length > 2 ? e.children[2] : null, c = a(u && u.children.length > 0 ? u.children[0] : null, ""), d = t.getStarsFromPosition(l(u && u.children.length > 1 ? u.children[1] : null, "style", "")), h = e;
-        h && h.children.length > 1 && (h = h.children[1]), h && h.children.length > 0 && (h = h.children[0]),
-        h && h.children.length > 0 && (h = h.children[0]);
-        let g = l(h, "src", "");
-        g && "d" === g[0] && (g = l(h, "data-src", g));
-        let p = i.children.length > 2 + o ? i.children[2 + o] : null, m = p && p.children.length > 0 ? p.children[0] : null, y = a(m && m.children.length > 0 ? m.children[0] : null, "Unknown"), f = l(m, "href", ""), b = "", v = 0;
+        let l = e.children.length > 2 ? e.children[2] : null, s = ehSafeText(l && l.children.length > 0 ? l.children[0] : null, ""), u = t.getStarsFromPosition(ehSafeAttr(l && l.children.length > 1 ? l.children[1] : null, "style", "")), c = e;
+        c && c.children.length > 1 && (c = c.children[1]), c && c.children.length > 0 && (c = c.children[0]),
+        c && c.children.length > 0 && (c = c.children[0]);
+        let d = ehSafeAttr(c, "src", "");
+        d && "d" === d[0] && (d = ehSafeAttr(c, "data-src", d));
+        let h = n.children.length > 2 + a ? n.children[2 + a] : null, p = h && h.children.length > 0 ? h.children[0] : null, g = ehSafeText(p && p.children.length > 0 ? p.children[0] : null, "Unknown"), f = ehSafeAttr(p, "href", ""), m = "", y = 0;
         try {
             if (r.includes("/favorites.php")) {
                 let t = e;
                 t.children.length > 1 && (t = t.children[1]), t.children.length > 1 && (t = t.children[1]),
-                t.children.length > 1 && (t = t.children[1]), v = n(a(t && t.children.length > 1 ? t.children[1] : null, ""), 0);
+                t.children.length > 1 && (t = t.children[1]), y = i(ehSafeText(t && t.children.length > 1 ? t.children[1] : null, ""), 0);
             } else {
-                let e = i.children.length > 3 + o ? i.children[3 + o] : null;
-                v = n(a(e && e.children.length > 1 ? e.children[1] : null, ""), 0);
+                let e = n.children.length > 3 + a ? n.children[3 + a] : null;
+                y = i(ehSafeText(e && e.children.length > 1 ? e.children[1] : null, ""), 0);
                 let t = null;
                 e && e.children.length > 0 && (t = e.children[0]), t && t.children.length > 0 && (t = t.children[0]),
-                b = a(t, "");
+                m = ehSafeText(t, "");
             }
         } catch (e) {}
-        let S = [], w = null, k = m && m.children.length > 1 ? m.children[1] : null;
-        for (let e of k ? k.children : []) {
-            let t = l(e, "title", "");
+        let S = [], b = null, w = p && p.children.length > 1 ? p.children[1] : null;
+        for (let e of w ? w.children : []) {
+            let t = ehSafeAttr(e, "title", "");
             if (t) {
                 if (t.startsWith("language:")) {
                     let e = t.split(":")[1].trim();
-                    w = "translated" === e ? w : e;
+                    b = "translated" === e ? b : e;
                     continue;
                 }
                 S.push(t);
             }
         }
-        s.push(new Comic({
+        o.push(new Comic({
             id: f,
-            title: y,
-            subTitle: b,
-            cover: g,
+            title: g,
+            subTitle: m,
+            cover: d,
             tags: S,
-            description: c,
-            stars: d,
-            maxPage: v,
-            language: w
+            description: s,
+            stars: u,
+            maxPage: y,
+            language: b
         }));
     } catch (e) {}
     for (let r of e.querySelectorAll("div.gl1t")) try {
-        let e = a(r.querySelector("a"), "Unknown"), i = r.querySelectorAll("div.gl5t > div > div"), o = i.find(e => !isNaN(Date.parse(e.text)));
-        o = a(o, "");
-        let u = l(r.querySelector("img"), "src", ""), c = t.getStarsFromPosition(l(r.querySelector("div.gl5t > div > div.ir"), "style", "")), d = l(r.querySelector("a"), "href", ""), h = n(a(i.find(e => e.text.includes("page")), ""), 0);
-        s.push(new Comic({
-            id: d,
+        let e = ehSafeText(r.querySelector("a"), "Unknown"), n = r.querySelectorAll("div.gl5t > div > div"), a = n.find(e => !isNaN(Date.parse(e.text)));
+        a = ehSafeText(a, "");
+        let l = ehSafeAttr(r.querySelector("img"), "src", ""), s = t.getStarsFromPosition(ehSafeAttr(r.querySelector("div.gl5t > div > div.ir"), "style", "")), u = ehSafeAttr(r.querySelector("a"), "href", ""), c = i(ehSafeText(n.find(e => e.text.includes("page")), ""), 0);
+        o.push(new Comic({
+            id: u,
             title: e,
-            cover: u,
-            description: o,
-            stars: c,
-            maxPage: h
+            cover: l,
+            description: a,
+            stars: s,
+            maxPage: c
         }));
     } catch (e) {}
     for (let r of e.querySelectorAll("table.itg.glte > tbody > tr")) try {
-        let e = a(r.querySelector("td.gl2e > div > a > div > div.glink"), "Unknown"), i = r.querySelectorAll("td.gl2e > div > div.gl3e > div"), o = a(i.find(e => !isNaN(Date.parse(e.text))), "Unknown"), u = a(r.querySelector("td.gl2e > div > div.gl3e > div > a"), "Unknown"), c = l(r.querySelector("td.gl1e > div > a > img"), "src", ""), d = t.getStarsFromPosition(l(r.querySelector("td.gl2e > div > div.gl3e > div.ir"), "style", "")), h = l(r.querySelector("td.gl1e > div > a"), "href", ""), g = r.querySelectorAll("div.gt, div.gtl").map(e => l(e, "title", ""));
-        g = g.filter(e => !!e);
-        let p = n(a(i.find(e => e.text.includes("page")), ""), 0), m = null, y = g.find(e => e.startsWith("language:") && !e.includes("translated"));
-        y && y.includes(":") && (m = y.split(":")[1].trim()), s.push(new Comic({
-            id: h,
+        let e = ehSafeText(r.querySelector("td.gl2e > div > a > div > div.glink"), "Unknown"), n = r.querySelectorAll("td.gl2e > div > div.gl3e > div"), a = ehSafeText(n.find(e => !isNaN(Date.parse(e.text))), "Unknown"), l = ehSafeText(r.querySelector("td.gl2e > div > div.gl3e > div > a"), "Unknown"), s = ehSafeAttr(r.querySelector("td.gl1e > div > a > img"), "src", ""), u = t.getStarsFromPosition(ehSafeAttr(r.querySelector("td.gl2e > div > div.gl3e > div.ir"), "style", "")), c = ehSafeAttr(r.querySelector("td.gl1e > div > a"), "href", ""), d = r.querySelectorAll("div.gt, div.gtl").map(e => ehSafeAttr(e, "title", ""));
+        d = d.filter(e => !!e);
+        let h = i(ehSafeText(n.find(e => e.text.includes("page")), ""), 0), p = null, g = d.find(e => e.startsWith("language:") && !e.includes("translated"));
+        g && g.includes(":") && (p = g.split(":")[1].trim()), o.push(new Comic({
+            id: c,
             title: e,
-            subTitle: u,
-            cover: c,
-            tags: g,
-            description: o,
-            stars: d,
-            maxPage: p,
-            language: m
+            subTitle: l,
+            cover: s,
+            tags: d,
+            description: a,
+            stars: u,
+            maxPage: h,
+            language: p
         }));
     } catch (e) {}
     for (let r of e.querySelectorAll("table.itg.gltm > tbody > tr")) try {
-        let e = a(r.querySelector("td.gl3m > a > div.glink"), "Unknown"), i = a(r.querySelectorAll("td.gl2m > div").find(e => !isNaN(Date.parse(e.text))), "Unknown"), n = a(r.querySelector("td.gl5m > div > a"), "Unknown"), o = r.querySelector("td.gl2m > div > div > img"), u = l(o, "src", "");
-        u && "d" === u[0] && (u = l(o, "data-src", u));
-        let c = t.getStarsFromPosition(l(r.querySelector("td.gl4m > div.ir"), "style", "")), d = l(r.querySelector("td.gl3m > a"), "href", "");
-        s.push(new Comic({
-            id: d,
+        let e = ehSafeText(r.querySelector("td.gl3m > a > div.glink"), "Unknown"), n = ehSafeText(r.querySelectorAll("td.gl2m > div").find(e => !isNaN(Date.parse(e.text))), "Unknown"), i = ehSafeText(r.querySelector("td.gl5m > div > a"), "Unknown"), a = r.querySelector("td.gl2m > div > div > img"), l = ehSafeAttr(a, "src", "");
+        l && "d" === l[0] && (l = ehSafeAttr(a, "data-src", l));
+        let s = t.getStarsFromPosition(ehSafeAttr(r.querySelector("td.gl4m > div.ir"), "style", "")), u = ehSafeAttr(r.querySelector("td.gl3m > a"), "href", "");
+        o.push(new Comic({
+            id: u,
             title: e,
-            subTitle: n,
-            cover: u,
-            description: i,
-            stars: c
+            subTitle: i,
+            cover: l,
+            description: n,
+            stars: s
         }));
     } catch (e) {}
     return {
-        comics: s,
-        next: l(e.querySelector("a#dnext"), "href", void 0)
+        comics: o,
+        next: ehSafeAttr(e.querySelector("a#dnext"), "href", void 0)
     };
 }
 
 function parseGalleryDetails(e) {
     function t(e, t) {
-        return e && "string" == typeof e.text ? e.text : t;
-    }
-    function r(e, t) {
         if (!e) return null;
         let r = t.exec(e);
         return r ? r[0] : null;
     }
-    let i = new Map;
-    for (let r of e.querySelectorAll("div#taglist > table > tbody > tr")) {
-        let e = r.children.length > 0 ? r.children[0] : null, a = r.children.length > 1 ? r.children[1] : null, l = t(e, "");
-        if (!l) continue;
-        let n = [], o = a ? a.children : [];
+    let r = new Map;
+    for (let t of e.querySelectorAll("div#taglist > table > tbody > tr")) {
+        let e = t.children.length > 0 ? t.children[0] : null, n = t.children.length > 1 ? t.children[1] : null, i = ehSafeText(e, "");
+        if (!i) continue;
+        let a = [], o = n ? n.children : [];
         for (let e of o) try {
             let t = e.children.length > 0 ? e.children[0] : null, r = t && t.attributes ? t.attributes.onclick : null;
             if (!r) continue;
-            let i = r.split(":");
-            if (i.length < 2) continue;
-            let a = i[1].split("'")[0];
-            a && n.push(a);
+            let n = r.split(":");
+            if (n.length < 2) continue;
+            let i = n[1].split("'")[0];
+            i && a.push(i);
         } catch (e) {}
-        i.set(l.substring(0, l.length - 1), n);
+        r.set(i.substring(0, i.length - 1), a);
     }
-    let a = "1";
-    for (let t of e.querySelectorAll("td.gdt2")) if (t.text.includes("page")) {
-        let e = r(t.text, /\d+/);
-        e && (a = e);
+    let n = "1";
+    for (let r of e.querySelectorAll("td.gdt2")) if (r.text.includes("page")) {
+        let e = t(r.text, /\d+/);
+        e && (n = e);
     }
-    let l = " Add to Favorites" !== t(e.querySelector("a#favoritelink"), ""), n = null;
-    if (l) {
+    let i = " Add to Favorites" !== ehSafeText(e.querySelector("a#favoritelink"), ""), a = null;
+    if (i) {
         let t = e.querySelector("div#fav"), r = null;
         if (t && t.children.length > 0 && t.children[0].attributes && (r = t.children[0].attributes.style),
         r && r.includes("background-position:0px -")) {
             let e = r.split("background-position:0px -");
             if (e.length > 1) {
                 let t = e[1].split("px;")[0], r = Number(t);
-                isNaN(r) || (n = ((r - 2) / 19).toString());
+                isNaN(r) || (a = ((r - 2) / 19).toString());
             }
         }
     }
-    let o = "", s = e.querySelector("div#gleft > div#gd1 > div"), u = s && s.attributes ? s.attributes.style : "", c = RegExp("https?://([-a-zA-Z0-9.]+(/\\S*)?\\.(?:jpg|jpeg|gif|png|webp))").exec(u || "");
-    c && (o = c[0]);
-    let d = e.getElementById("gdn"), h = d && d.children.length > 0 ? d.children[0].text : void 0, g = e.getElementById("rating_label"), p = g ? g.text : "", m = p ? p.split(":") : [], y = m.length > 1 ? m[1].trim() : "0", f = Number(y), b = t(e.querySelector("div.cs"), "Unknown");
-    i.set("Category", [ b ]), h && i.set("uploader", [ h ]);
-    let v, S = t(e.querySelector("div#gdd > table > tbody > tr > td.gdt2"), ""), w = e.querySelectorAll("script").find(e => e.text.includes("var token")), k = RegExp("var\\s+(\\w+)\\s*=\\s*(.*?);", "g"), U = new Map, C = w && w.text ? w.text : "";
-    for (;null !== (v = k.exec(C)); ) U.set(v[1], v[2]);
-    let q = t(e.querySelector("h1#gn"), "Unknown"), A = t(e.querySelector("h1#gj"), null);
+    let o = "", l = e.querySelector("div#gleft > div#gd1 > div"), s = l && l.attributes ? l.attributes.style : "", u = RegExp("https?://([-a-zA-Z0-9.]+(/\\S*)?\\.(?:jpg|jpeg|gif|png|webp))").exec(s || "");
+    u && (o = u[0]);
+    let c = e.getElementById("gdn"), d = c && c.children.length > 0 ? c.children[0].text : void 0, h = e.getElementById("rating_label"), p = h ? h.text : "", g = p ? p.split(":") : [], f = g.length > 1 ? g[1].trim() : "0", m = Number(f), y = ehSafeText(e.querySelector("div.cs"), "Unknown");
+    r.set("Category", [ y ]), d && r.set("uploader", [ d ]);
+    let S, b = ehSafeText(e.querySelector("div#gdd > table > tbody > tr > td.gdt2"), ""), w = e.querySelectorAll("script").find(e => e.text.includes("var token")), v = RegExp("var\\s+(\\w+)\\s*=\\s*(.*?);", "g"), C = new Map, k = w && w.text ? w.text : "";
+    for (;null !== (S = v.exec(k)); ) C.set(S[1], S[2]);
+    let q = ehSafeText(e.querySelector("h1#gn"), "Unknown"), A = ehSafeText(e.querySelector("h1#gj"), null);
     return null != A && "" === A.trim() && (A = null), {
         title: q,
         subtitle: A,
         coverPath: o,
-        tags: i,
-        stars: f,
-        maxPage: Number(a),
-        isFavorited: l,
-        folder: n,
-        time: S,
-        token: U.get("token"),
-        apikey: U.get("apikey"),
-        uid: U.get("apiuid")
+        tags: r,
+        stars: m,
+        maxPage: Number(n),
+        isFavorited: i,
+        folder: a,
+        time: b,
+        token: C.get("token"),
+        apikey: C.get("apikey"),
+        uid: C.get("apiuid")
     };
 }
 
 function parseThumbnailPage(e, t) {
-    function r(e, t, r) {
-        return e && e.attributes && void 0 !== e.attributes[t] ? e.attributes[t] : r;
-    }
-    const i = e => {
-        let t = r(e, "style", "");
+    const r = e => {
+        let t = ehSafeAttr(e, "style", "");
         if (!t) return "";
-        let i = 0, a = 0, l = t.match(/width:(\d+)px/), n = t.match(/height:(\d+)px/);
-        l && (i = Number(l[1])), n && (a = Number(n[1]));
+        let r = 0, n = 0, i = t.match(/width:(\d+)px/), a = t.match(/height:(\d+)px/);
+        i && (r = Number(i[1])), a && (n = Number(a[1]));
         let o = t.split("background:transparent url(");
         if (o.length < 2) return "";
-        let s = o[1], u = s.split(")")[0];
-        if (!u) return "";
-        let c = "";
-        if (s.includes("px")) {
-            let e = s.split(") -");
+        let l = o[1], s = l.split(")")[0];
+        if (!s) return "";
+        let u = "";
+        if (l.includes("px")) {
+            let e = l.split(") -");
             if (e.length > 1) {
                 let t = Number(e[1].split("px")[0]);
-                isNaN(t) || (c += `x=${t}-${t + i}`);
+                isNaN(t) || (u += `x=${t}-${t + r}`);
             }
         }
-        return a && (c += `${c ? "&" : ""}y=0-${a}`), c && (u += `@${c}`), u;
-    }, a = (t, r) => e.querySelectorAll(t).map(e => r(e)).filter(e => !!e);
-    let l = e.querySelectorAll("div.gdtm > div").map(e => i(e)).filter(e => !!e);
-    if (l.push(...a("div.gdtl > a > img", e => r(e, "src", ""))), 0 === l.length) {
+        return n && (u += `${u ? "&" : ""}y=0-${n}`), u && (s += `@${u}`), s;
+    }, n = (t, r) => e.querySelectorAll(t).map(e => r(e)).filter(e => !!e);
+    let i = e.querySelectorAll("div.gdtm > div").map(e => r(e)).filter(e => !!e);
+    if (i.push(...n("div.gdtl > a > img", e => ehSafeAttr(e, "src", ""))), 0 === i.length) {
         const e = [ "div.gt100 > a > div", "div.gt200 > a > div" ];
-        for (let t of e) l.push(...a(t, e => {
+        for (let t of e) i.push(...n(t, e => {
             let t = 0 === e.children.length ? e : e.children[0];
-            return i(t);
+            return r(t);
         }));
     }
-    let n = a("table.ptb > tbody > tr > td > a", e => r(e, "href", "")), o = 0;
-    for (let e of n) {
+    let a = n("table.ptb > tbody > tr > td > a", e => ehSafeAttr(e, "href", "")), o = 0;
+    for (let e of a) {
         let t = e.split("="), r = Number(t.length > 1 ? t[1] : "");
         !isNaN(r) && r > o && (o = r);
     }
-    let s = t ? Number(t) : 0;
-    s += 1;
-    let u = s > o ? null : s.toString();
+    let l = t ? Number(t) : 0;
+    l += 1;
+    let s = l > o ? null : l.toString();
     return {
-        thumbnails: l,
-        urls: a("div#gdt a", e => r(e, "href", "")),
-        next: u
+        thumbnails: i,
+        urls: n("div#gdt a", e => ehSafeAttr(e, "href", "")),
+        next: s
     };
 }
 
 function parseDispatchKey(e) {
-    function t(e) {
-        return e && "string" == typeof e.text ? e.text : "";
+    let t = e.querySelectorAll("script"), r = null, n = null;
+    for (let e of t) {
+        let t = ehSafeText(e, "");
+        if (!r && t.includes("showkey") && (r = e), !n && t.includes("mpvkey") && (n = e),
+        r && n) break;
     }
-    let r = e.querySelectorAll("script"), i = null, a = null;
-    for (let e of r) {
-        let r = t(e);
-        if (!i && r.includes("showkey") && (i = e), !a && r.includes("mpvkey") && (a = e),
-        i && a) break;
-    }
-    if (i) {
-        let e = RegExp('showkey="(.*?)"', "g").exec(t(i));
+    if (r) {
+        let e = RegExp('showkey="(.*?)"', "g").exec(ehSafeText(r, ""));
         if (e) return {
             showkey: e[1]
         };
     }
-    let l = t(a);
-    if (l) {
-        let e = "", t = [], r = l.split(";"), i = r.find(e => e.includes("mpvkey"));
-        if (i) {
-            let t = i.replace(/ /g, "").split("=");
+    let i = ehSafeText(n, "");
+    if (i) {
+        let e = "", t = [], r = i.split(";"), n = r.find(e => e.includes("mpvkey"));
+        if (n) {
+            let t = n.replace(/ /g, "").split("=");
             t.length > 1 && (e = t[1].replace(/"/g, ""));
         }
         let a = r.find(e => e.includes("imagelist"));
@@ -888,79 +972,70 @@ function parseDispatchKey(e) {
 }
 
 function parseComments(e) {
-    function t(e, t) {
-        return e && "string" == typeof e.text ? e.text : t;
-    }
-    function r(e, t) {
-        if (e && e.attributes) return e.attributes[t];
-    }
-    let i = [];
-    for (let a of e.querySelectorAll("div.c1")) {
-        let e = t(a.querySelector("div.c3 > a"), ""), l = a.querySelector("div.c3"), n = l && l.text ? l.text : null, o = n ? n.split("Posted on") : [], s = o.length > 1 ? o[1] : "", u = s ? s.split("by") : [], c = u.length > 0 ? u[0] : "", d = c && c.trim ? c.trim() : "unknown", h = "", g = a.querySelector("div.c6");
-        h = "undefined" != typeof appVersion ? g && "string" == typeof g.innerHTML ? g.innerHTML : "" : t(g, "");
-        let p = Number(t(a.querySelector("div.c5 > span"), ""));
-        isNaN(p) && (p = null);
-        let m = "0", y = r(a.previousElementSibling, "name"), f = y ? y.match(/\d+/) : null;
-        f && (m = f[0]);
-        let b = r(a.querySelector(`a#comment_vote_up_${m}`), "style"), v = r(a.querySelector(`a#comment_vote_down_${m}`), "style"), S = "string" == typeof b && b.length > 0, w = "string" == typeof v && v.length > 0;
-        i.push(new Comment({
-            id: m,
-            content: h,
-            time: d,
+    let t = [];
+    for (let r of e.querySelectorAll("div.c1")) {
+        let e = ehSafeText(r.querySelector("div.c3 > a"), ""), n = r.querySelector("div.c3"), i = n && n.text ? n.text : null, a = i ? i.split("Posted on") : [], o = a.length > 1 ? a[1] : "", l = o ? o.split("by") : [], s = l.length > 0 ? l[0] : "", u = s && s.trim ? s.trim() : "unknown", c = "", d = r.querySelector("div.c6");
+        c = "undefined" != typeof appVersion ? d && "string" == typeof d.innerHTML ? d.innerHTML : "" : ehSafeText(d, "");
+        let h = Number(ehSafeText(r.querySelector("div.c5 > span"), ""));
+        isNaN(h) && (h = null);
+        let p = "0", g = ehSafeAttr(r.previousElementSibling, "name"), f = g ? g.match(/\d+/) : null;
+        f && (p = f[0]);
+        let m = ehSafeAttr(r.querySelector(`a#comment_vote_up_${p}`), "style"), y = ehSafeAttr(r.querySelector(`a#comment_vote_down_${p}`), "style"), S = "string" == typeof m && m.length > 0, b = "string" == typeof y && y.length > 0;
+        t.push(new Comment({
+            id: p,
+            content: c,
+            time: u,
             userName: e,
-            score: p,
-            voteStatus: S ? 1 : w ? -1 : 0
+            score: h,
+            voteStatus: S ? 1 : b ? -1 : 0
         }));
     }
     return {
-        comments: i,
+        comments: t,
         maxPage: 1
     };
 }
 
 function parseArchiveOptions(e, t) {
-    function r(e, t) {
-        return e && "string" == typeof e.text ? e.text : t;
-    }
-    let i = e.querySelector("div#db"), a = t.includes("exhentai") ? 1 : 3, l = [], n = e.querySelector("table");
-    if (n) {
-        let e = n.querySelectorAll("td");
+    let r = e.querySelector("div#db"), n = t.includes("exhentai") ? 1 : 3, i = [], a = e.querySelector("table");
+    if (a) {
+        let e = a.querySelectorAll("td");
         for (let t of e) {
             let e = t.querySelector("a");
             if (e) {
-                let i = e.attributes ? e.attributes.onclick : null, a = i ? i.match(/do_hathdl\('([^']+)'\)/) : null;
-                if (a) {
-                    let i = a[1], n = r(e, "Unknown"), o = t.querySelectorAll("p"), s = o.length > 1 ? r(o[1], "Unknown") : "Unknown", u = o.length > 2 ? r(o[2], "Unknown") : "Unknown";
-                    l.push({
-                        id: `h@h_${i}`,
-                        title: `H@H ${n}`,
-                        description: `Size: ${s}, Cost: ${u}`
+                let r = e.attributes ? e.attributes.onclick : null, n = r ? r.match(/do_hathdl\('([^']+)'\)/) : null;
+                if (n) {
+                    let r = n[1], a = ehSafeText(e, "Unknown"), o = t.querySelectorAll("p"), l = o.length > 1 ? ehSafeText(o[1], "Unknown") : "Unknown", s = o.length > 2 ? ehSafeText(o[2], "Unknown") : "Unknown";
+                    i.push({
+                        id: `h@h_${r}`,
+                        title: `H@H ${a}`,
+                        description: `Size: ${l}, Cost: ${s}`
                     });
                 }
             }
         }
     }
     let o = null;
-    if (i && i.children.length > a && i.children[a].children.length > 0 && (o = i.children[a].children[0]),
+    if (r && r.children.length > n && r.children[n].children.length > 0 && (o = r.children[n].children[0]),
     o) {
-        let e = r(o.querySelector("div > strong"), "Unknown"), t = r(o.querySelector("p > strong"), "Unknown");
-        l.push({
+        let e = ehSafeText(o.querySelector("div > strong"), "Unknown"), t = ehSafeText(o.querySelector("p > strong"), "Unknown");
+        i.push({
             id: "0",
             title: "Original",
             description: `Cost: ${e}, Size: ${t}`
         });
     }
-    let s = null;
-    if (i && i.children.length > a && i.children[a].children.length > 1 && (s = i.children[a].children[1]),
-    s) {
-        let e = r(s.querySelector("div > strong"), "Unknown"), t = r(s.querySelector("p > strong"), "Unknown");
-        l.push({
+    let l = null;
+    if (r && r.children.length > n && r.children[n].children.length > 1 && (l = r.children[n].children[1]),
+    l) {
+        let e = ehSafeText(l.querySelector("div > strong"), "Unknown"), t = ehSafeText(l.querySelector("p > strong"), "Unknown");
+        i.push({
             id: "1",
             title: "Resample",
             description: `Cost: ${e}, Size: ${t}`
         });
     }
-    return l;
+    return i;
 }
 
 function parseArchiveError(e) {
@@ -983,19 +1058,19 @@ function createExploreFeature(e, t) {
 
 function createSearchFeature(e) {
     return {
-        loadNext: async (t, r, i) => {
-            let a = [];
+        loadNext: async (t, r, n) => {
+            let i = [];
             try {
-                a = JSON.parse(r[0]);
+                i = JSON.parse(r[0]);
             } catch (e) {
                 throw "Failed to parse search options";
             }
-            let l = r[1], n = r[2], o = 1023;
-            Array.isArray(a) || (a = [ a ]);
-            for (let e of a) o -= 1 << Number(e);
-            n && !t.includes("language:") && (t += ` language:${n}`);
-            let s = buildSearchUrl(e.baseUrl, t, o, l);
-            return e.getGalleries(null != i ? i : s, !1);
+            let a = r[1], o = r[2], l = 1023;
+            Array.isArray(i) || (i = [ i ]);
+            for (let e of i) l -= 1 << Number(e);
+            o && !t.includes("language:") && (t += ` language:${o}`);
+            let s = buildSearchUrl(e.baseUrl, t, l, a);
+            return e.getGalleries(null != n ? n : s, !1);
         },
         optionList: [ {
             type: "multi-select",
@@ -1019,18 +1094,18 @@ function createFavoritesFeature(e) {
     return {
         multiFolder: !0,
         singleFolderForSingleComic: !0,
-        addOrDelFavorite: async (t, r, i, a) => {
-            let l = e.parseUrl(t), n = l.id, o = l.token;
-            const s = buildGalleryPopupUrl(e.baseUrl, n, o);
-            if (i) {
-                let i = await e.requestClient.post(s, {}, buildAddFavoriteForm(r), {
+        addOrDelFavorite: async (t, r, n, i) => {
+            let a = e.parseUrl(t), o = a.id, l = a.token;
+            const s = buildGalleryPopupUrl(e.baseUrl, o, l);
+            if (n) {
+                let n = await e.requestClient.post(s, {}, buildAddFavoriteForm(r), {
                     action: "Failed to add favorite",
                     requestKey: `favorite:add:${t}:${r}`,
                     mutation: !0,
                     maxRetries: 0,
                     headerProfile: "form-urlencoded"
                 });
-                return e.requireStatus("Failed to add favorite", i), e.requireHtmlBody("Failed to add favorite", i),
+                return e.requireStatus("Failed to add favorite", n), e.requireHtmlBody("Failed to add favorite", n),
                 "ok";
             }
             {
@@ -1054,30 +1129,30 @@ function createFavoritesFeature(e) {
                 requestKey: "favorites:folders"
             });
             e.requireStatus("Failed to load favorite folders", r), e.requireHtmlBody("Failed to load favorite folders", r);
-            let i = await e.withDocument(r.body, async e => {
+            let n = await e.withDocument(r.body, async e => {
                 let t = new Map;
                 t.set("-1", "All");
                 let r = 0;
-                for (let n of e.querySelectorAll("div.fp")) {
-                    var i, a, l;
-                    if ("Show All Favorites" === n.text) continue;
-                    let e = null != (i = null == (a = n.children[2]) ? void 0 : a.text) ? i : `Favorite ${t.size}`, o = null == (l = n.children[0]) ? void 0 : l.text;
-                    o && (e += ` (${o})`, r += +o), t.set((t.size - 1).toString(), e);
+                for (let o of e.querySelectorAll("div.fp")) {
+                    var n, i, a;
+                    if ("Show All Favorites" === o.text) continue;
+                    let e = null != (n = null == (i = o.children[2]) ? void 0 : i.text) ? n : `Favorite ${t.size}`, l = null == (a = o.children[0]) ? void 0 : a.text;
+                    l && (e += ` (${l})`, r += +l), t.set((t.size - 1).toString(), e);
                 }
                 return t.set("-1", `All (${r})`), t;
-            }), a = [];
+            }), i = [];
             if (t) {
                 let r = await e.comic.loadInfo(t);
-                r.isFavorite && a.push(r.folder);
+                r.isFavorite && i.push(r.folder);
             }
             return {
-                folders: i,
-                favorited: a
+                folders: n,
+                favorited: i
             };
         },
         loadNext: async (t, r) => {
-            let i = buildFavoritesUrl(e.baseUrl, r);
-            return e.getGalleries(null != t ? t : i, !1);
+            let n = buildFavoritesUrl(e.baseUrl, r);
+            return e.getGalleries(null != t ? t : n, !1);
         }
     };
 }
@@ -1095,12 +1170,12 @@ function createComicFeature(e) {
                 headerProfile: "gallery-view"
             });
             e.requireStatus("Failed to load gallery details", r), e.requireHtmlBody("Failed to load gallery details", r);
-            let i = await e.withDocument(r.body, async r => {
+            let n = await e.withDocument(r.body, async r => {
                 if (e.isLogged && e.loadSetting("hvevent")) {
                     const t = r.getElementById("eventpane");
                     if (null != t) {
-                        var i;
-                        const r = null == (i = t.querySelector("div > a")) ? void 0 : i.attributes.href;
+                        var n;
+                        const r = null == (n = t.querySelector("div > a")) ? void 0 : n.attributes.href;
                         null != r && UI.showDialog("HentaiVerse", e.translate("hentaiverse"), [ {
                             text: e.translate("cancel"),
                             callback: () => {}
@@ -1112,45 +1187,45 @@ function createComicFeature(e) {
                         } ]);
                     }
                 }
-                const a = parseGalleryDetails(r);
-                let l = e.comic.parseComments(r), n = new ComicDetails({
+                const i = parseGalleryDetails(r);
+                let a = e.comic.parseComments(r), o = new ComicDetails({
                     id: t,
-                    title: a.title,
-                    subTitle: a.subtitle,
-                    cover: a.coverPath,
-                    tags: a.tags,
-                    stars: a.stars,
-                    maxPage: a.maxPage,
-                    isFavorite: a.isFavorited,
-                    uploadTime: a.time,
+                    title: i.title,
+                    subTitle: i.subtitle,
+                    cover: i.coverPath,
+                    tags: i.tags,
+                    stars: i.stars,
+                    maxPage: i.maxPage,
+                    isFavorite: i.isFavorited,
+                    uploadTime: i.time,
                     url: t,
-                    comments: l.comments
+                    comments: a.comments
                 });
-                return n.folder = a.folder, n.token = a.token, e.apikey = a.apikey, e.apikey && '"' === e.apikey[0] && (e.apikey = e.apikey.substring(1, e.apikey.length - 1)),
-                e.uid = a.uid, n;
+                return o.folder = i.folder, o.token = i.token, e.apikey = i.apikey, e.apikey && '"' === e.apikey[0] && (e.apikey = e.apikey.substring(1, e.apikey.length - 1)),
+                e.uid = i.uid, o;
             });
-            return e.galleryInfoCache.set(t, i), i;
+            return e.galleryInfoCache.set(t, n), n;
         },
         loadThumbnails: async (t, r) => {
-            const i = thumbnailCacheKey(t, r);
-            if (e.thumbnailCache.has(i)) return e.thumbnailCache.get(i);
-            let a = buildGalleryPageUrl(t, r), l = await e.requestClient.get(a, {
+            const n = thumbnailCacheKey(t, r);
+            if (e.thumbnailCache.has(n)) return e.thumbnailCache.get(n);
+            let i = buildGalleryPageUrl(t, r), a = await e.requestClient.get(i, {
                 "cache-time": "long",
                 "prevent-parallel": "true"
             }, {
                 action: "Failed to load thumbnails",
-                requestKey: `thumbnails:${i}`,
+                requestKey: `thumbnails:${n}`,
                 headerProfile: "gallery-view"
             });
-            e.requireStatus("Failed to load thumbnails", l), e.requireHtmlBody("Failed to load thumbnails", l);
-            const n = await e.withDocument(l.body, async e => parseThumbnailPage(e, r));
-            return e.thumbnailCache.set(i, n), n;
+            e.requireStatus("Failed to load thumbnails", a), e.requireHtmlBody("Failed to load thumbnails", a);
+            const o = await e.withDocument(a.body, async e => parseThumbnailPage(e, r));
+            return e.thumbnailCache.set(n, o), o;
         },
         starRating: async (t, r) => {
-            const i = e.parseUrl(t);
-            let a = await e.requestClient.post(e.apiUrl, {}, buildRateGalleryPayload({
-                galleryId: i.id,
-                token: i.token,
+            const n = e.parseUrl(t);
+            let i = await e.requestClient.post(e.apiUrl, {}, buildRateGalleryPayload({
+                galleryId: n.id,
+                token: n.token,
                 rating: r,
                 apikey: e.apikey,
                 apiuid: e.uid
@@ -1162,7 +1237,7 @@ function createComicFeature(e) {
                 classifyBody: !1,
                 headerProfile: "json-api"
             });
-            return e.requireStatus("Failed to submit rating", a), "ok";
+            return e.requireStatus("Failed to submit rating", i), "ok";
         },
         getKey: async t => {
             if (e.keyCache.has(t)) return e.keyCache.get(t);
@@ -1174,22 +1249,22 @@ function createComicFeature(e) {
                 requestKey: `key:${t}`
             });
             e.requireStatus("Failed to load dispatch key", r), e.requireHtmlBody("Failed to load dispatch key", r);
-            const i = await e.withDocument(r.body, async e => parseDispatchKey(e));
-            return e.keyCache.set(t, i), i;
+            const n = await e.withDocument(r.body, async e => parseDispatchKey(e));
+            return e.keyCache.set(t, n), n;
         },
         loadEp: async (t, r) => {
-            let i = await e.comic.loadInfo(t);
+            let n = await e.comic.loadInfo(t);
             return {
                 images: Array.from({
-                    length: i.maxPage
+                    length: n.maxPage
                 }, (e, t) => t.toString())
             };
         },
-        onImageLoad: async (t, r, i, a) => e.imageSessions.load({
+        onImageLoad: async (t, r, n, i) => e.imageSessions.load({
             image: t,
             comicId: r,
-            epId: i,
-            nl: a,
+            epId: n,
+            nl: i,
             attempt: 0
         }),
         onThumbnailLoad: t => ({
@@ -1199,17 +1274,17 @@ function createComicFeature(e) {
             })
         }),
         parseComments: e => parseComments(e),
-        loadComments: async (t, r, i, a) => {
-            let l = await e.requestClient.get(buildCommentsUrl(t), {}, {
+        loadComments: async (t, r, n, i) => {
+            let a = await e.requestClient.get(buildCommentsUrl(t), {}, {
                 action: "Failed to load comments",
                 requestKey: `comments:${t}`,
                 headerProfile: "gallery-view"
             });
-            return e.requireStatus("Failed to load comments", l), e.requireHtmlBody("Failed to load comments", l),
-            e.withDocument(l.body, async t => e.comic.parseComments(t));
+            return e.requireStatus("Failed to load comments", a), e.requireHtmlBody("Failed to load comments", a),
+            e.withDocument(a.body, async t => e.comic.parseComments(t));
         },
-        sendComment: async (t, r, i, a) => {
-            let l = await e.requestClient.post(t, {}, buildCommentForm(i), {
+        sendComment: async (t, r, n, i) => {
+            let a = await e.requestClient.post(t, {}, buildCommentForm(n), {
                 action: "Failed to submit comment",
                 requestKey: `comment:${t}`,
                 mutation: !0,
@@ -1217,60 +1292,60 @@ function createComicFeature(e) {
                 headerProfile: "form-urlencoded",
                 refererUrl: t
             });
-            if (l.status >= 400) throw e.formatResponseError("Failed to submit comment", l);
-            return e.requireHtmlBody("Failed to submit comment", l), await e.withDocument(l.body, async e => {
+            if (a.status >= 400) throw e.formatResponseError("Failed to submit comment", a);
+            return e.requireHtmlBody("Failed to submit comment", a), await e.withDocument(a.body, async e => {
                 const t = e.querySelector("p.br");
                 if (t) throw t.text;
             }), "ok";
         },
-        voteComment: async (t, r, i, a, l) => {
+        voteComment: async (t, r, n, i, a) => {
             if (null == e.apikey || null == e.uid) throw "Login required";
-            const n = e.parseUrl(t);
-            let o = await e.requestClient.post(e.apiUrl, {}, buildVoteCommentPayload({
-                galleryId: n.id,
-                token: n.token,
-                commentId: i,
-                isUp: a,
+            const o = e.parseUrl(t);
+            let l = await e.requestClient.post(e.apiUrl, {}, buildVoteCommentPayload({
+                galleryId: o.id,
+                token: o.token,
+                commentId: n,
+                isUp: i,
                 apikey: e.apikey,
                 apiuid: e.uid
             }), {
                 action: "Failed to vote comment",
-                requestKey: `vote:${t}:${i}:${a ? "up" : "down"}`,
+                requestKey: `vote:${t}:${n}:${i ? "up" : "down"}`,
                 mutation: !0,
                 maxRetries: 0,
                 classifyBody: !1,
                 headerProfile: "json-api"
             });
-            e.requireStatus("Failed to vote comment", o);
-            let s = e.parseJsonResponse("Failed to vote comment", o);
+            e.requireStatus("Failed to vote comment", l);
+            let s = e.parseJsonResponse("Failed to vote comment", l);
             if (s.error) throw s.error;
             return s.comment_score;
         },
         archive: {
             getArchives: async t => {
                 await e.comic.loadInfo(t);
-                let r = e.parseUrl(t), i = r.id, a = r.token;
-                const l = buildArchiverUrl(e.baseUrl, i, a);
-                let n = await e.requestClient.get(l, {}, {
+                let r = e.parseUrl(t), n = r.id, i = r.token;
+                const a = buildArchiverUrl(e.baseUrl, n, i);
+                let o = await e.requestClient.get(a, {}, {
                     action: "Failed to load archive options",
                     requestKey: `archive:options:${t}`
                 });
-                return e.requireStatus("Failed to load archive options", n), e.requireHtmlBody("Failed to load archive options", n),
-                e.withDocument(n.body, async t => parseArchiveOptions(t, e.baseUrl));
+                return e.requireStatus("Failed to load archive options", o), e.requireHtmlBody("Failed to load archive options", o),
+                e.withDocument(o.body, async t => parseArchiveOptions(t, e.baseUrl));
             },
             getDownloadUrl: async (t, r) => {
-                let i = e.parseUrl(t), a = i.id, l = i.token;
-                const n = buildArchiverUrl(e.baseUrl, a, l);
+                let n = e.parseUrl(t), i = n.id, a = n.token;
+                const o = buildArchiverUrl(e.baseUrl, i, a);
                 if (r.startsWith("h@h_")) {
-                    let i = r.substring(4), a = await e.requestClient.post(n, {}, buildHathDownloadForm(i), {
+                    let n = r.substring(4), i = await e.requestClient.post(o, {}, buildHathDownloadForm(n), {
                         action: "Failed to send H@H download command",
-                        requestKey: `archive:hath:${t}:${i}`,
+                        requestKey: `archive:hath:${t}:${n}`,
                         mutation: !0,
                         maxRetries: 0,
                         headerProfile: "form-urlencoded"
                     });
-                    return e.requireStatus("Failed to send H@H download command", a), e.requireHtmlBody("Failed to send H@H download command", a),
-                    await e.withDocument(a.body, async e => {
+                    return e.requireStatus("Failed to send H@H download command", i), e.requireHtmlBody("Failed to send H@H download command", i),
+                    await e.withDocument(i.body, async e => {
                         let t = e.querySelector("p.br");
                         if (t) {
                             let e = t.text;
@@ -1278,15 +1353,15 @@ function createComicFeature(e) {
                         }
                     }), "";
                 }
-                let o = await e.requestClient.post(n, {}, buildArchiveDownloadForm(r), {
+                let l = await e.requestClient.post(o, {}, buildArchiveDownloadForm(r), {
                     action: "Failed to create archive download",
                     requestKey: `archive:create:${t}:${r}`,
                     mutation: !0,
                     maxRetries: 0,
                     headerProfile: "form-urlencoded"
                 });
-                e.requireStatus("Failed to create archive download", o), e.requireHtmlBody("Failed to create archive download", o);
-                let s = await e.withDocument(o.body, async e => {
+                e.requireStatus("Failed to create archive download", l), e.requireHtmlBody("Failed to create archive download", l);
+                let s = await e.withDocument(l.body, async e => {
                     var t;
                     return null == (t = e.querySelector("a")) ? void 0 : t.attributes.href;
                 });
@@ -1367,15 +1442,15 @@ function createSettings(e) {
             callback: async () => {
                 let t = e.loadAccountStore();
                 if (!t.profiles.length) return void UI.showMessage(e.translate("noSavedAccounts"));
-                let r = t.profiles.map((r, i) => {
-                    let a = e.getAccountDisplayName(r, i);
-                    return t.activeProfileId === r.id ? `${a} *` : a;
-                }), i = t.profiles.findIndex(e => e.id === t.activeProfileId);
-                i < 0 && (i = 0);
-                let a = await UI.showSelectDialog(e.translate("accountSwitch"), r, i);
-                if (null == a || a < 0 || a >= t.profiles.length) return;
-                let l = t.profiles[a];
-                await e.activateAccountProfile(l.id), UI.showMessage(e.translate("accountSwitched"));
+                let r = t.profiles.map((r, n) => {
+                    let i = e.getAccountDisplayName(r, n);
+                    return t.activeProfileId === r.id ? `${i} *` : i;
+                }), n = t.profiles.findIndex(e => e.id === t.activeProfileId);
+                n < 0 && (n = 0);
+                let i = await UI.showSelectDialog(e.translate("accountSwitch"), r, n);
+                if (null == i || i < 0 || i >= t.profiles.length) return;
+                let a = t.profiles[i];
+                await e.activateAccountProfile(a.id), UI.showMessage(e.translate("accountSwitched"));
             }
         }
     });
@@ -1527,14 +1602,14 @@ function createEhentaiAccountFeature(e) {
                 t.forEach(t => {
                     if (!t || !t.name) return;
                     if (!e.accountFieldNames.includes(String(t.name))) return;
-                    let i = String(t.value || "");
-                    0 !== i.length && (r.push(new Cookie({
+                    let n = String(t.value || "");
+                    0 !== n.length && (r.push(new Cookie({
                         name: String(t.name),
-                        value: i,
+                        value: n,
                         domain: ".e-hentai.org"
                     })), r.push(new Cookie({
                         name: String(t.name),
-                        value: i,
+                        value: n,
                         domain: ".exhentai.org"
                     })));
                 }), r.length > 0 && (Network.setCookies(buildEhCookieUrl(), r), Network.setCookies(buildExCookieUrl(), r));
@@ -1557,11 +1632,11 @@ function createEhentaiAccountFeature(e) {
                     refererUrl: buildForumsIndexRefererUrl()
                 });
                 if (200 !== r.status) return !1;
-                let i = null;
+                let n = null;
                 return !!await e.withDocument(r.body, async e => {
                     let t = e.querySelector("div#userlinks > p.home > b > a");
-                    return !!t && (i = t.text, !0);
-                }) && (e.upsertAccountProfile(t, i || ""), !0);
+                    return !!t && (n = t.text, !0);
+                }) && (e.upsertAccountProfile(t, n || ""), !0);
             }
         },
         logout: () => {
@@ -1613,11 +1688,11 @@ function createEhentaiCategoryComics(e) {
         ranking: {
             options: [ "15-yesterday", "13-month", "12-year", "11-all" ],
             load: async (t, r) => {
-                let i = (await e.getGalleries(buildToplistUrl(buildBaseUrl("e-hentai.org"), t, r - 1), !0)).comics;
-                return "exhentai.org" === e.loadSetting("domain") && i.forEach(e => {
+                let n = (await e.getGalleries(buildToplistUrl(buildBaseUrl("e-hentai.org"), t, r - 1), !0)).comics;
+                return "exhentai.org" === e.loadSetting("domain") && n.forEach(e => {
                     e.id = e.id.replace("e-hentai", "exhentai");
                 }), {
-                    comics: i,
+                    comics: n,
                     maxPage: 200
                 };
             }
@@ -1627,196 +1702,395 @@ function createEhentaiCategoryComics(e) {
 
 class EhentaiRequestClient {
     constructor(e) {
-        this.source = e;
+        this.source = e, this._managedClient = null;
     }
     get(e, t = {}, r = {}) {
-        return this.send("GET", e, t, null, r);
+        return this._getManagedClient().get(e, t, r);
     }
-    post(e, t = {}, r = null, i = {}) {
-        return this.send("POST", e, t, r, i);
+    post(e, t = {}, r = null, n = {}) {
+        return this._getManagedClient().post(e, t, r, n);
     }
     head(e, t = {}, r = {}) {
-        return this.send("HEAD", e, t, null, r);
+        return this._getManagedClient().head(e, t, r);
     }
-    async send(e, t, r = {}, i = null, a = {}) {
-        var l, n, o, s, u;
-        const c = `${e}:${t}`, d = {
-            action: a.action || `${e} ${t}`,
-            requestKey: a.requestKey || c,
-            domainKey: a.domainKey || domainKey(t),
-            expectedStatus: null != (l = a.expectedStatus) ? l : 200,
-            maxRetries: null != (n = a.maxRetries) ? n : (a.mutation, 0),
-            cooldownMs: null != (o = a.cooldownMs) ? o : 6e4,
-            classifyBody: null == (s = a.classifyBody) || s,
-            mutation: null != (u = a.mutation) ? u : "GET" !== e
-        }, h = this.source.requestState.cooldownUntil.get(d.domainKey);
-        if (h && h > Date.now()) throw `${d.action} blocked: temporary cooldown in effect`;
-        const g = d.requestKey, p = this._resolveHeaders(e, t, r, d);
-        if (this.source.requestState.inflight.has(g)) return this.source.requestState.inflight.get(g);
-        const m = this._enqueueByDomain(d.domainKey, () => this._sendWithRetry(e, t, p, i, d));
-        this.source.requestState.inflight.set(g, m);
-        try {
-            return await m;
-        } finally {
-            this.source.requestState.inflight.delete(g);
-        }
-    }
-    _enqueueByDomain(e, t) {
-        const r = (this.source.requestState.queues.get(e) || Promise.resolve()).then(t, t), i = r.then(() => {}, () => {});
-        return this.source.requestState.queues.set(e, i), i.finally(() => {
-            this.source.requestState.queues.get(e) === i && this.source.requestState.queues.delete(e);
-        }), r;
-    }
-    async _sendWithRetry(e, t, r, i, a) {
-        let l = 0;
-        const n = Math.max(0, a.maxRetries) + 1;
-        for (;l < n; ) {
-            let o;
-            l += 1;
-            try {
-                o = await this._dispatch(e, t, r, i);
-            } catch (e) {
-                if (l >= n) throw this.source.formatRequestError(a.action, e);
-                continue;
+    _getManagedClient() {
+        return this._managedClient || (this._managedClient = createManagedRequestClient(this.source, {
+            domainKeyResolver: e => domainKey(e),
+            shouldCooldown: (e, t, r) => {
+                if (!t.classifyBody) return !1;
+                const n = String(e && e.body || "");
+                return !!hasNonWhitespaceText(n) && r.isAbuseResponseBody(n);
             }
-            if (this._shouldCooldown(o, a)) throw this._markCooldown(a.domainKey, a.cooldownMs),
-            this.source.formatResponseError(a.action, o);
-            if (o.status === a.expectedStatus) return o;
-            if (l >= n || a.mutation) throw this.source.formatResponseError(a.action, o);
-        }
-        throw `${a.action} failed after retries`;
-    }
-    _resolveHeaders(e, t, r, i) {
-        return "function" == typeof this.source.buildRequestHeaders ? this.source.buildRequestHeaders(e, t, r || {}, i || {}) : r || {};
-    }
-    async _dispatch(e, t, r, i) {
-        return "GET" === e ? Network.get(t, r) : "POST" === e ? Network.post(t, r, i) : Network.sendRequest(e, t, r, i);
-    }
-    _shouldCooldown(e, t) {
-        if (403 === e.status || 429 === e.status) return !0;
-        if (!t.classifyBody) return !1;
-        const r = String(e && e.body || "");
-        return !this._hasNonWhitespace(r) || this.source.isAbuseResponseBody(r);
-    }
-    _hasNonWhitespace(e) {
-        for (let t = 0; t < e.length; t++) {
-            let r = e.charCodeAt(t);
-            if (32 !== r && 9 !== r && 10 !== r && 13 !== r) return !0;
-        }
-        return !1;
-    }
-    _markCooldown(e, t) {
-        this.source.requestState.cooldownUntil.set(e, Date.now() + t);
+        })), this._managedClient;
     }
 }
 
 class ImageLoadingSessionManager {
     constructor(e) {
-        this.source = e;
+        this.source = e, this.pendingSessions = new Map;
     }
     async ensureSession(e) {
         const t = this.source.imageSessionCache.get(e);
         if (t) return t;
-        const r = await this.source.comic.loadThumbnails(e, null), i = {
+        if (this.pendingSessions.has(e)) return this.pendingSessions.get(e);
+        const r = this._createSession(e);
+        this.pendingSessions.set(e, r);
+        try {
+            return await r;
+        } finally {
+            this.pendingSessions.delete(e);
+        }
+    }
+    async _createSession(e) {
+        const t = await this.source.comic.loadThumbnails(e, null);
+        if (!t.urls || 0 === t.urls.length) throw "Failed to load image session: no thumbnail page URLs";
+        const r = {
             comicId: e,
-            firstPage: r,
-            key: await this.source.comic.getKey(r.urls[0]),
+            firstPage: t,
+            key: await this.source.comic.getKey(t.urls[0]),
             attempts: new Map
         };
-        return this.source.imageSessionCache.set(e, i), i;
+        return this.source.imageSessionCache.set(e, r), r;
     }
     async getPageUrl(e, t) {
+        var r;
+        if (t < 0) throw `Invalid page index: ${t}`;
         if (t < e.firstPage.urls.length) return e.firstPage.urls[t];
-        const r = e.firstPage.thumbnails.length, i = Math.floor(t / r), a = t % r;
-        return (await this.source.comic.loadThumbnails(e.comicId, i.toString())).urls[a];
+        const n = e.firstPage.thumbnails.length;
+        if (!n) throw "Failed to resolve page URL: empty thumbnail page";
+        const i = Math.floor(t / n), a = t % n, o = null == (r = (await this.source.comic.loadThumbnails(e.comicId, i.toString())).urls) ? void 0 : r[a];
+        if (!o) throw `Failed to resolve page URL for page ${t}`;
+        return o;
     }
     async dispatchImage({comicId: e, page: t, nl: r}) {
-        const i = await this.ensureSession(e), a = this.source.parseUrl(e);
-        if (i.key.mpvkey) {
-            const e = buildImageDispatchPayload({
-                galleryId: a.id,
-                imgKey: i.key.imageKeys[t],
+        const n = await this.ensureSession(e), i = this.source.parseUrl(e), a = r || "initial";
+        if (n.key.mpvkey) {
+            var o;
+            const l = null == (o = n.key.imageKeys) ? void 0 : o[t];
+            if (!l) throw `Failed to dispatch image: missing mpv image key for page ${t}`;
+            const s = buildImageDispatchPayload({
+                galleryId: i.id,
+                imgKey: l,
                 page: t + 1,
-                mpvkey: i.key.mpvkey,
+                mpvkey: n.key.mpvkey,
                 nl: r
-            }), l = await this.source.requestClient.post(this.source.apiUrl, {
-                "Content-Type": "application/json"
-            }, e, {
+            }), u = await this.source.requestClient.post(this.source.apiUrl, {}, s, {
                 action: "Failed to dispatch image",
+                requestKey: `image:mpv:${e}:${t}:${l}:${a}`,
                 mutation: !0,
+                allowDedup: !1,
                 maxRetries: 0,
-                classifyBody: !1
-            }), n = JSON.parse(l.body);
+                classifyBody: !1,
+                headerProfile: "json-api"
+            }), c = this.source.parseJsonResponse("Failed to dispatch image", u), d = String(c.i || ""), h = String(c.s || "");
+            if (!d) throw "Failed to dispatch image: response missing image URL";
             return {
-                url: String(n.i),
-                nl: String(n.s)
+                url: d,
+                nl: h
             };
         }
-        const l = await this.getPageUrl(i, t), n = buildShowPagePayload({
-            galleryId: a.id,
-            imgKey: imageKeyFromPageUrl(l),
+        const l = imageKeyFromPageUrl(await this.getPageUrl(n, t));
+        if (!l) throw `Failed to dispatch image: missing showpage image key for page ${t}`;
+        const s = buildShowPagePayload({
+            galleryId: i.id,
+            imgKey: l,
             page: t + 1,
-            showkey: i.key.showkey,
+            showkey: n.key.showkey,
             nl: r
-        }), o = await this.source.requestClient.post(this.source.apiUrl, {
-            "Content-Type": "application/json"
-        }, n, {
+        }), u = await this.source.requestClient.post(this.source.apiUrl, {}, s, {
             action: "Failed to dispatch image",
+            requestKey: `image:show:${e}:${t}:${l}:${a}`,
             mutation: !0,
+            allowDedup: !1,
             maxRetries: 0,
-            classifyBody: !1
-        }), s = JSON.parse(o.body), u = s.i6, c = RegExp("nl\\('(.+?)'\\)").exec(u), d = c ? c[1] : null;
-        let h = s.i3;
-        return h = h.substring(h.indexOf('src="') + 5, h.indexOf('" style')), {
-            url: h,
+            classifyBody: !1,
+            headerProfile: "json-api"
+        }), c = this.source.parseJsonResponse("Failed to dispatch image", u), d = this._parseNl(c.i6);
+        return {
+            url: this._parseImageSrc(c.i3),
             nl: d
         };
     }
-    createRetry({image: e, comicId: t, epId: r, nl: i, attempt: a}) {
-        return i ? a >= 2 ? null : async () => this.source.imageSessions.load({
+    _parseNl(e) {
+        const t = String(e || ""), r = /nl\('([^']+)'\)/.exec(t);
+        return r ? r[1] : null;
+    }
+    _parseImageSrc(e) {
+        const t = String(e || ""), r = /<img\b[^>]*\bsrc="([^"]+)"/i.exec(t);
+        if (!r || !r[1]) throw "Failed to parse image URL from dispatch response";
+        return r[1];
+    }
+    createRetry({image: e, comicId: t, epId: r, nl: n, attempt: i}) {
+        return n ? i >= 2 ? null : async () => this.source.imageSessions.load({
             image: e,
             comicId: t,
             epId: r,
-            nl: i,
-            attempt: a + 1
+            nl: n,
+            attempt: i + 1
         }) : null;
     }
-    async load({image: e, comicId: t, epId: r, nl: i, attempt: a = 0}) {
-        const l = Number(e), n = await this.dispatchImage({
+    async load({image: e, comicId: t, epId: r, nl: n, attempt: i = 0}) {
+        const a = Number(e), o = await this.dispatchImage({
             comicId: t,
-            page: l,
-            nl: i
+            page: a,
+            nl: n
         });
         return {
-            url: n.url,
-            headers: this.source.buildRequestHeaders("GET", n.url, {}, {
+            url: o.url,
+            headers: this.source.buildRequestHeaders("GET", o.url, {}, {
                 headerProfile: "thumbnail"
             }),
             onLoadFailed: this.createRetry({
                 image: e,
                 comicId: t,
                 epId: r,
-                nl: n.nl,
-                attempt: a
+                nl: o.nl,
+                attempt: i
             })
         };
     }
 }
+
+function joinRawQueryEntries(e) {
+    const t = [];
+    for (const r of e || []) {
+        if (!Array.isArray(r) || r.length < 2) continue;
+        const [e, n] = r;
+        null != e && null != n && t.push(`${String(e)}=${String(n)}`);
+    }
+    return t.join("&");
+}
+
+function runtimeGet(e, t) {
+    return Network.get(e, t);
+}
+
+async function getRuntimeJson(e, t, r) {
+    const n = await runtimeGet(e, t);
+    return assertRuntimeStatus(n, 200, r || e), parseRuntimeJsonBody(n, r || e);
+}
+
+async function getRuntimeDocument(e, t, r) {
+    const n = await runtimeGet(e, t);
+    return assertRuntimeStatus(n, 200, r || e), new HtmlDocument(n.body);
+}
+
+async function getSelfHostedJson(e, t, r, n) {
+    if (!e || "object" != typeof e) throw new Error("getSelfHostedJson requires plugin source");
+    const i = n && "object" == typeof n && !Array.isArray(n) ? n : {}, a = i.headers || e.headers, o = await Network.get(e.buildUrl(t, r), a);
+    return ensureSelfHostedHttpOk(o, i), parseSelfHostedJsonBody(o.body);
+}
+
+async function postSelfHostedJson(e, t, r, n, i) {
+    if (!e || "object" != typeof e) throw new Error("postSelfHostedJson requires plugin source");
+    const a = i && "object" == typeof i && !Array.isArray(i) ? i : {}, o = a.headers || e.headers, l = await Network.post(e.buildUrl(t, r), o, n);
+    return ensureSelfHostedHttpOk(l, a), {
+        body: parseSelfHostedJsonBody(l.body),
+        headers: l.headers || {}
+    };
+}
+
+function defaultManagedDomainKey(e) {
+    try {
+        return new URL(String(e || "")).hostname || "default";
+    } catch (e) {
+        return "default";
+    }
+}
+
+function defaultManagedDispatch(e, t, r, n) {
+    return "GET" === e ? Network.get(t, r) : "POST" === e ? Network.post(t, r, n) : Network.sendRequest(e, t, r, n);
+}
+
+function defaultManagedRequestError(e, t, r) {
+    return e && "function" == typeof e.formatRequestError ? e.formatRequestError(t, r) : `${t}: ${String(r)}`;
+}
+
+function defaultManagedResponseError(e, t, r) {
+    return e && "function" == typeof e.formatResponseError ? e.formatResponseError(t, r) : `${t}: status=${r && r.status}`;
+}
+
+function normalizeManagedRequestHooks(e) {
+    return e && "object" == typeof e && !Array.isArray(e) ? e : {};
+}
+
+function ManagedRequestClient(e, t) {
+    if (!e || "object" != typeof e) throw new Error("ManagedRequestClient requires plugin source");
+    if (!e.requestState || "object" != typeof e.requestState) throw new Error("ManagedRequestClient requires source.requestState");
+    this.source = e, this.hooks = normalizeManagedRequestHooks(t);
+}
+
+function createManagedRequestClient(e, t) {
+    return new ManagedRequestClient(e, t);
+}
+
+function parseRuntimeJsonBody(e, t) {
+    try {
+        return JSON.parse(e.body);
+    } catch (e) {
+        throw "Invalid JSON response" + (t ? ` (${t})` : "");
+    }
+}
+
+function ensureSelfHostedHttpOk(e, t) {
+    const r = t && "object" == typeof t && !Array.isArray(t) ? t : {}, n = r.unauthorizedMessage || "Login expired", i = r.requestFailedMessage || "请求失败";
+    if (!e) throw i;
+    if (401 === e.status || 403 === e.status) throw n;
+    if (e.status < 200 || e.status >= 300) throw `${i}: ${e.status}`;
+}
+
+function parseSelfHostedJsonBody(e) {
+    return e ? JSON.parse(e) : null;
+}
+
+function hasNonWhitespaceText(e) {
+    const t = String(e || "");
+    for (let e = 0; e < t.length; e += 1) {
+        const r = t.charCodeAt(e);
+        if (32 !== r && 9 !== r && 10 !== r && 13 !== r) return !0;
+    }
+    return !1;
+}
+
+function defaultRequestKey(e, t, r, n) {
+    return n ? null : `${e}:${t}`;
+}
+
+function createDomainQueue(e, t, r) {
+    const n = (e.queues.get(t) || Promise.resolve()).then(r, r), i = n.then(() => {}, () => {});
+    return e.queues.set(t, i), i.finally(() => {
+        e.queues.get(t) === i && e.queues.delete(t);
+    }), n;
+}
+
+function markCooldown(e, t, r) {
+    e.cooldownUntil.set(t, Date.now() + r);
+}
+
+ManagedRequestClient.prototype.get = function(e, t, r) {
+    return this.send("GET", e, t || {}, null, r || {});
+}, ManagedRequestClient.prototype.post = function(e, t, r, n) {
+    return this.send("POST", e, t || {}, null == r ? null : r, n || {});
+}, ManagedRequestClient.prototype.head = function(e, t, r) {
+    return this.send("HEAD", e, t || {}, null, r || {});
+}, ManagedRequestClient.prototype.send = async function(e, t, r, n, i) {
+    const a = this.source, o = i && "object" == typeof i && !Array.isArray(i) ? i : {}, l = null == o.mutation ? "GET" !== e : !0 === o.mutation, s = o.requestKey || defaultRequestKey(e, t, n, l), u = "function" == typeof this.hooks.domainKeyResolver ? this.hooks.domainKeyResolver : defaultManagedDomainKey, c = {
+        action: o.action || `${e} ${t}`,
+        requestKey: s,
+        domainKey: o.domainKey || u(t, e, n, o, a, this),
+        expectedStatus: null == o.expectedStatus ? 200 : o.expectedStatus,
+        maxRetries: null == o.maxRetries ? "GET" === e ? 1 : 0 : o.maxRetries,
+        cooldownMs: null == o.cooldownMs ? 6e4 : o.cooldownMs,
+        classifyBody: null == o.classifyBody || o.classifyBody,
+        mutation: l,
+        allowDedup: null == o.allowDedup ? !l : o.allowDedup
+    }, d = a.requestState.cooldownUntil.get(c.domainKey);
+    if (d && d > Date.now()) throw `${c.action} blocked: temporary cooldown in effect`;
+    const h = this._resolveHeaders(e, t, r || {}, c), p = c.requestKey;
+    if (c.allowDedup && p && a.requestState.inflight.has(p)) return a.requestState.inflight.get(p);
+    const g = createDomainQueue(a.requestState, c.domainKey, () => this._sendWithRetry(e, t, h, n, c));
+    c.allowDedup && p && a.requestState.inflight.set(p, g);
+    try {
+        return await g;
+    } finally {
+        c.allowDedup && p && a.requestState.inflight.delete(p);
+    }
+}, ManagedRequestClient.prototype._resolveHeaders = function(e, t, r, n) {
+    return "function" == typeof this.hooks.buildHeaders ? this.hooks.buildHeaders(e, t, r, n, this.source, this) : this.source && "function" == typeof this.source.buildRequestHeaders ? this.source.buildRequestHeaders(e, t, r || {}, n || {}) : r || {};
+}, ManagedRequestClient.prototype._sendWithRetry = async function(e, t, r, n, i) {
+    let a = 0;
+    const o = Math.max(0, i.maxRetries) + 1;
+    for (;a < o; ) {
+        let l;
+        a += 1;
+        try {
+            l = await this._dispatch(e, t, r, n, i);
+        } catch (e) {
+            if (a >= o) throw defaultManagedRequestError(this.source, i.action, e);
+            continue;
+        }
+        if (this._shouldCooldown(l, i)) throw this._markCooldown(i.domainKey, i.cooldownMs),
+        defaultManagedResponseError(this.source, i.action, l);
+        if (l.status === i.expectedStatus) return l;
+        if (a >= o || i.mutation) throw defaultManagedResponseError(this.source, i.action, l);
+    }
+    throw `${i.action} failed after retries`;
+}, ManagedRequestClient.prototype._dispatch = function(e, t, r, n, i) {
+    return "function" == typeof this.hooks.dispatch ? this.hooks.dispatch(e, t, r, n, i, this.source, this) : defaultManagedDispatch(e, t, r, n);
+}, ManagedRequestClient.prototype._shouldCooldown = function(e, t) {
+    if (403 === e.status || 429 === e.status) return !0;
+    if (!t.classifyBody) return !1;
+    const r = String(e && e.body || "");
+    return !!hasNonWhitespaceText(r) && ("function" == typeof this.hooks.shouldCooldown ? this.hooks.shouldCooldown(e, t, this.source, this) : !(!this.source || "function" != typeof this.source.isAbuseResponseBody) && this.source.isAbuseResponseBody(r));
+}, ManagedRequestClient.prototype._markCooldown = function(e, t) {
+    markCooldown(this.source.requestState, e, t);
+}, "undefined" != typeof module && module && module.exports && (module.exports = {
+    runtimeGet,
+    getRuntimeJson,
+    getRuntimeDocument,
+    getSelfHostedJson,
+    postSelfHostedJson,
+    ManagedRequestClient,
+    createManagedRequestClient
+}), "undefined" != typeof module && module && module.exports && (module.exports = {
+    parseRuntimeJsonBody,
+    ensureSelfHostedHttpOk,
+    parseSelfHostedJsonBody
+}), "undefined" != typeof module && module && module.exports && (module.exports = {
+    hasNonWhitespaceText,
+    defaultRequestKey,
+    createDomainQueue,
+    markCooldown
+});
+
+const httpRequestApi = {
+    joinRawQueryEntries,
+    runtimeGet,
+    getRuntimeJson,
+    getRuntimeDocument,
+    getSelfHostedJson,
+    postSelfHostedJson,
+    ManagedRequestClient,
+    createManagedRequestClient
+}, httpResponseApi = {
+    parseRuntimeJsonBody,
+    ensureSelfHostedHttpOk,
+    parseSelfHostedJsonBody
+}, httpCooldownApi = {
+    hasNonWhitespaceText,
+    defaultRequestKey,
+    createDomainQueue,
+    markCooldown
+}, httpSupportApi = {
+    ...httpRequestApi,
+    ...httpResponseApi,
+    ...httpCooldownApi
+};
 
 function __veneraGetRuntimeGlobal() {
     return "object" == typeof globalThis && null !== globalThis ? globalThis : {};
 }
 
 function __veneraNormalizeAuthorityPart(e, t, r) {
-    const i = String(null == e ? "" : e).trim() || t;
-    return r ? i.replace(/^\/+|\/+$/g, "") : i;
+    const n = String(null == e ? "" : e).trim() || t;
+    return r ? n.replace(/^\/+|\/+$/g, "") : n;
 }
 
 function resolvePluginUpdateUrl(e) {
-    const t = __veneraGetRuntimeGlobal(), r = t.__VENERA_RELEASE_AUTHORITY__ && "object" == typeof t.__VENERA_RELEASE_AUTHORITY__ ? t.__VENERA_RELEASE_AUTHORITY__ : {}, i = __veneraNormalizeAuthorityPart(r.cdnOrigin, "https://cdn.jsdelivr.net", !1).replace(/\/+$/, ""), a = __veneraNormalizeAuthorityPart(r.providerPath, "gh", !0), l = __veneraNormalizeAuthorityPart(r.repository, "mythic3011/venera-configs", !0), n = __veneraNormalizeAuthorityPart(r.releaseRef, "main", !1), o = __veneraNormalizeAuthorityPart(r.artifactPathPrefix, "dist/plugins", !0), s = String(e || "").replace(/^\/+/, "");
-    if (!s) return `${i}/${a}/${l}@${n}`;
-    const u = o ? `${o}/${s}` : s;
-    return `${i}/${a}/${l}@${n}/${s.startsWith(`${o}/`) ? s : u}`;
+    const t = __veneraGetRuntimeGlobal(), r = t.__VENERA_RELEASE_AUTHORITY__ && "object" == typeof t.__VENERA_RELEASE_AUTHORITY__ ? t.__VENERA_RELEASE_AUTHORITY__ : {}, n = __veneraNormalizeAuthorityPart(r.cdnOrigin, "https://cdn.jsdelivr.net", !1).replace(/\/+$/, ""), i = __veneraNormalizeAuthorityPart(r.providerPath, "gh", !0), a = __veneraNormalizeAuthorityPart(r.repository, "mythic3011/venera-configs", !0), o = __veneraNormalizeAuthorityPart(r.releaseRef, "main", !1), l = __veneraNormalizeAuthorityPart(r.artifactPathPrefix, "dist/plugins", !0), s = String(e || "").replace(/^\/+/, "");
+    if (!s) return `${n}/${i}/${a}@${o}`;
+    const u = l ? `${l}/${s}` : s;
+    return `${n}/${i}/${a}@${o}/${s.startsWith(`${l}/`) ? s : u}`;
 }
+
+"undefined" != typeof module && module && module.exports && (module.exports = {
+    ...httpSupportApi,
+    httpRequestApi,
+    httpResponseApi,
+    httpCooldownApi,
+    httpSupportApi
+}), "undefined" != typeof module && module && module.exports && (module.exports = {
+    resolvePluginUpdateUrl
+});
 
 "use strict";

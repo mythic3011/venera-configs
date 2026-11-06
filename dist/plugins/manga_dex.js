@@ -4,76 +4,72 @@ class MangaDex extends ComicSource {
         this.minAppVersion = "1.6.0", this.url = resolvePluginUpdateUrl("manga_dex.js"),
         this.comicsPerPage = 20, this.api = {
             parseComic: e => {
-                var t;
-                let a = e.id, s = {}, i = e.attributes.title;
+                var a;
+                let t = e.id, s = {}, i = e.attributes.title;
                 for (let e of Object.keys(i)) s[e] = i[e];
-                for (let t of e.attributes.altTitles) for (let e of Object.keys(t)) void 0 === s[e] && (s[e] = t[e]);
+                for (let a of e.attributes.altTitles) for (let e of Object.keys(a)) void 0 === s[e] && (s[e] = a[e]);
                 let r = APP.locale, o = "", c = s[Object.keys(s)[0]];
                 r.startsWith("en") ? o = s.en || s.ja || c : r.startsWith("zh_CN") ? o = s.zh || s["zh-hk"] || s["zh-tw"] || s.ja || c : r.startsWith("zh_TW") && (o = s["zh-hk"] || s["zh-tw"] || s.zh || s.ja || c);
                 let n = [];
-                for (let t of e.attributes.tags) n.push(t.attributes.name.en);
-                let l = null == (t = e.relationships.find(e => "cover_art" === e.type)) ? void 0 : t.attributes.fileName;
-                l = l ? `https://mangadex.org/covers/${a}/${l}.256.jpg` : "";
-                let d = e.attributes.description.en, f = e.attributes.createdAt, u = e.attributes.updatedAt, h = e.attributes.status, p = [], b = [];
-                for (let t of e.relationships) if ("author" === t.type) {
-                    let e = t.attributes.name, a = t.id;
-                    p.push(e), this.authors[e] = a;
-                } else if ("artist" === t.type) {
-                    let e = t.attributes.name, a = t.id;
-                    b.push(e), this.artists[e] = a;
+                for (let a of e.attributes.tags) n.push(a.attributes.name.en);
+                let l = null == (a = e.relationships.find(e => "cover_art" === e.type)) ? void 0 : a.attributes.fileName;
+                l = l ? `https://mangadex.org/covers/${t}/${l}.256.jpg` : "";
+                let d = e.attributes.description.en, u = e.attributes.createdAt, f = e.attributes.updatedAt, p = e.attributes.status, g = [], b = [];
+                for (let a of e.relationships) if ("author" === a.type) {
+                    let e = a.attributes.name, t = a.id;
+                    g.push(e), this.authors[e] = t;
+                } else if ("artist" === a.type) {
+                    let e = a.attributes.name, t = a.id;
+                    b.push(e), this.artists[e] = t;
                 }
                 return {
-                    id: a,
+                    id: t,
                     title: o,
-                    subtitle: p.at(0),
+                    subtitle: g.at(0),
                     titles: s,
                     cover: l,
                     tags: n,
                     description: d,
-                    createTime: f,
-                    updateTime: u,
-                    status: h,
-                    authors: p,
+                    createTime: u,
+                    updateTime: f,
+                    status: p,
+                    authors: g,
                     artists: b
                 };
             },
-            getPopular: async e => {
-                let t = new Date;
-                t = new Date(t.getTime() - 2592e6);
-                let a = `https://api.mangadex.org/manga?includes[]=cover_art&includes[]=artist&includes[]=author&order[followedCount]=desc&hasAvailableChapters=true&createdAtSince=${t.toISOString().substring(0, 19)}&limit=${this.comicsPerPage}`;
-                e && e > 1 && (a += "&offset=" + (e - 1) * this.comicsPerPage);
-                let s = await fetch(a), i = await s.json(), r = i.total, o = Math.ceil(r / this.comicsPerPage), c = [];
-                for (let e of i.data) c.push(this.api.parseComic(e));
+            parseMangaList: e => {
+                let a = [];
+                for (let t of e.data) a.push(this.api.parseComic(t));
                 return {
-                    comics: c,
-                    maxPage: o
+                    comics: a,
+                    maxPage: Math.ceil(e.total / this.comicsPerPage)
                 };
+            },
+            getPopular: async e => {
+                let a = new Date;
+                a = new Date(a.getTime() - 2592e6);
+                let t = `https://api.mangadex.org/manga?includes[]=cover_art&includes[]=artist&includes[]=author&order[followedCount]=desc&hasAvailableChapters=true&createdAtSince=${a.toISOString().substring(0, 19)}&limit=${this.comicsPerPage}`;
+                e && e > 1 && (t += "&offset=" + (e - 1) * this.comicsPerPage);
+                let s = await fetch(t), i = await s.json();
+                return this.api.parseMangaList(i);
             },
             getRecent: async e => {
-                let t = `https://api.mangadex.org/manga?includes[]=cover_art&includes[]=artist&includes[]=author&order[createdAt]=desc&hasAvailableChapters=true&limit=${this.comicsPerPage}`;
-                e && e > 1 && (t += "&offset=" + (e - 1) * this.comicsPerPage);
-                let a = await fetch(t), s = await a.json(), i = s.total, r = Math.ceil(i / this.comicsPerPage), o = [];
-                for (let e of s.data) o.push(this.api.parseComic(e));
-                return {
-                    comics: o,
-                    maxPage: r
-                };
+                let a = `https://api.mangadex.org/manga?includes[]=cover_art&includes[]=artist&includes[]=author&order[createdAt]=desc&hasAvailableChapters=true&limit=${this.comicsPerPage}`;
+                e && e > 1 && (a += "&offset=" + (e - 1) * this.comicsPerPage);
+                let t = await fetch(a), s = await t.json();
+                return this.api.parseMangaList(s);
             },
             getUpdated: async e => {
-                let t = `https://api.mangadex.org/manga?includes[]=cover_art&includes[]=artist&includes[]=author&order[latestUploadedChapter]=desc&contentRating[]=safe&contentRating[]=suggestive&hasAvailableChapters=true&limit=${this.comicsPerPage}`;
-                e && e > 1 && (t += "&offset=" + (e - 1) * this.comicsPerPage);
-                let a = await fetch(t), s = await a.json(), i = s.total, r = Math.ceil(i / this.comicsPerPage), o = [];
-                for (let e of s.data) o.push(this.api.parseComic(e));
-                return {
-                    comics: o,
-                    maxPage: r
-                };
+                let a = `https://api.mangadex.org/manga?includes[]=cover_art&includes[]=artist&includes[]=author&order[latestUploadedChapter]=desc&contentRating[]=safe&contentRating[]=suggestive&hasAvailableChapters=true&limit=${this.comicsPerPage}`;
+                e && e > 1 && (a += "&offset=" + (e - 1) * this.comicsPerPage);
+                let t = await fetch(a), s = await t.json();
+                return this.api.parseMangaList(s);
             }
         }, this.explore = [ {
             title: "Manga Dex",
             type: "multiPartPage",
             load: async e => {
-                let t = await Promise.all([ this.api.getPopular(e), this.api.getRecent(e), this.api.getUpdated(e) ]), a = [ "Popular", "Recent", "Updated" ], s = [ {
+                let a = await Promise.all([ this.api.getPopular(e), this.api.getRecent(e), this.api.getUpdated(e) ]), t = [ "Popular", "Recent", "Updated" ], s = [ {
                     page: "search",
                     attributes: {
                         options: [ "popular", "any", "any" ]
@@ -89,10 +85,10 @@ class MangaDex extends ComicSource {
                         options: [ "updated", "any", "any" ]
                     }
                 } ], i = [];
-                for (let e = 0; e < t.length; e++) {
-                    let r = t[e];
+                for (let e = 0; e < a.length; e++) {
+                    let r = a[e];
                     i.push({
-                        title: a[e],
+                        title: t[e],
                         comics: r.comics,
                         viewMore: s[e]
                     });
@@ -106,12 +102,12 @@ class MangaDex extends ComicSource {
                 type: "dynamic",
                 loader: () => {
                     let e = [];
-                    for (let t of Object.keys(this.tags)) e.push({
-                        label: t,
+                    for (let a of Object.keys(this.tags)) e.push({
+                        label: a,
                         target: {
                             action: "category",
-                            keyword: t,
-                            param: this.tags[t]
+                            keyword: a,
+                            param: this.tags[a]
                         }
                     });
                     return e;
@@ -119,10 +115,10 @@ class MangaDex extends ComicSource {
             } ],
             enableRankingPage: !1
         }, this.categoryComics = {
-            load: async (e, t, a = [], s = 1) => {
-                if (!t) throw new Error("No tag id provided for category comics");
-                const i = (e, t) => null == e || "" === e ? t : e.split("-")[0] || t, r = i(a[0], "popular"), o = i(a[1], "any"), c = i(a[2], "any");
-                let n, l = [ "includes[]=cover_art", "includes[]=artist", "includes[]=author", "hasAvailableChapters=true", `limit=${this.comicsPerPage}`, `includedTags[]=${encodeURIComponent(t)}` ];
+            load: async (e, a, t = [], s = 1) => {
+                if (!a) throw new Error("No tag id provided for category comics");
+                const i = (e, a) => null == e || "" === e ? a : e.split("-")[0] || a, r = i(t[0], "popular"), o = i(t[1], "any"), c = i(t[2], "any");
+                let n, l = [ "includes[]=cover_art", "includes[]=artist", "includes[]=author", "hasAvailableChapters=true", `limit=${this.comicsPerPage}`, `includedTags[]=${encodeURIComponent(a)}` ];
                 if (s && s > 1 && l.push("offset=" + (s - 1) * this.comicsPerPage), "any" !== r) {
                     const e = {
                         popular: "followedCount",
@@ -136,13 +132,11 @@ class MangaDex extends ComicSource {
                 n = "any" === o ? [ "safe", "suggestive", "erotica" ] : [ o ];
                 for (let e of n) l.push(`contentRating[]=${encodeURIComponent(e)}`);
                 "any" !== c && l.push(`status[]=${encodeURIComponent(c)}`);
-                let d = `https://api.mangadex.org/manga?${l.join("&")}`, f = await fetch(d);
-                if (!f.ok) throw new Error("Network response was not ok");
-                let u = await f.json(), h = u.total || 0, p = [];
+                let d = `https://api.mangadex.org/manga?${l.join("&")}`, u = await fetchMangaDexJson(d), f = u.total || 0, p = [];
                 for (let e of u.data || []) p.push(this.api.parseComic(e));
                 return {
                     comics: p,
-                    maxPage: h ? Math.ceil(h / this.comicsPerPage) : p.length < this.comicsPerPage ? s : s + 1
+                    maxPage: f ? Math.ceil(f / this.comicsPerPage) : p.length < this.comicsPerPage ? s : s + 1
                 };
             },
             optionList: [ {
@@ -153,48 +147,42 @@ class MangaDex extends ComicSource {
                 options: [ "any-Any", "ongoing-Ongoing", "completed-Completed", "hiatus-Hiatus", "cancelled-Cancelled" ]
             } ]
         }, this.search = {
-            load: async (e, t, a) => {
+            load: async (e, a, t) => {
                 let s = "";
-                "any" !== t[0] && (s = {
+                "any" !== a[0] && (s = {
                     popular: "order[followedCount]=desc&",
                     recent: "order[createdAt]=desc&",
                     updated: "order[latestUploadedChapter]=desc&",
                     rating: "order[rating]=desc&",
                     follows: "order[followedCount]=desc&"
-                }[t[0]]);
+                }[a[0]]);
                 let i = "";
-                "any" !== t[1] && (i = `contentRating[]=${t[1]}&`);
+                "any" !== a[1] && (i = `contentRating[]=${a[1]}&`);
                 let r = "";
-                "any" !== t[2] && (r = `status[]=${t[2]}&`);
+                "any" !== a[2] && (r = `status[]=${a[2]}&`);
                 let o = "https://api.mangadex.org/manga?includes[]=cover_art&includes[]=artist&includes[]=author&" + s + i + r + "hasAvailableChapters=true&" + `limit=${this.comicsPerPage}`;
-                if (a && a > 1 && (o += "&offset=" + (a - 1) * this.comicsPerPage), e) {
-                    let t = e.split(" "), a = [];
-                    for (let e of t) if ("" !== e) if (e.startsWith("tag:")) {
-                        let t = e.substring(4);
-                        t = t.replaceAll("_", " ");
-                        let s = this.tags[t];
-                        void 0 !== s ? o += `&includedTags[]=${s}` : a.push(e);
+                if (t && t > 1 && (o += "&offset=" + (t - 1) * this.comicsPerPage), e) {
+                    let a = e.split(" "), t = [];
+                    for (let e of a) if ("" !== e) if (e.startsWith("tag:")) {
+                        let a = e.substring(4);
+                        a = a.replaceAll("_", " ");
+                        let s = this.tags[a];
+                        void 0 !== s ? o += `&includedTags[]=${s}` : t.push(e);
                     } else if (e.startsWith("author:")) {
-                        let t = e.substring(7);
-                        t = t.replaceAll("_", " ");
-                        let s = this.authors[t];
-                        void 0 !== s ? o += `&authorOrArtist=${s}` : a.push(e);
+                        let a = e.substring(7);
+                        a = a.replaceAll("_", " ");
+                        let s = this.authors[a];
+                        void 0 !== s ? o += `&authorOrArtist=${s}` : t.push(e);
                     } else if (e.startsWith("artist:")) {
-                        let t = e.substring(7);
-                        t = t.replaceAll("_", " ");
-                        let s = this.artists[t];
-                        void 0 !== s ? o += `&authorOrArtist=${s}` : a.push(e);
-                    } else a.push(e);
-                    "" !== (e = a.join(" ")) && (o += `&title=${e}`);
+                        let a = e.substring(7);
+                        a = a.replaceAll("_", " ");
+                        let s = this.artists[a];
+                        void 0 !== s ? o += `&authorOrArtist=${s}` : t.push(e);
+                    } else t.push(e);
+                    "" !== (e = t.join(" ")) && (o += `&title=${e}`);
                 }
-                let c = await fetch(o);
-                if (!c.ok) throw new Error("Network response was not ok");
-                let n = await c.json(), l = n.total, d = Math.ceil(l / this.comicsPerPage), f = [];
-                for (let e of n.data) f.push(this.api.parseComic(e));
-                return {
-                    comics: f,
-                    maxPage: d
-                };
+                let c = await fetchMangaDexJson(o);
+                return this.api.parseMangaList(c);
             },
             optionList: [ {
                 label: "Sort By",
@@ -212,125 +200,117 @@ class MangaDex extends ComicSource {
             enableTagsSuggestions: !1
         }, this.comic = {
             getComic: async e => {
-                let t = await fetch(`https://api.mangadex.org/manga/${e}?includes[]=cover_art&includes[]=artist&includes[]=author`);
-                if (!t.ok) throw new Error("Network response was not ok");
-                let a = await t.json();
+                let a = await fetchMangaDexJson(`https://api.mangadex.org/manga/${e}?includes[]=cover_art&includes[]=artist&includes[]=author`);
                 return this.api.parseComic(a.data);
             },
             getChapters: async e => {
-                let t = await fetch(`https://api.mangadex.org/manga/${e}/feed?limit=500&translatedLanguage[]=en&order[chapter]=asc`);
-                if (!t.ok) throw new Error("Network response was not ok");
-                let a = await t.json(), s = new Map;
+                let a = await fetchMangaDexJson(`https://api.mangadex.org/manga/${e}/feed?limit=500&translatedLanguage[]=en&order[chapter]=asc`), t = new Map;
                 for (let e of a.data) {
-                    var i;
-                    let t = e.id, a = null != (i = e.attributes.chapter) ? i : "Oneshot", r = e.attributes.title;
-                    r = r ? `${a}: ${r}` : a;
+                    var s;
+                    let a = e.id, i = null != (s = e.attributes.chapter) ? s : "Oneshot", r = e.attributes.title;
+                    r = r ? `${i}: ${r}` : i;
                     let o = e.attributes.volume;
-                    o = o ? `Volume ${o}` : "No Volume", void 0 === s.get(o) && s.set(o, new Map), s.get(o).set(t, r);
+                    o = o ? `Volume ${o}` : "No Volume", void 0 === t.get(o) && t.set(o, new Map), t.get(o).set(a, r);
                 }
-                return s;
+                return t;
             },
             getStats: async e => {
-                var t, a;
-                let s = await fetch(`https://api.mangadex.org/statistics/manga/${e}`);
-                if (!s.ok) throw new Error("Network response was not ok");
-                let i = await s.json();
+                var a, t;
+                let s = await fetchMangaDexJson(`https://api.mangadex.org/statistics/manga/${e}`);
                 return {
-                    comments: (null == (t = i.statistics[e].comments) ? void 0 : t.repliesCount) || 0,
-                    threadId: null == (a = i.statistics[e].comments) ? void 0 : a.threadId,
-                    follows: i.statistics[e].follows || 0,
-                    rating: i.statistics[e].rating.average || 0
+                    comments: (null == (a = s.statistics[e].comments) ? void 0 : a.repliesCount) || 0,
+                    threadId: null == (t = s.statistics[e].comments) ? void 0 : t.threadId,
+                    follows: s.statistics[e].follows || 0,
+                    rating: s.statistics[e].rating.average || 0
                 };
             },
             loadInfo: async e => {
-                let t = await Promise.all([ this.comic.getComic(e), this.comic.getChapters(e), this.comic.getStats(e) ]), a = t[0], s = t[1], i = t[2];
+                let a = await Promise.all([ this.comic.getComic(e), this.comic.getChapters(e), this.comic.getStats(e) ]), t = a[0], s = a[1], i = a[2];
                 return new ComicDetails({
-                    id: a.id,
-                    title: a.title,
-                    subtitle: a.subtitle,
-                    cover: a.cover,
+                    id: t.id,
+                    title: t.title,
+                    subtitle: t.subtitle,
+                    cover: t.cover,
                     tags: {
-                        Tags: a.tags,
-                        Status: a.status,
-                        Authors: a.authors,
-                        Artists: a.artists
+                        Tags: t.tags,
+                        Status: t.status,
+                        Authors: t.authors,
+                        Artists: t.artists
                     },
-                    description: a.description,
-                    updateTime: a.updateTime,
-                    uploadTime: a.createTime,
-                    status: a.status,
+                    description: t.description,
+                    updateTime: t.updateTime,
+                    uploadTime: t.createTime,
+                    status: t.status,
                     chapters: s,
                     stars: (i.rating || 0) / 2,
-                    url: `https://mangadex.org/title/${a.id}`
+                    url: `https://mangadex.org/title/${t.id}`
                 });
             },
-            starRating: async (e, t) => {},
-            loadEp: async (e, t) => {
-                if (!t) throw new Error("No chapter id provided");
-                let a = await fetch(`https://api.mangadex.org/at-home/server/${t}`);
-                if (!a.ok) throw new Error("Network response was not ok");
-                let s = await a.json(), i = [];
-                if ("Original" == this.loadSetting("image_quality")) for (let e of s.chapter.data) i.push(`https://uploads.mangadex.org/data/${s.chapter.hash}/${e}`); else for (let e of s.chapter.dataSaver) i.push(`https://uploads.mangadex.org/data-saver/${s.chapter.hash}/${e}`);
+            starRating: async (e, a) => {},
+            loadEp: async (e, a) => {
+                if (!a) throw new Error("No chapter id provided");
+                let t = await fetchMangaDexJson(`https://api.mangadex.org/at-home/server/${a}`), s = [];
+                if ("Original" == this.loadSetting("image_quality")) for (let e of t.chapter.data) s.push(`https://uploads.mangadex.org/data/${t.chapter.hash}/${e}`); else for (let e of t.chapter.dataSaver) s.push(`https://uploads.mangadex.org/data-saver/${t.chapter.hash}/${e}`);
                 return {
-                    images: i
+                    images: s
                 };
             },
-            loadComments: async (e, t, a, s) => {
+            loadComments: async (e, a, t, s) => {
                 let i = (await this.comic.getStats(e)).threadId;
                 if (!i) return {
                     comments: [],
                     maxPage: 1
                 };
-                let r = `https://forums.mangadex.org/threads/${i}/page-${a}`, o = await fetch(r);
+                let r = `https://forums.mangadex.org/threads/${i}/page-${t}`, o = await fetch(r);
                 if (!o.ok) throw new Error(`Failed to load forum page: ${o.status}`);
                 let c = await o.text(), n = new HtmlDocument(c), l = [], d = n.querySelectorAll("article.message");
                 for (let e of d) {
-                    let t = e.attributes.id || "", a = e.querySelector(".message-name"), s = a ? a.text : "Unknown", i = e.querySelector(".avatar img"), r = i ? i.attributes.src : null;
+                    let a = e.attributes.id || "", t = e.querySelector(".message-name"), s = t ? t.text : "Unknown", i = e.querySelector(".avatar img"), r = i ? i.attributes.src : null;
                     r && (r = "https://forums.mangadex.org" + r);
                     let o = e.querySelector("time"), c = o ? o.text : "Unknown", n = e.querySelector(".bbWrapper"), d = "";
                     n && (d = n.innerHTML, d = n.innerHTML.replace(/[\r\n\t]+/g, ""), d = d.replace(/<div class="bbCodeBlock-expandLink[^>]*>.*?<\/div>/gi, ""),
                     d = d.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, ""), d = d.replace(/<blockquote[^>]*>/gi, '<span style="font-style:italic;font-weight:lighter">'),
                     d = d.replace(/<\/blockquote>/gi, "</span>"), d = d.replace(/<button[^>]*class="[^"]*bbCodeSpoiler-button[^"]*"[^>]*>([\s\S]*?)<\/button>/gi, '<span style="font-weight:bold">[$1]</span>'),
-                    d = d.replace(/<img([^>]*)>/gi, (e, t) => {
-                        if (t.includes("smilie")) {
-                            let e = t.match(/alt="([^"]+)"/i);
+                    d = d.replace(/<img([^>]*)>/gi, (e, a) => {
+                        if (a.includes("smilie")) {
+                            let e = a.match(/alt="([^"]+)"/i);
                             return e ? e[1] : "";
                         }
-                        let a = t.match(/src="([^"]+)"/i);
-                        if (a) {
-                            let e = a[1];
-                            if (e.startsWith("/")) return e = "https://forums.mangadex.org" + e, `<img${t.replace(a[0], `src="${e}"`)}>`;
+                        let t = a.match(/src="([^"]+)"/i);
+                        if (t) {
+                            let e = t[1];
+                            if (e.startsWith("/")) return e = "https://forums.mangadex.org" + e, `<img${a.replace(t[0], `src="${e}"`)}>`;
                         }
                         return e;
-                    }), d = d.replace(/<\/?([a-z0-9]+)[^>]*>/gi, (e, t) => [ "img", "a", "b", "i", "u", "s", "br", "span", "strong" ].includes(t.toLowerCase()) ? e : [ "div", "p" ].includes(t.toLowerCase()) && e.startsWith("</") ? "<br>" : "")),
+                    }), d = d.replace(/<\/?([a-z0-9]+)[^>]*>/gi, (e, a) => [ "img", "a", "b", "i", "u", "s", "br", "span", "strong" ].includes(a.toLowerCase()) ? e : [ "div", "p" ].includes(a.toLowerCase()) && e.startsWith("</") ? "<br>" : "")),
                     l.push(new Comment({
-                        id: t,
+                        id: a,
                         userName: s,
                         avatar: r,
                         content: d,
                         time: c
                     }));
                 }
-                let f = a, u = n.querySelectorAll(".pageNav-page > a");
-                if (u && u.length > 0) {
-                    let e = u[u.length - 1].text, t = parseInt(e);
-                    isNaN(t) || (f = Math.max(f, t));
+                let u = t, f = n.querySelectorAll(".pageNav-page > a");
+                if (f && f.length > 0) {
+                    let e = f[f.length - 1].text, a = parseInt(e);
+                    isNaN(a) || (u = Math.max(u, a));
                 }
                 return n.dispose(), {
                     comments: l,
-                    maxPage: f
+                    maxPage: u
                 };
             },
-            sendComment: async (e, t, a, s) => {
+            sendComment: async (e, a, t, s) => {
                 throw new Error("Not implemented");
             },
-            onClickTag: (e, t) => {
-                let a = t = t.replaceAll(" ", "_");
-                return "Tags" === e ? a = `tag:${t}` : "Authors" === e ? a = `author:${t}` : "Artists" === e && (a = `artist:${t}`),
+            onClickTag: (e, a) => {
+                let t = a = a.replaceAll(" ", "_");
+                return "Tags" === e ? t = `tag:${a}` : "Authors" === e ? t = `author:${a}` : "Artists" === e && (t = `artist:${a}`),
                 {
                     page: "search",
                     attributes: {
-                        keyword: a
+                        keyword: t
                     }
                 };
             },
@@ -338,8 +318,8 @@ class MangaDex extends ComicSource {
                 domains: [ "mangadex.org" ],
                 linkToId: e => {
                     e.includes("?") && (e = e.split("?")[0]);
-                    let t = e.match(/\/(title|manga)\/([a-f0-9-]{36})/i);
-                    return t ? t[2] : null;
+                    let a = e.match(/\/(title|manga)\/([a-f0-9-]{36})/i);
+                    return a ? a[2] : null;
                 }
             }
         }, this.settings = {
@@ -440,20 +420,30 @@ class MangaDex extends ComicSource {
     }
 }
 
+async function fetchMangaDexJson(e) {
+    const a = await fetch(e);
+    if (!a.ok) throw new Error("Network response was not ok");
+    return await a.json();
+}
+
 function __veneraGetRuntimeGlobal() {
     return "object" == typeof globalThis && null !== globalThis ? globalThis : {};
 }
 
-function __veneraNormalizeAuthorityPart(e, t, a) {
-    const s = String(null == e ? "" : e).trim() || t;
-    return a ? s.replace(/^\/+|\/+$/g, "") : s;
+function __veneraNormalizeAuthorityPart(e, a, t) {
+    const s = String(null == e ? "" : e).trim() || a;
+    return t ? s.replace(/^\/+|\/+$/g, "") : s;
 }
 
 function resolvePluginUpdateUrl(e) {
-    const t = __veneraGetRuntimeGlobal(), a = t.__VENERA_RELEASE_AUTHORITY__ && "object" == typeof t.__VENERA_RELEASE_AUTHORITY__ ? t.__VENERA_RELEASE_AUTHORITY__ : {}, s = __veneraNormalizeAuthorityPart(a.cdnOrigin, "https://cdn.jsdelivr.net", !1).replace(/\/+$/, ""), i = __veneraNormalizeAuthorityPart(a.providerPath, "gh", !0), r = __veneraNormalizeAuthorityPart(a.repository, "mythic3011/venera-configs", !0), o = __veneraNormalizeAuthorityPart(a.releaseRef, "main", !1), c = __veneraNormalizeAuthorityPart(a.artifactPathPrefix, "dist/plugins", !0), n = String(e || "").replace(/^\/+/, "");
+    const a = __veneraGetRuntimeGlobal(), t = a.__VENERA_RELEASE_AUTHORITY__ && "object" == typeof a.__VENERA_RELEASE_AUTHORITY__ ? a.__VENERA_RELEASE_AUTHORITY__ : {}, s = __veneraNormalizeAuthorityPart(t.cdnOrigin, "https://cdn.jsdelivr.net", !1).replace(/\/+$/, ""), i = __veneraNormalizeAuthorityPart(t.providerPath, "gh", !0), r = __veneraNormalizeAuthorityPart(t.repository, "mythic3011/venera-configs", !0), o = __veneraNormalizeAuthorityPart(t.releaseRef, "main", !1), c = __veneraNormalizeAuthorityPart(t.artifactPathPrefix, "dist/plugins", !0), n = String(e || "").replace(/^\/+/, "");
     if (!n) return `${s}/${i}/${r}@${o}`;
     const l = c ? `${c}/${n}` : n;
     return `${s}/${i}/${r}@${o}/${n.startsWith(`${c}/`) ? n : l}`;
 }
+
+"undefined" != typeof module && module && module.exports && (module.exports = {
+    resolvePluginUpdateUrl
+});
 
 "use strict";

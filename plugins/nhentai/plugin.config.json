@@ -7,7 +7,21 @@
   "aliases": [],
   "source": {
     "type": "concat",
-    "moduleOrder": ["plugins/nhentai/src/index.js"]
+    "moduleOrder": [
+      "plugins/nhentai/src/index.js",
+      "plugins/nhentai/src/data/tag-catalog.js",
+      "plugins/nhentai/src/data/translations.js",
+      "plugins/nhentai/src/data/category-policy.js",
+      "plugins/nhentai/src/routes.js",
+      "plugins/nhentai/src/media.js",
+      "plugins/nhentai/src/parsers.js",
+      "plugins/nhentai/src/features/account.js",
+      "plugins/nhentai/src/features/explore.js",
+      "plugins/nhentai/src/features/category.js",
+      "plugins/nhentai/src/features/search.js",
+      "plugins/nhentai/src/features/favorites.js",
+      "plugins/nhentai/src/features/comic.js"
+    ]
   },
   "pipeline": {
     "mode": "standard"

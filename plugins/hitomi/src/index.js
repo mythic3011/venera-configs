@@ -29,6 +29,31 @@ const namespaces = [
   "type",
 ];
 
+const HITOMI_RESULT_PAGE_SIZE = 25;
+const HITOMI_SEARCH_SORTS = [
+  ["Date Added", "date", "added", "desc"],
+  ["Date Published", "date", "published", "desc"],
+  ["Popular:Today", "popular", "today", "desc"],
+  ["Popular:Week", "popular", "week", "desc"],
+  ["Popular:Month", "popular", "month", "desc"],
+  ["Popular:Year", "popular", "year", "desc"],
+  ["Random", "date", "added", "random"],
+];
+
+function buildHitomiSearchOptions(term, options) {
+  const sort = HITOMI_SEARCH_SORTS[parseInt(options[0])] || HITOMI_SEARCH_SORTS[0];
+  return {
+    term,
+    orderby: sort[1],
+    orderbykey: sort[2],
+    orderbydirection: sort[3],
+  };
+}
+
+function hitomiSortLabels() {
+  return HITOMI_SEARCH_SORTS.map((sort, index) => `${index}-${sort[0]}`);
+}
+
 const refererUrl = "https://hitomi.la/";
 let galleries_index_version = "";
 let gg = undefined;
@@ -685,6 +710,56 @@ async function getSingleTagSearchPage({ state, page }) {
   });
 }
 
+async function mapHitomiGalleryIds(source, gids) {
+  const galleries = await get_galleryblocks(gids);
+  return galleries.map((gallery) =>
+    source._mapGalleryBlockInfoToComic(gallery),
+  );
+}
+
+function createHitomiResultCache(result) {
+  return result.type === "single"
+    ? { type: "single", state: result.state, count: result.count }
+    : { type: "all", gids: result.gids, count: result.count };
+}
+
+async function loadHitomiFirstResultPage(source, term, options, page, saveCache) {
+  const result = await search(buildHitomiSearchOptions(term, options));
+  const gids =
+    result.type === "single"
+      ? result.gids
+      : result.gids.slice(
+          HITOMI_RESULT_PAGE_SIZE * page - HITOMI_RESULT_PAGE_SIZE,
+          HITOMI_RESULT_PAGE_SIZE * page,
+        );
+  const comics = await mapHitomiGalleryIds(source, gids);
+  saveCache(createHitomiResultCache(result));
+  return {
+    comics,
+    maxPage: Math.ceil(result.count / HITOMI_RESULT_PAGE_SIZE),
+  };
+}
+
+async function loadHitomiCachedResultPage(source, cache, page) {
+  let gids;
+  if (cache.type === "single") {
+    const result = await getSingleTagSearchPage({
+      state: cache.state,
+      page: page - 1,
+    });
+    gids = result.galleryids;
+  } else {
+    gids = cache.gids.slice(
+      HITOMI_RESULT_PAGE_SIZE * page - HITOMI_RESULT_PAGE_SIZE,
+      HITOMI_RESULT_PAGE_SIZE * page,
+    );
+  }
+  return {
+    comics: await mapHitomiGalleryIds(source, gids),
+    maxPage: Math.ceil(cache.count / HITOMI_RESULT_PAGE_SIZE),
+  };
+}
+
 async function multiTagSearch(options) {
   const getPromise = (n) => {
     if (!n.value) {
@@ -1098,7 +1173,7 @@ class Hitomi extends ComicSource {
 
         return {
           comics,
-          maxPage: Math.ceil(result.count / 25),
+          maxPage: Math.ceil(result.count / HITOMI_RESULT_PAGE_SIZE),
         };
       },
 
@@ -1158,109 +1233,27 @@ class Hitomi extends ComicSource {
       if (!term.includes(":"))
         throw new Error("不合法的标签，请使用namespace:tag的格式");
       if (page === 1) {
-        const option = parseInt(options[0]);
-        const searchOptions = {
+        return await loadHitomiFirstResultPage(
+          this,
           term,
-          orderby: "date",
-          orderbykey: "added",
-          orderbydirection: "desc",
-        };
-
-        switch (option) {
-          case 1:
-            searchOptions.orderbykey = "published";
-            break;
-          case 2:
-            searchOptions.orderby = "popular";
-            searchOptions.orderbykey = "today";
-            break;
-          case 3:
-            searchOptions.orderby = "popular";
-            searchOptions.orderbykey = "week";
-            break;
-          case 4:
-            searchOptions.orderby = "popular";
-            searchOptions.orderbykey = "month";
-            break;
-          case 5:
-            searchOptions.orderby = "popular";
-            searchOptions.orderbykey = "year";
-            break;
-          case 6:
-            searchOptions.orderbydirection = "random";
-            break;
-          default:
-            break;
-        }
-        const result = await search(searchOptions);
-        if (result.type === "single") {
-          const comics = (await get_galleryblocks(result.gids)).map((n) =>
-            this._mapGalleryBlockInfoToComic(n),
-          );
-          this.categoryResultCache = {
-            type: "single",
-            state: result.state,
-            count: result.count,
-          };
-          return {
-            comics,
-            maxPage: Math.ceil(result.count / 25),
-          };
-        } else {
-          const comics = (
-            await get_galleryblocks(
-              result.gids.slice(25 * page - 25, 25 * page),
-            )
-          ).map((n) => this._mapGalleryBlockInfoToComic(n));
-          this.categoryResultCache = {
-            type: "all",
-            gids: result.gids,
-            count: result.count,
-          };
-          return {
-            comics,
-            maxPage: Math.ceil(result.count / 25),
-          };
-        }
-      } else {
-        if (this.categoryResultCache.type === "single") {
-          const result = await getSingleTagSearchPage({
-            state: this.categoryResultCache.state,
-            page: page - 1,
-          });
-          const comics = (await get_galleryblocks(result.galleryids)).map((n) =>
-            this._mapGalleryBlockInfoToComic(n),
-          );
-          return {
-            comics,
-            maxPage: Math.ceil(this.categoryResultCache.count / 25),
-          };
-        } else {
-          const comics = (
-            await get_galleryblocks(
-              this.categoryResultCache.gids.slice(25 * page - 25, 25 * page),
-            )
-          ).map((n) => this._mapGalleryBlockInfoToComic(n));
-          return {
-            comics,
-            maxPage: Math.ceil(this.categoryResultCache.count / 25),
-          };
-        }
+          options,
+          page,
+          (cache) => {
+            this.categoryResultCache = cache;
+          },
+        );
       }
+      return await loadHitomiCachedResultPage(
+        this,
+        this.categoryResultCache,
+        page,
+      );
     },
     // provide options for category comic loading
     optionList: [
       {
         // For a single option, use `-` to separate the value and text, left for value, right for text
-        options: [
-          "0-Date Added",
-          "1-Date Published",
-          "2-Popular:Today",
-          "3-Popular:Week",
-          "4-Popular:Month",
-          "5-Popular:Year",
-          "6-Random",
-        ],
+        options: hitomiSortLabels(),
         // [Optional] {string[]} - show this option only when the value not in the list
         notShowWhen: null,
         // [Optional] {string[]} - show this option only when the value in the list
@@ -1296,7 +1289,7 @@ class Hitomi extends ComicSource {
 
         return {
           comics,
-          maxPage: Math.ceil(result.count / 25),
+          maxPage: Math.ceil(result.count / HITOMI_RESULT_PAGE_SIZE),
         };
       },
     },
@@ -1314,97 +1307,16 @@ class Hitomi extends ComicSource {
     load: async (keyword, options, page) => {
       const cacheKey = (keyword || "") + "|" + options.join(",");
       if (page === 1) {
-        const option = parseInt(options[0]);
-        const term = keyword;
-        const searchOptions = {
-          term,
-          orderby: "date",
-          orderbykey: "added",
-          orderbydirection: "desc",
-        };
-
-        switch (option) {
-          case 1:
-            searchOptions.orderbykey = "published";
-            break;
-          case 2:
-            searchOptions.orderby = "popular";
-            searchOptions.orderbykey = "today";
-            break;
-          case 3:
-            searchOptions.orderby = "popular";
-            searchOptions.orderbykey = "week";
-            break;
-          case 4:
-            searchOptions.orderby = "popular";
-            searchOptions.orderbykey = "month";
-            break;
-          case 5:
-            searchOptions.orderby = "popular";
-            searchOptions.orderbykey = "year";
-            break;
-          case 6:
-            searchOptions.orderbydirection = "random";
-            break;
-          default:
-            break;
-        }
-        const result = await search(searchOptions);
-        if (result.type === "single") {
-          const comics = (await get_galleryblocks(result.gids)).map((n) =>
-            this._mapGalleryBlockInfoToComic(n),
-          );
-          this.searchResultCaches.set(cacheKey, {
-            type: "single",
-            state: result.state,
-            count: result.count,
-          });
-          return {
-            comics,
-            maxPage: Math.ceil(result.count / 25),
-          };
-        } else {
-          const comics = (
-            await get_galleryblocks(
-              result.gids.slice(25 * page - 25, 25 * page),
-            )
-          ).map((n) => this._mapGalleryBlockInfoToComic(n));
-          this.searchResultCaches.set(cacheKey, {
-            type: "all",
-            gids: result.gids,
-            count: result.count,
-          });
-          return {
-            comics,
-            maxPage: Math.ceil(result.count / 25),
-          };
-        }
-      } else {
-        const searchResultCache = this.searchResultCaches.get(cacheKey);
-        if (searchResultCache.type === "single") {
-          const result = await getSingleTagSearchPage({
-            state: searchResultCache.state,
-            page: page - 1,
-          });
-          const comics = (await get_galleryblocks(result.galleryids)).map((n) =>
-            this._mapGalleryBlockInfoToComic(n),
-          );
-          return {
-            comics,
-            maxPage: Math.ceil(searchResultCache.count / 25),
-          };
-        } else {
-          const comics = (
-            await get_galleryblocks(
-              searchResultCache.gids.slice(25 * page - 25, 25 * page),
-            )
-          ).map((n) => this._mapGalleryBlockInfoToComic(n));
-          return {
-            comics,
-            maxPage: Math.ceil(searchResultCache.count / 25),
-          };
-        }
+        return await loadHitomiFirstResultPage(
+          this,
+          keyword,
+          options,
+          page,
+          (cache) => this.searchResultCaches.set(cacheKey, cache),
+        );
       }
+      const cachedResult = this.searchResultCaches.get(cacheKey);
+      return await loadHitomiCachedResultPage(this, cachedResult, page);
     },
 
     /**
@@ -1427,15 +1339,7 @@ class Hitomi extends ComicSource {
         // For dropdown, there is one selected value at most. If no selected value, the `load` function will receive a null
         type: "select",
         // For a single option, use `-` to separate the value and text, left for value, right for text
-        options: [
-          "0-Date Added",
-          "1-Date Published",
-          "2-Popular:Today",
-          "3-Popular:Week",
-          "4-Popular:Month",
-          "5-Popular:Year",
-          "6-Random",
-        ],
+        options: hitomiSortLabels(),
         // option label
         label: "sort",
         // default selected options. If not set, use the first option as default

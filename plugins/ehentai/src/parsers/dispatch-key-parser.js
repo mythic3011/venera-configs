@@ -1,13 +1,9 @@
 function parseDispatchKey(document) {
-  function safeText(node) {
-    return node && typeof node.text === "string" ? node.text : "";
-  }
-
   let scripts = document.querySelectorAll("script");
   let showScript = null;
   let mpvScriptNode = null;
   for (let script of scripts) {
-    let text = safeText(script);
+    let text = ehSafeText(script, "");
     if (!showScript && text.includes("showkey")) {
       showScript = script;
     }
@@ -21,13 +17,13 @@ function parseDispatchKey(document) {
 
   if (showScript) {
     let reg = RegExp('showkey="(.*?)"', "g");
-    let match = reg.exec(safeText(showScript));
+    let match = reg.exec(ehSafeText(showScript, ""));
     if (match) {
       return { showkey: match[1] };
     }
   }
 
-  let scriptText = safeText(mpvScriptNode);
+  let scriptText = ehSafeText(mpvScriptNode, "");
   if (scriptText) {
     let mpvkey = "";
     let imageKeys = [];

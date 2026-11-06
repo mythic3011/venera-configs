@@ -625,14 +625,4 @@ class Kavita extends ComicSource {
     return buildSelfHostedQueryFromSource(query);
   }
 
-  formatDate(value) {
-    if (!value) return null;
-    try {
-      const date = new Date(value);
-      if (Number.isNaN(date.getTime())) return null;
-      return date.toISOString().split("T")[0];
-    } catch (_) {
-      return null;
-    }
-  }
 }

@@ -4,20 +4,6 @@ function parseGalleryList({
   url,
   isLeaderBoard,
 }) {
-  function safeText(node, fallback) {
-    if (node && typeof node.text === "string") {
-      return node.text;
-    }
-    return fallback;
-  }
-
-  function safeAttr(node, key, fallback) {
-    if (node && node.attributes && typeof node.attributes[key] !== "undefined") {
-      return node.attributes[key];
-    }
-    return fallback;
-  }
-
   function firstNumber(text, fallback) {
     let match = text ? text.match(/\d+/) : null;
     if (!match) {
@@ -37,9 +23,9 @@ function parseGalleryList({
         continue;
       }
       let metaContainer = infoCell.children.length > 2 ? infoCell.children[2] : null;
-      let time = safeText(metaContainer && metaContainer.children.length > 0 ? metaContainer.children[0] : null, "");
+      let time = ehSafeText(metaContainer && metaContainer.children.length > 0 ? metaContainer.children[0] : null, "");
       let stars = source.getStarsFromPosition(
-        safeAttr(metaContainer && metaContainer.children.length > 1 ? metaContainer.children[1] : null, "style", ""),
+        ehSafeAttr(metaContainer && metaContainer.children.length > 1 ? metaContainer.children[1] : null, "style", ""),
       );
       let coverNode = infoCell;
       if (coverNode && coverNode.children.length > 1) {
@@ -51,14 +37,14 @@ function parseGalleryList({
       if (coverNode && coverNode.children.length > 0) {
         coverNode = coverNode.children[0];
       }
-      let cover = safeAttr(coverNode, "src", "");
+      let cover = ehSafeAttr(coverNode, "src", "");
       if (cover && cover[0] === "d") {
-        cover = safeAttr(coverNode, "data-src", cover);
+        cover = ehSafeAttr(coverNode, "data-src", cover);
       }
       let detailsCell = item.children.length > 2 + t ? item.children[2 + t] : null;
       let detailsRoot = detailsCell && detailsCell.children.length > 0 ? detailsCell.children[0] : null;
-      let title = safeText(detailsRoot && detailsRoot.children.length > 0 ? detailsRoot.children[0] : null, "Unknown");
-      let link = safeAttr(detailsRoot, "href", "");
+      let title = ehSafeText(detailsRoot && detailsRoot.children.length > 0 ? detailsRoot.children[0] : null, "Unknown");
+      let link = ehSafeAttr(detailsRoot, "href", "");
       let uploader = "";
       let pages = 0;
       try {
@@ -67,10 +53,10 @@ function parseGalleryList({
           if (favNode.children.length > 1) favNode = favNode.children[1];
           if (favNode.children.length > 1) favNode = favNode.children[1];
           if (favNode.children.length > 1) favNode = favNode.children[1];
-          pages = firstNumber(safeText(favNode && favNode.children.length > 1 ? favNode.children[1] : null, ""), 0);
+          pages = firstNumber(ehSafeText(favNode && favNode.children.length > 1 ? favNode.children[1] : null, ""), 0);
         } else {
           let uploaderCell = item.children.length > 3 + t ? item.children[3 + t] : null;
-          pages = firstNumber(safeText(uploaderCell && uploaderCell.children.length > 1 ? uploaderCell.children[1] : null, ""), 0);
+          pages = firstNumber(ehSafeText(uploaderCell && uploaderCell.children.length > 1 ? uploaderCell.children[1] : null, ""), 0);
           let uploaderAnchor = null;
           if (uploaderCell && uploaderCell.children.length > 0) {
             uploaderAnchor = uploaderCell.children[0];
@@ -78,14 +64,14 @@ function parseGalleryList({
           if (uploaderAnchor && uploaderAnchor.children.length > 0) {
             uploaderAnchor = uploaderAnchor.children[0];
           }
-          uploader = safeText(uploaderAnchor, "");
+          uploader = ehSafeText(uploaderAnchor, "");
         }
       } catch (_) {}
       let tags = [];
       let language = null;
       let tagContainer = detailsRoot && detailsRoot.children.length > 1 ? detailsRoot.children[1] : null;
       for (let node of tagContainer ? tagContainer.children : []) {
-        let tag = safeAttr(node, "title", "");
+        let tag = ehSafeAttr(node, "title", "");
         if (!tag) {
           continue;
         }
@@ -114,17 +100,17 @@ function parseGalleryList({
 
   for (let item of document.querySelectorAll("div.gl1t")) {
     try {
-      let title = safeText(item.querySelector("a"), "Unknown");
+      let title = ehSafeText(item.querySelector("a"), "Unknown");
       let gl5Rows = item.querySelectorAll("div.gl5t > div > div");
       let time = gl5Rows.find((element) => !isNaN(Date.parse(element.text)));
-      time = safeText(time, "");
-      let coverPath = safeAttr(item.querySelector("img"), "src", "");
+      time = ehSafeText(time, "");
+      let coverPath = ehSafeAttr(item.querySelector("img"), "src", "");
       let stars = source.getStarsFromPosition(
-        safeAttr(item.querySelector("div.gl5t > div > div.ir"), "style", ""),
+        ehSafeAttr(item.querySelector("div.gl5t > div > div.ir"), "style", ""),
       );
-      let link = safeAttr(item.querySelector("a"), "href", "");
+      let link = ehSafeAttr(item.querySelector("a"), "href", "");
       let pageElement = gl5Rows.find((element) => element.text.includes("page"));
-      let pages = firstNumber(safeText(pageElement, ""), 0);
+      let pages = firstNumber(ehSafeText(pageElement, ""), 0);
       galleries.push(
         new Comic({
           id: link,
@@ -140,23 +126,23 @@ function parseGalleryList({
 
   for (let item of document.querySelectorAll("table.itg.glte > tbody > tr")) {
     try {
-      let title = safeText(item.querySelector("td.gl2e > div > a > div > div.glink"), "Unknown");
+      let title = ehSafeText(item.querySelector("td.gl2e > div > a > div > div.glink"), "Unknown");
       let gl3Rows = item.querySelectorAll("td.gl2e > div > div.gl3e > div");
       let time =
-        safeText(
+        ehSafeText(
           gl3Rows.find((element) => !isNaN(Date.parse(element.text))),
           "Unknown",
         );
-      let uploader = safeText(item.querySelector("td.gl2e > div > div.gl3e > div > a"), "Unknown");
-      let coverPath = safeAttr(item.querySelector("td.gl1e > div > a > img"), "src", "");
+      let uploader = ehSafeText(item.querySelector("td.gl2e > div > div.gl3e > div > a"), "Unknown");
+      let coverPath = ehSafeAttr(item.querySelector("td.gl1e > div > a > img"), "src", "");
       let stars = source.getStarsFromPosition(
-        safeAttr(item.querySelector("td.gl2e > div > div.gl3e > div.ir"), "style", ""),
+        ehSafeAttr(item.querySelector("td.gl2e > div > div.gl3e > div.ir"), "style", ""),
       );
-      let link = safeAttr(item.querySelector("td.gl1e > div > a"), "href", "");
-      let tags = item.querySelectorAll("div.gt, div.gtl").map((e) => safeAttr(e, "title", ""));
+      let link = ehSafeAttr(item.querySelector("td.gl1e > div > a"), "href", "");
+      let tags = item.querySelectorAll("div.gt, div.gtl").map((e) => ehSafeAttr(e, "title", ""));
       tags = tags.filter((tag) => !!tag);
       let pages = firstNumber(
-        safeText(
+        ehSafeText(
           gl3Rows.find((element) => element.text.includes("page")),
           "",
         ),
@@ -185,23 +171,23 @@ function parseGalleryList({
 
   for (let item of document.querySelectorAll("table.itg.gltm > tbody > tr")) {
     try {
-      let title = safeText(item.querySelector("td.gl3m > a > div.glink"), "Unknown");
+      let title = ehSafeText(item.querySelector("td.gl3m > a > div.glink"), "Unknown");
       let gl2Rows = item.querySelectorAll("td.gl2m > div");
       let time =
-        safeText(
+        ehSafeText(
           gl2Rows.find((element) => !isNaN(Date.parse(element.text))),
           "Unknown",
         );
-      let uploader = safeText(item.querySelector("td.gl5m > div > a"), "Unknown");
+      let uploader = ehSafeText(item.querySelector("td.gl5m > div > a"), "Unknown");
       let coverNode = item.querySelector("td.gl2m > div > div > img");
-      let coverPath = safeAttr(coverNode, "src", "");
+      let coverPath = ehSafeAttr(coverNode, "src", "");
       if (coverPath && coverPath[0] === "d") {
-        coverPath = safeAttr(coverNode, "data-src", coverPath);
+        coverPath = ehSafeAttr(coverNode, "data-src", coverPath);
       }
       let stars = source.getStarsFromPosition(
-        safeAttr(item.querySelector("td.gl4m > div.ir"), "style", ""),
+        ehSafeAttr(item.querySelector("td.gl4m > div.ir"), "style", ""),
       );
-      let link = safeAttr(item.querySelector("td.gl3m > a"), "href", "");
+      let link = ehSafeAttr(item.querySelector("td.gl3m > a"), "href", "");
       galleries.push(
         new Comic({
           id: link,
@@ -215,6 +201,6 @@ function parseGalleryList({
     } catch (_) {}
   }
 
-  const next = safeAttr(document.querySelector("a#dnext"), "href", undefined);
+  const next = ehSafeAttr(document.querySelector("a#dnext"), "href", undefined);
   return { comics: galleries, next };
 }

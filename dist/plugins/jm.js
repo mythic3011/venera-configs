@@ -471,26 +471,10 @@ class JM extends ComicSource {
         for (;n > o && "}" !== s[n] && "]" !== s[n]; ) n--;
         return s.substring(o, n + 1);
     }
-    async get(e) {
-        let t = Math.floor(Date.now() / 1e3), a = await Network.get(e, this.getApiHeaders(t));
-        if (200 !== a.status) {
-            if (401 === a.status) {
-                let e = JSON.parse(a.body).errorMsg;
-                if ("請先登入會員" === e && this.isLogged) throw "Login expired";
-                throw null != e ? e : "Invalid Status Code: " + a.status;
-            }
-            throw "Invalid Status Code: " + a.status;
-        }
-        let i = JSON.parse(a.body).data;
-        if ("string" != typeof i) throw "Invalid Data";
-        return this.convertData(i, `${t}185Hcomic3PAPP7R`);
-    }
-    async post(e, t) {
-        let a = Math.floor(Date.now() / 1e3), i = await Network.post(e, {
-            ...this.getApiHeaders(a),
-            "Content-Type": "application/x-www-form-urlencoded"
-        }, t);
-        if (200 !== i.status) {
+    async request(e, t, a) {
+        let i, r = Math.floor(Date.now() / 1e3), s = this.getApiHeaders(r);
+        if ("GET" === e ? i = await Network.get(t, s) : (s["Content-Type"] = "application/x-www-form-urlencoded",
+        i = await Network.post(t, s, a)), 200 !== i.status) {
             if (401 === i.status) {
                 let e = JSON.parse(i.body).errorMsg;
                 if ("請先登入會員" === e && this.isLogged) throw "Login expired";
@@ -498,9 +482,15 @@ class JM extends ComicSource {
             }
             throw "Invalid Status Code: " + i.status;
         }
-        let r = JSON.parse(i.body).data;
-        if ("string" != typeof r) throw "Invalid Data";
-        return this.convertData(r, `${a}185Hcomic3PAPP7R`);
+        let o = JSON.parse(i.body).data;
+        if ("string" != typeof o) throw "Invalid Data";
+        return this.convertData(o, `${r}185Hcomic3PAPP7R`);
+    }
+    async get(e) {
+        return await this.request("GET", e);
+    }
+    async post(e, t) {
+        return await this.request("POST", e, t);
     }
     async dailyCheckIn(e = !1) {
         if (this.dailyCheckInInProgress) return;
@@ -547,6 +537,9 @@ function resolvePluginUpdateUrl(e) {
 }
 
 JM.jmVersion = "2.0.16", JM.jmPkgName = "com.example.app", JM.fallbackServers = [ "www.cdntwice.org", "www.cdnsha.org", "www.cdnaspa.cc", "www.cdnntr.cc" ],
-JM.imageUrl = "https://cdn-msp.jmapinodeudzn.net", JM.ua = "Mozilla/5.0 (Linux; Android 10; K; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/130.0.0.0 Mobile Safari/537.36";
+JM.imageUrl = "https://cdn-msp.jmapinodeudzn.net", JM.ua = "Mozilla/5.0 (Linux; Android 10; K; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/130.0.0.0 Mobile Safari/537.36",
+"undefined" != typeof module && module && module.exports && (module.exports = {
+    resolvePluginUpdateUrl
+});
 
 "use strict";

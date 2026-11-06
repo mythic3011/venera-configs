@@ -363,4 +363,8 @@ function resolvePluginUpdateUrl(e) {
     return `${o}/${i}/${r}@${s}/${l.startsWith(`${n}/`) ? l : c}`;
 }
 
+"undefined" != typeof module && module && module.exports && (module.exports = {
+    resolvePluginUpdateUrl
+});
+
 "use strict";

@@ -70,6 +70,13 @@ function createSource(modules) {
     buildRequestHeaders(method, url, headers) {
       return { ...(headers || {}), referer: this.baseUrl };
     },
+    parseJsonResponse(action, response) {
+      try {
+        return JSON.parse(response.body);
+      } catch (_) {
+        throw `${action} failed: invalid JSON response`;
+      }
+    },
     parseUrl: () => ({ id: "123", token: "abc" }),
     comic: {
       loadThumbnails: async (id, next) => {

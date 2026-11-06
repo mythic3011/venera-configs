@@ -6,7 +6,11 @@ const vm = require("node:vm");
 const { createVeneraHostShim } = require("./venera-host-shim");
 
 const REPO_ROOT = path.resolve(__dirname, "../..");
-const BUILD_MANIFEST_PATH = path.join(REPO_ROOT, ".generated", "build-manifest.json");
+const BUILD_MANIFEST_PATH = path.join(
+  REPO_ROOT,
+  ".generated",
+  "build-manifest.json",
+);
 
 function parseArgs(argv) {
   const args = {
@@ -63,16 +67,29 @@ function resolveArtifactPath(args) {
 
 function main() {
   const args = parseArgs(process.argv.slice(2));
+  const manifest = loadBuildManifest();
+  const plugins = Array.isArray(manifest.plugins) ? manifest.plugins : [];
   const artifactRelativePath = resolveArtifactPath(args);
   const artifactPath = path.join(REPO_ROOT, artifactRelativePath);
+  const plugin = plugins.find(
+    (entry) =>
+      entry.outputPath === artifactRelativePath ||
+      entry.artifact === artifactRelativePath,
+  );
   const source = fs.readFileSync(artifactPath, "utf8");
-  const classMatch = source.match(/class\s+([A-Za-z_$][A-Za-z0-9_$]*)\s+extends\s+ComicSource/);
+  const classMatch = source.match(
+    /class\s+([A-Za-z_$][A-Za-z0-9_$]*)\s+extends\s+ComicSource/,
+  );
   if (!classMatch) {
     throw new Error(`Cannot find source class in ${artifactRelativePath}`);
   }
 
   const className = classMatch[1];
-  const context = createVeneraHostShim();
+  const allowedOrigins =
+    plugin && Array.isArray(plugin.allowedOrigins) ? plugin.allowedOrigins : [];
+  const allowedUrls =
+    plugin && Array.isArray(plugin.allowedUrls) ? plugin.allowedUrls : [];
+  const context = createVeneraHostShim({ allowedOrigins, allowedUrls });
   vm.runInContext(`${source}\nthis.__Ctor__=${className};`, context, {
     filename: artifactRelativePath,
   });
@@ -89,6 +106,8 @@ function main() {
     name: instance.name,
     version: instance.version,
     minAppVersion: instance.minAppVersion || null,
+    allowedOrigins,
+    allowedUrls,
   };
 
   process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);

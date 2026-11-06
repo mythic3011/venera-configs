@@ -1,11 +1,4 @@
 function parseArchiveOptions(document, baseUrl) {
-  function safeText(node, fallback) {
-    if (node && typeof node.text === "string") {
-      return node.text;
-    }
-    return fallback;
-  }
-
   let body = document.querySelector("div#db");
   let index = baseUrl.includes("exhentai") ? 1 : 3;
   let archives = [];
@@ -20,10 +13,10 @@ function parseArchiveOptions(document, baseUrl) {
         let resolutionMatch = onclick ? onclick.match(/do_hathdl\('([^']+)'\)/) : null;
         if (resolutionMatch) {
           let resolution = resolutionMatch[1];
-          let linkText = safeText(link, "Unknown");
+          let linkText = ehSafeText(link, "Unknown");
           let paragraphs = cell.querySelectorAll("p");
-          let size = paragraphs.length > 1 ? safeText(paragraphs[1], "Unknown") : "Unknown";
-          let cost = paragraphs.length > 2 ? safeText(paragraphs[2], "Unknown") : "Unknown";
+          let size = paragraphs.length > 1 ? ehSafeText(paragraphs[1], "Unknown") : "Unknown";
+          let cost = paragraphs.length > 2 ? ehSafeText(paragraphs[2], "Unknown") : "Unknown";
           archives.push({
             id: `h@h_${resolution}`,
             title: `H@H ${linkText}`,
@@ -39,8 +32,8 @@ function parseArchiveOptions(document, baseUrl) {
     origin = body.children[index].children[0];
   }
   if (origin) {
-    let originCost = safeText(origin.querySelector("div > strong"), "Unknown");
-    let originSize = safeText(origin.querySelector("p > strong"), "Unknown");
+    let originCost = ehSafeText(origin.querySelector("div > strong"), "Unknown");
+    let originSize = ehSafeText(origin.querySelector("p > strong"), "Unknown");
     archives.push({
       id: "0",
       title: "Original",
@@ -53,8 +46,8 @@ function parseArchiveOptions(document, baseUrl) {
     resample = body.children[index].children[1];
   }
   if (resample) {
-    let resampleCost = safeText(resample.querySelector("div > strong"), "Unknown");
-    let resampleSize = safeText(resample.querySelector("p > strong"), "Unknown");
+    let resampleCost = ehSafeText(resample.querySelector("div > strong"), "Unknown");
+    let resampleSize = ehSafeText(resample.querySelector("p > strong"), "Unknown");
     archives.push({
       id: "1",
       title: "Resample",

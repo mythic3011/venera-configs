@@ -90,26 +90,7 @@ class Komiic extends ComicSource {
                         keyword: e
                     },
                     query: "query searchComicAndAuthorQuery($keyword: String!) {\n  searchComicsAndAuthors(keyword: $keyword) {\n    comics {\n      id\n      title\n      status\n      year\n      imageUrl\n      authors {\n        id\n        name\n        __typename\n      }\n      categories {\n        id\n        name\n        __typename\n      }\n      dateUpdated\n      monthViews\n      views\n      favoriteCount\n      lastBookUpdate\n      lastChapterUpdate\n      __typename\n    }\n    authors {\n      id\n      name\n      chName\n      enName\n      wikiLink\n      comicCount\n      views\n      __typename\n    }\n    __typename\n  }\n}"
-                })).data.searchComicsAndAuthors.comics.map(function(e) {
-                    let n = "";
-                    e.authors.length > 0 && (n = e.authors[0].name);
-                    let a = [];
-                    e.categories.forEach(e => {
-                        a.push(e.name);
-                    });
-                    let t = function(e) {
-                        const n = new Date - e, a = 36e5, t = 864e5;
-                        return n < a ? "剛剛更新" : n < t ? `${Math.floor(n / a)}小時前更新` : `${Math.floor(n / t)}天前更新`;
-                    }(new Date(e.dateUpdated));
-                    return {
-                        id: e.id,
-                        title: e.title,
-                        subTitle: n,
-                        cover: e.imageUrl,
-                        tags: a,
-                        description: t
-                    };
-                }),
+                })).data.searchComicsAndAuthors.comics.map(e => mapKomiicComic(e, !1)),
                 maxPage: 1
             }),
             optionList: []
@@ -325,30 +306,28 @@ class Komiic extends ComicSource {
     async queryComics(e) {
         let n = e.operationName;
         return {
-            comics: (await this.queryJson(e)).data[n].map(function(e) {
-                let n = "";
-                e.authors.length > 0 && (n = e.authors[0].name);
-                let a = [];
-                e.categories.forEach(e => {
-                    a.push(e.name);
-                });
-                let t = new Date(e.dateUpdated), o = function(e) {
-                    const n = new Date - e, a = 36e5, t = 864e5;
-                    return n < a ? "剛剛更新" : n < t ? `${Math.floor(n / a)}小時前更新` : `${Math.floor(n / t)}天前更新`;
-                }(t), i = `${t.getFullYear()}-${t.getMonth() + 1}-${t.getDate()}`;
-                return {
-                    id: e.id,
-                    title: e.title,
-                    subTitle: n,
-                    cover: e.imageUrl,
-                    tags: a,
-                    description: o,
-                    updateTime: i
-                };
-            }),
+            comics: (await this.queryJson(e)).data[n].map(e => mapKomiicComic(e, !0)),
             maxPage: null
         };
     }
+}
+
+function getKomiicTimeDifference(e) {
+    const n = new Date - e, a = 36e5, t = 864e5;
+    return n < a ? "剛剛更新" : n < t ? `${Math.floor(n / a)}小時前更新` : `${Math.floor(n / t)}天前更新`;
+}
+
+function mapKomiicComic(e, n) {
+    const a = e.authors.length ? e.authors[0].name : "", t = new Date(e.dateUpdated), o = {
+        id: e.id,
+        title: e.title,
+        subTitle: a,
+        cover: e.imageUrl,
+        tags: e.categories.map(e => e.name),
+        description: getKomiicTimeDifference(t)
+    };
+    return n && (o.updateTime = `${t.getFullYear()}-${t.getMonth() + 1}-${t.getDate()}`),
+    o;
 }
 
 function __veneraGetRuntimeGlobal() {
@@ -366,5 +345,9 @@ function resolvePluginUpdateUrl(e) {
     const c = s ? `${s}/${d}` : d;
     return `${t}/${o}/${i}@${r}/${d.startsWith(`${s}/`) ? d : c}`;
 }
+
+"undefined" != typeof module && module && module.exports && (module.exports = {
+    resolvePluginUpdateUrl
+});
 
 "use strict";

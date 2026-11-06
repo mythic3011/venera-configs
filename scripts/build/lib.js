@@ -13,6 +13,7 @@ const DIST_PLUGINS_DIR = path.join(
   ...DIST_PLUGINS_DIR_REL.split("/"),
 );
 const BUILD_MANIFEST_PATH = path.join(GENERATED_DIR, "build-manifest.json");
+const PUBLIC_INDEX_PATH = path.join(REPO_ROOT, "index.json");
 const RELEASE_AUTHORITY_PATH = path.join(
   REPO_ROOT,
   "scripts",
@@ -46,6 +47,8 @@ const pluginConfigSchema = z.object({
   minAppVersion: z.string().min(1),
   description: z.string().min(1).optional(),
   aliases: z.array(z.string().min(1)).optional().default([]),
+  allowedOrigins: z.array(z.string().min(1)).optional().default([]),
+  allowedUrls: z.array(z.string().min(1)).optional().default([]),
   deprecation: z
     .object({
       note: z.string().min(1),
@@ -222,6 +225,7 @@ module.exports = {
   DIST_PLUGINS_DIR_REL,
   DIST_PLUGINS_DIR,
   BUILD_MANIFEST_PATH,
+  PUBLIC_INDEX_PATH,
   RELEASE_AUTHORITY_PATH,
   pluginConfigSchema,
   ensureDir,

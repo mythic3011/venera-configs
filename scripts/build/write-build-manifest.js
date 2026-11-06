@@ -50,6 +50,8 @@ function buildManifest() {
         minAppVersion: config.minAppVersion,
         description: config.description || null,
         aliases: config.aliases || [],
+        allowedOrigins: config.allowedOrigins || [],
+        allowedUrls: config.allowedUrls || [],
         deprecation: config.deprecation || null,
         pipeline: config.pipeline || { mode: "standard" },
         runtimeShared: config.runtimeShared || [],
@@ -105,4 +107,8 @@ function main() {
   process.stdout.write(`Wrote ${path.relative(REPO_ROOT, BUILD_MANIFEST_PATH)}\n`);
 }
 
-main();
+module.exports = { buildManifest };
+
+if (require.main === module) {
+  main();
+}

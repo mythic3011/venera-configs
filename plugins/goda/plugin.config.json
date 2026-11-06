@@ -15,9 +15,8 @@
     "mode": "standard"
   },
   "runtimeShared": [
-    "shared/errors/runtime.js",
-    "shared/http/runtime.js",
-    "shared/features/mh_like/index.js",
-    "shared/families/mh_like/index.js"
+    "support/runtime/index.js",
+    "support/http/index.js",
+    "support/plugin/index.js"
   ]
 }
