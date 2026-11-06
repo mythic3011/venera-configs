@@ -7,48 +7,12 @@ class ComicWalker extends ComicSource {
             title: "カドコミ",
             type: "singlePageWithMultiPart",
             load: async () => {
-                const e = await this.request(`${this.api_base}/v2/screens/home`, this.headers), t = {}, r = e.resources.new_arrival_comics.map(e => {
-                    var t;
-                    return new Comic({
-                        id: e.id,
-                        title: e.title,
-                        cover: e.thumbnail_1x1 || "",
-                        tags: (null == (t = e.comic_labels) ? void 0 : t.map(e => e.name)) || []
-                    });
-                });
-                t["今日の更新"] = r;
-                const s = e.resources.attention_comics.map(e => {
-                    var t;
-                    return new Comic({
-                        id: e.comic_id,
-                        title: e.title,
-                        cover: e.image_url || "",
-                        tags: (null == (t = e.comic_labels) ? void 0 : t.map(e => e.name)) || []
-                    });
-                });
-                t["注目作品"] = s;
-                for (const r of e.resources.pickup_comics) {
-                    const e = r.comics.map(e => {
-                        var t;
-                        return new Comic({
-                            id: e.id,
-                            title: e.title,
-                            cover: e.thumbnail_1x1 || "",
-                            tags: (null == (t = e.comic_labels) ? void 0 : t.map(e => e.name)) || []
-                        });
-                    });
-                    t[r.name] = e;
-                }
-                const a = e.resources.new_serialization_comics.map(e => {
-                    var t;
-                    return new Comic({
-                        id: e.id,
-                        title: e.title,
-                        cover: e.thumbnail_1x1 || "",
-                        tags: (null == (t = e.comic_labels) ? void 0 : t.map(e => e.name)) || []
-                    });
-                });
-                return t["新連載"] = a, t;
+                const e = await this.request(`${this.api_base}/v2/screens/home`, this.headers), t = {};
+                t["今日の更新"] = e.resources.new_arrival_comics.map(e => mapComicWalkerCard(e, "id", "thumbnail_1x1")),
+                t["注目作品"] = e.resources.attention_comics.map(e => mapComicWalkerCard(e, "comic_id", "image_url"));
+                for (const r of e.resources.pickup_comics) t[r.name] = r.comics.map(e => mapComicWalkerCard(e, "id", "thumbnail_1x1"));
+                return t["新連載"] = e.resources.new_serialization_comics.map(e => mapComicWalkerCard(e, "id", "thumbnail_1x1")),
+                t;
             }
         } ], this.search = {
             load: async (e, t, r) => {
@@ -184,6 +148,16 @@ class ComicWalker extends ComicSource {
         200 == e.status && (response = JSON.parse(e.body), this.latestVersion = response.version),
         await this.refreshToken();
     }
+}
+
+function mapComicWalkerCard(e, t, r) {
+    var s;
+    return new Comic({
+        id: e[t],
+        title: e.title,
+        cover: e[r] || "",
+        tags: (null == (s = e.comic_labels) ? void 0 : s.map(e => e.name)) || []
+    });
 }
 
 function __veneraGetRuntimeGlobal() {

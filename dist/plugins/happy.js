@@ -200,21 +200,17 @@ class Happy extends ComicSource {
             };
         }, this.loadCommentsCommon = async (e, t, a, i, s) => {
             if (i) {
-                const e = `${this.baseUrl}/v2.0/apis/comment/subComments?root_id=${i}&pn=${a}&ps=10`, t = await Network.get(e);
-                if (200 !== t.status) throw `评论接口请求失败: ${t.status}`;
-                const s = JSON.parse(t.body);
+                const e = `${this.baseUrl}/v2.0/apis/comment/subComments?root_id=${i}&pn=${a}&ps=10`, t = await this._getCommentData(e);
                 return {
-                    comments: s.data.items.map(this.parseComment),
-                    maxPage: s.data.is_end ? a : null
+                    comments: t.data.items.map(this.parseComment),
+                    maxPage: t.data.is_end ? a : null
                 };
             }
             {
-                const i = this.loadSetting("commentOrder"), n = t ? `&ch_id=${t}` : "", o = `${this.baseUrl}/v2.0/apis/comment?code=${e}${n}&pn=${a}&order=${i}&from=${s}`, r = await Network.get(o);
-                if (200 !== r.status) throw `评论接口请求失败: ${r.status}`;
-                const l = JSON.parse(r.body);
+                const i = this.loadSetting("commentOrder"), n = t ? `&ch_id=${t}` : "", o = `${this.baseUrl}/v2.0/apis/comment?code=${e}${n}&pn=${a}&order=${i}&from=${s}`, r = await this._getCommentData(o);
                 return {
-                    comments: l.data.items.map(this.parseComment),
-                    maxPage: l.data.isEnd ? a : null
+                    comments: r.data.items.map(this.parseComment),
+                    maxPage: r.data.isEnd ? a : null
                 };
             }
         }, this.loadChaptersWithCache = async e => {
@@ -419,6 +415,11 @@ class Happy extends ComicSource {
                 }
             }
         };
+    }
+    async _getCommentData(e) {
+        const t = await Network.get(e);
+        if (200 !== t.status) throw `评论接口请求失败: ${t.status}`;
+        return JSON.parse(t.body);
     }
     init() {
         this.cleanCache(this.loadSetting("cacheTTL"));

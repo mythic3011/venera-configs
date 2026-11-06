@@ -1,8 +1,13 @@
 class Lanraragi extends ComicSource {
     constructor(...e) {
-        super(...e), this.name = "Lanraragi", this.key = "lanraragi", this.version = "1.2.9",
+        super(...e), this.name = "Lanraragi", this.key = "lanraragi", this.version = "1.2.10",
         this.minAppVersion = "1.4.0", this.url = resolvePluginUpdateUrl("lanraragi.js"),
         this.settings = {
+            translationUrl: {
+                title: "Translation JSON URL (optional HTTPS)",
+                type: "input",
+                default: `${resolvePluginUpdateUrl("")}/support/i18n/tags.json`
+            },
             api: {
                 title: "API",
                 type: "input",
@@ -303,7 +308,7 @@ class Lanraragi extends ComicSource {
                 } catch (e) {
                     throw "Invalid LANraragi metadata.";
                 }
-                if (!i || "object" != typeof i || Array.isArray(i)) throw "Invalid LANraragi metadata.";
+                if (!isLrrObject(i)) throw "Invalid LANraragi metadata.";
                 let s = toSelfHostedTagArray(i.tags);
                 s = removeSelfHostedTagsByPrefix(s, [ LRR_TAG_PREFIXES.rating ], {
                     caseSensitive: !1
@@ -384,60 +389,7 @@ class Lanraragi extends ComicSource {
                 };
             },
             enableTagsTranslate: !0
-        }, this.translation = {
-            zh_CN: {
-                language: "语言",
-                artist: "画师",
-                male: "男性",
-                female: "女性",
-                mixed: "混合",
-                other: "其它",
-                parody: "原作",
-                character: "角色",
-                group: "团队",
-                cosplayer: "Coser",
-                reclass: "重新分类",
-                uploader: "上传者",
-                Languages: "语言",
-                Artists: "画师",
-                Characters: "角色",
-                Groups: "团队",
-                Tags: "标签",
-                Parodies: "原作",
-                Categories: "分类",
-                Category: "分类",
-                series: "系列",
-                Series: "系列",
-                Pages: "页数",
-                Extension: "文件类型"
-            },
-            en_US: {
-                language: "Language",
-                artist: "Artist",
-                male: "Male",
-                female: "Female",
-                mixed: "Mixed",
-                other: "Other",
-                parody: "Parody",
-                character: "Character",
-                group: "Group",
-                cosplayer: "Cosplayer",
-                reclass: "Reclass",
-                uploader: "Uploader",
-                Languages: "Languages",
-                Artists: "Artists",
-                Characters: "Characters",
-                Groups: "Groups",
-                Tags: "Tags",
-                Parodies: "Parodies",
-                Categories: "Categories",
-                Category: "Category",
-                series: "Series",
-                Series: "Series",
-                Pages: "Pages",
-                Extension: "Extension"
-            }
-        };
+        }, this.translation = createSharedTranslations();
     }
     get baseUrl() {
         return this._identity().baseUrl;
@@ -530,7 +482,7 @@ class Lanraragi extends ComicSource {
         });
     }
     _acceptTankPage(e) {
-        return !e || "object" != typeof e || Array.isArray(e) || !Array.isArray(e.result) || e.result.length > 1e3 || !Number.isSafeInteger(Number(e.total)) || Number(e.total) < 0 || Number(e.total) > 1e5 ? null : e;
+        return !isLrrObject(e) || !Array.isArray(e.result) || e.result.length > 1e3 || !Number.isSafeInteger(Number(e.total)) || Number(e.total) < 0 || Number(e.total) > 1e5 ? null : e;
     }
     async _fetchTankPage(e, t) {
         try {
@@ -549,7 +501,7 @@ class Lanraragi extends ComicSource {
     }
     _absorbTankPage(e, t, r, a, o) {
         for (const i of e.result) {
-            if (!i || "object" != typeof i || Array.isArray(i)) continue;
+            if (!isLrrObject(i)) continue;
             if (!isLrrTankId(i.id) || !Array.isArray(i.archives)) continue;
             if (i.archives.length > 2e3) continue;
             const e = [], s = Object.create(null);
@@ -625,7 +577,7 @@ class Lanraragi extends ComicSource {
             const t = buildSelfHostedUrlFromSource(this, `/api/tankoubons/${e}`), r = await this._get(t);
             if (!r || 200 !== r.status) return null;
             const a = JSON.parse(r.body);
-            if (!a || "object" != typeof a || Array.isArray(a)) return null;
+            if (!isLrrObject(a)) return null;
             const o = Array.isArray(a.archives) ? a.archives : [];
             let i = "";
             for (const e of o) if (isLrrArchiveId(e)) {
@@ -684,22 +636,23 @@ class Lanraragi extends ComicSource {
             return t ? this._tankListComicFromCard(e, t) : e;
         });
     }
+    async _fetchSearchJson(e) {
+        const t = await this._get(e);
+        if (!t || 200 !== t.status) throw `Invalid status code: ${t ? t.status : 0}`;
+        try {
+            return JSON.parse(t.body);
+        } catch (e) {
+            throw "Invalid LANraragi search response.";
+        }
+    }
     async _loadRandomExplore() {
         const e = buildSelfHostedUrlFromSource(this, `${LRR_ROUTES.searchPath}/random`, {
             count: String(20),
             groupby_tanks: "true"
-        }), t = await this._get(e);
-        if (!t || 200 !== t.status) throw `Invalid status code: ${t ? t.status : 0}`;
-        let r;
-        try {
-            r = JSON.parse(t.body);
-        } catch (e) {
-            throw "Invalid LANraragi search response.";
-        }
-        const a = r && Array.isArray(r.data) ? r.data : [], o = [];
-        for (const e of a) e && "object" == typeof e && !Array.isArray(e) && e.arcid && o.push(this._mapArchiveComic(e, this.baseUrl));
+        }), t = await this._fetchSearchJson(e), r = t && Array.isArray(t.data) ? t.data : [], a = [];
+        for (const e of r) isLrrObject(e) && e.arcid && a.push(this._mapArchiveComic(e, this.baseUrl));
         return {
-            comics: await this._decorateListedComics(o),
+            comics: await this._decorateListedComics(a),
             maxPage: 1
         };
     }
@@ -712,7 +665,7 @@ class Lanraragi extends ComicSource {
         }
         const r = [], a = {};
         for (const e of t) {
-            if (!e || "object" != typeof e || Array.isArray(e)) continue;
+            if (!isLrrObject(e)) continue;
             if (isLrrTankId(e.arcid)) {
                 if (a[e.arcid]) continue;
                 a[e.arcid] = !0, r.push(this._tankListComic(e.arcid, e.title || e.filename));
@@ -748,18 +701,12 @@ class Lanraragi extends ComicSource {
     async _fetchLrrSearch(e, t) {
         const r = buildSelfHostedUrlFromSource(this, LRR_ROUTES.searchPath, Object.assign({}, e, {
             start: String(t)
-        })), a = await this._get(r);
-        if (!a || 200 !== a.status) throw `Invalid status code: ${a ? a.status : 0}`;
-        let o;
-        try {
-            o = JSON.parse(a.body);
-        } catch (e) {
-            throw "Invalid LANraragi search response.";
-        }
-        return o && "object" == typeof o && !Array.isArray(o) || (o = {}), {
-            data: o,
-            list: Array.isArray(o.data) ? o.data : [],
-            total: "number" == typeof o.recordsFiltered && o.recordsFiltered >= 0 ? o.recordsFiltered : null
+        }));
+        let a = await this._fetchSearchJson(r);
+        return isLrrObject(a) || (a = {}), {
+            data: a,
+            list: Array.isArray(a.data) ? a.data : [],
+            total: "number" == typeof a.recordsFiltered && a.recordsFiltered >= 0 ? a.recordsFiltered : null
         };
     }
     async _packArchivePage(e, t, r) {
@@ -853,23 +800,32 @@ class Lanraragi extends ComicSource {
         });
     }
     async init() {
-        let e = "";
+        const e = this.loadSetting("translationUrl"), t = this.settings.translationUrl.default, r = null == e ? t : String(e).trim();
+        let a = createSharedTranslations();
+        if (r) try {
+            a = await loadSharedTranslations(r);
+        } catch (e) {
+            if (r !== t) throw e;
+            console.log("Shared translation refresh failed; using bundled translations.");
+        }
+        this.translation = a;
+        let o = "";
         try {
-            if (e = this._serverStamp(), this._categoriesFresh(e)) return;
-            const t = buildSelfHostedUrlFromSource(this, LRR_ROUTES.categoriesPath()), r = await this._get(t);
-            if (this._serverStamp() !== e) return;
-            if (200 !== r.status) return this._saveScopedList("categories", e, []), void this._saveScopedList("favorites", e, []);
-            let a = [];
+            if (o = this._serverStamp(), this._categoriesFresh(o)) return;
+            const e = buildSelfHostedUrlFromSource(this, LRR_ROUTES.categoriesPath()), t = await this._get(e);
+            if (this._serverStamp() !== o) return;
+            if (200 !== t.status) return this._saveScopedList("categories", o, []), void this._saveScopedList("favorites", o, []);
+            let r = [];
             try {
-                a = JSON.parse(r.body);
+                r = JSON.parse(t.body);
             } catch (e) {
-                a = [];
+                r = [];
             }
-            Array.isArray(a) || (a = []), this._saveScopedList("categories", e, a), this.saveData("categories_ts", Date.now());
-            const o = a.filter(e => e && ("" === e.search || null === e.search || void 0 === e.search));
-            this._saveScopedList("favorites", e, o), this.saveData("favorites_ts", Date.now());
-        } catch (t) {
-            e && this._serverStamp() === e && (this._saveScopedList("categories", e, []), this._saveScopedList("favorites", e, []));
+            Array.isArray(r) || (r = []), this._saveScopedList("categories", o, r), this.saveData("categories_ts", Date.now());
+            const a = r.filter(e => e && ("" === e.search || null === e.search || void 0 === e.search));
+            this._saveScopedList("favorites", o, a), this.saveData("favorites_ts", Date.now());
+        } catch (e) {
+            o && this._serverStamp() === o && (this._saveScopedList("categories", o, []), this._saveScopedList("favorites", o, []));
         }
     }
     async _loadTankInfo(e) {
@@ -952,6 +908,48 @@ class Lanraragi extends ComicSource {
         const l = this._tankCover && this._tankCover[i];
         return l ? l === a : isLrrArchiveId(o) && o.toLowerCase() === a;
     }
+}
+
+const __veneraJson_e7a1950b77e82a71 = JSON.parse('{"zh_CN":{"language":"语言","artist":"画师","male":"男性","female":"女性","mixed":"混合","other":"其它","parody":"原作","character":"角色","group":"团队","cosplayer":"Coser","reclass":"重新分类","uploader":"上传者","Languages":"语言","Artists":"画师","Characters":"角色","Groups":"团队","Tags":"标签","Parodies":"原作","Categories":"分类","Category":"分类","series":"系列","Series":"系列","Pages":"页数","Extension":"文件类型"},"en_US":{"language":"Language","artist":"Artist","male":"Male","female":"Female","mixed":"Mixed","other":"Other","parody":"Parody","character":"Character","group":"Group","cosplayer":"Cosplayer","reclass":"Reclass","uploader":"Uploader","Languages":"Languages","Artists":"Artists","Characters":"Characters","Groups":"Groups","Tags":"Tags","Parodies":"Parodies","Categories":"Categories","Category":"Category","series":"Series","Series":"Series","Pages":"Pages","Extension":"Extension"},"zh_TW":{"language":"語言","artist":"畫師","male":"男性","female":"女性","mixed":"混合","other":"其他","parody":"原作","character":"角色","group":"團隊","cosplayer":"Coser","reclass":"重新分類","uploader":"上傳者","Languages":"語言","Artists":"畫師","Characters":"角色","Groups":"團隊","Tags":"標籤","Parodies":"原作","Categories":"分類","Category":"分類","series":"系列","Series":"系列","Pages":"頁數","Extension":"檔案類型"},"zh_HK":{"language":"語言","artist":"畫師","male":"男性","female":"女性","mixed":"混合","other":"其他","parody":"原作","character":"角色","group":"團隊","cosplayer":"Coser","reclass":"重新分類","uploader":"上傳者","Languages":"語言","Artists":"畫師","Characters":"角色","Groups":"團隊","Tags":"標籤","Parodies":"原作","Categories":"分類","Category":"分類","series":"系列","Series":"系列","Pages":"頁數","Extension":"檔案類型"},"zh_Hans":{"language":"语言","artist":"画师","male":"男性","female":"女性","mixed":"混合","other":"其它","parody":"原作","character":"角色","group":"团队","cosplayer":"Coser","reclass":"重新分类","uploader":"上传者","Languages":"语言","Artists":"画师","Characters":"角色","Groups":"团队","Tags":"标签","Parodies":"原作","Categories":"分类","Category":"分类","series":"系列","Series":"系列","Pages":"页数","Extension":"文件类型"},"en":{"language":"Language","artist":"Artist","male":"Male","female":"Female","mixed":"Mixed","other":"Other","parody":"Parody","character":"Character","group":"Group","cosplayer":"Cosplayer","reclass":"Reclass","uploader":"Uploader","Languages":"Languages","Artists":"Artists","Characters":"Characters","Groups":"Groups","Tags":"Tags","Parodies":"Parodies","Categories":"Categories","Category":"Category","series":"Series","Series":"Series","Pages":"Pages","Extension":"Extension"}}');
+
+function createSharedTranslations(e, t) {
+    const r = Object.create(null);
+    for (const a of [ sharedTagTranslations, e, t ]) if (void 0 !== a) {
+        if (!a || "object" != typeof a || Array.isArray(a)) throw new Error("Translation catalog must be a locale-keyed object.");
+        for (const e of Object.keys(a)) {
+            if (!/^[a-z]{2,3}(?:_[A-Za-z]{2,8})?$/.test(e)) throw new Error("Invalid translation locale: " + e);
+            const t = a[e];
+            if (!t || "object" != typeof t || Array.isArray(t)) throw new Error("Translation locale must contain a key-to-text object.");
+            r[e] || (r[e] = Object.create(null));
+            for (const a of Object.keys(t)) {
+                if ("string" != typeof t[a]) throw new Error("Translation values must be strings.");
+                r[e][a] = t[a];
+            }
+        }
+    }
+    return r;
+}
+
+async function loadSharedTranslations(e, t) {
+    if ("string" != typeof e || !/^https:\/\/[^/?#\s@\\]+(?:[/?][^\s#\\]*)?$/i.test(e) || /[\u0000-\u001f\u007f]/.test(e)) throw new Error("Translation URL must be an HTTPS JSON URL.");
+    const r = await Network.get(e, {
+        Accept: "application/json"
+    });
+    if (!r || 200 !== r.status) throw new Error("Could not download translation JSON.");
+    if ("string" != typeof r.body || r.body.length > 2097152) throw new Error("Translation JSON exceeds the size limit.");
+    return createSharedTranslations(JSON.parse(r.body), t);
+}
+
+const sharedTagTranslations = __veneraJson_e7a1950b77e82a71;
+
+function joinRawQueryEntries(e) {
+    const t = [];
+    for (const r of e || []) {
+        if (!Array.isArray(r) || r.length < 2) continue;
+        const [e, a] = r;
+        null != e && null != a && t.push(`${String(e)}=${String(a)}`);
+    }
+    return t.join("&");
 }
 
 function runtimeGet(e, t) {
@@ -1137,6 +1135,7 @@ ManagedRequestClient.prototype.get = function(e, t, r) {
 });
 
 const httpRequestApi = {
+    joinRawQueryEntries,
     runtimeGet,
     getRuntimeJson,
     getRuntimeDocument,
@@ -1191,20 +1190,7 @@ function redactSecretValue(e) {
 }
 
 "undefined" != typeof module && module && module.exports && (module.exports = {
-    runtimeGet,
-    getRuntimeJson,
-    getRuntimeDocument,
-    getSelfHostedJson,
-    postSelfHostedJson,
-    ManagedRequestClient,
-    createManagedRequestClient,
-    parseRuntimeJsonBody,
-    ensureSelfHostedHttpOk,
-    parseSelfHostedJsonBody,
-    hasNonWhitespaceText,
-    defaultRequestKey,
-    createDomainQueue,
-    markCooldown,
+    ...httpSupportApi,
     httpRequestApi,
     httpResponseApi,
     httpCooldownApi,
@@ -1468,12 +1454,7 @@ function updateSelfHostedOffset(e, t, r) {
 }
 
 "undefined" != typeof module && module && module.exports && (module.exports = {
-    withAuthorization,
-    withBearer,
-    withBasic,
-    encodeSelfHostedToken,
-    normalizeCookieUrl,
-    redactSecretValue,
+    ...securitySupportApi,
     securitySecretsApi,
     securityCookiesApi,
     securityRedactionApi,
@@ -1663,7 +1644,7 @@ function createOffsetSearchLoader(e) {
             input: l
         })), C = m.length;
         updateSelfHostedOffset(e, d, C);
-        const L = "number" == typeof y.recordsFiltered && y.recordsFiltered >= 0 ? y.recordsFiltered : p + C, k = C || 1, b = Math.max(1, Math.ceil(L / k));
+        const L = "number" == typeof y.recordsFiltered && y.recordsFiltered >= 0 ? y.recordsFiltered : p + C, k = C || 1, P = Math.max(1, Math.ceil(L / k));
         return s && s({
             source: e,
             input: l,
@@ -1674,7 +1655,7 @@ function createOffsetSearchLoader(e) {
             comics: S
         }), {
             comics: S,
-            maxPage: b,
+            maxPage: P,
             data: y
         };
     };
@@ -1796,34 +1777,7 @@ function createHtmlDocument(e) {
 }
 
 "undefined" != typeof module && module && module.exports && (module.exports = {
-    buildOffsetByPage,
-    normalizeStarOption,
-    normalizeStarOptions,
-    stripSelfHostedTrailingSlash,
-    normalizeSelfHostedPathRoot,
-    normalizeSelfHostedPathSegment,
-    joinSelfHostedPath,
-    createSelfHostedRouteHelpers,
-    buildSelfHostedUrlFromSource,
-    buildSelfHostedQueryFromSource,
-    normalizeWebSourceBaseUrl,
-    normalizeWebSourcePath,
-    joinWebSourcePath,
-    buildWebSourceQuery,
-    buildWebSourceUrl,
-    toWebSourceAbsoluteUrl,
-    replaceWebSourceBaseUrl,
-    ensureWebSourceTrailingSlash,
-    normalizeSelfHostedBaseUrl,
-    normalizeSelfHostedRoutePath,
-    joinSelfHostedRoutePath,
-    createKomgaRouteHelpers,
-    createKavitaRouteHelpers,
-    resolveSelfHostedBaseUrl,
-    buildSelfHostedQuery,
-    buildSelfHostedUrl,
-    readSelfHostedOffset,
-    updateSelfHostedOffset,
+    ...pluginSourceContractApi,
     pluginSourcePagingApi,
     pluginSourceWebApi,
     pluginSourceSelfHostedPathApi,
@@ -1941,25 +1895,135 @@ function buildCopyLikeHmacSignature(e, t) {
 }
 
 "undefined" != typeof module && module && module.exports && (module.exports = {
-    unwrapCopyLikeComic,
-    readCopyLikePath,
-    parseCopyLikeThemeTags,
-    parseCopyLikePrimaryAuthor,
-    parseCopyLikeAuthorCount,
-    formatCopyLikeRankingDescription,
-    computeCopyLikeMaxPage,
-    createCopyLikeComicParser,
-    createHtmlDocument,
+    ...parserSupportApi,
     parserCopyLikeApi,
     parserHtmlApi,
     parserSupportApi
 });
+
+const COPY_LIKE_MULTI_GROUP_MINIMUM_APP_VERSION = "1.3.0", COPY_LIKE_LOGIN_EXPIRED = "Login expired", COPY_LIKE_RETRY_ERROR = "Retry", COPY_LIKE_CHAPTER_RETRY_LIMIT = 5, COPY_LIKE_CHAPTER_RATE_LIMIT_STATUS = 210, COPY_LIKE_CHAPTER_DEFAULT_WAIT_MS = 4e4, COPY_LIKE_GROUP_CHAPTER_PAGE_SIZE = 100;
+
+function isCopyLikeAppVersionAfter(e, t) {
+    const r = e.split("."), a = t.split(".");
+    for (let e = 0; e < 3; e++) if (parseInt(r[e]) < parseInt(a[e])) return !1;
+    return !0;
+}
+
+function copyLikeStatusError(e) {
+    return `Invalid status code: ${e}`;
+}
+
+async function loadCopyLikeFavoriteStatus(e) {
+    const t = e || {}, r = await Network.get(buildCopyLikeComicQueryUrl({
+        apiUrl: t.apiUrl,
+        id: t.id
+    }), t.headers);
+    if (200 !== r.status) throw copyLikeStatusError(r.status);
+    return null != JSON.parse(r.body).results.collect;
+}
+
+async function updateCopyLikeFavorite(e) {
+    const t = e || {}, r = t.getRequestId ? await t.getRequestId() : void 0, a = await Network.get(buildCopyLikeComicDetailUrl({
+        apiUrl: t.apiUrl,
+        id: t.comicId,
+        inMainland: !0,
+        requestId: r,
+        platform: 3
+    }), t.getHeaders ? t.getHeaders() : t.headers);
+    if (200 !== a.status) throw copyLikeStatusError(a.status);
+    const o = JSON.parse(a.body).results.comic.uuid, i = await Network.post(buildCopyLikeEndpointUrl(t.apiUrl, COPY_LIKE_ENDPOINT_PATHS.FAVORITE_COMIC_ACTION), withCopyLikeFormHeaders(t.getHeaders ? t.getHeaders() : t.headers), `comic_id=${o}&is_collect=${t.isAdding ? 1 : 0}&authorization=Token+${t.token}`);
+    if (401 === i.status) throw "Login expired";
+    if (200 !== i.status) throw copyLikeStatusError(i.status);
+    return "ok";
+}
+
+async function loadCopyLikeGroupChapters(e) {
+    const t = e || {}, r = Object.keys(t.groups), a = {}, o = () => t.getHeaders ? t.getHeaders() : t.headers;
+    if (await Promise.all(r.map(async e => {
+        const r = t.groups[e].path_word, i = t.getRequestId ? await t.getRequestId() : void 0;
+        let s = await Network.get(buildCopyLikeGroupChaptersUrl({
+            apiUrl: t.apiUrl,
+            id: t.id,
+            groupPath: r,
+            limit: 100,
+            offset: 0,
+            inMainland: t.inMainland,
+            requestId: i
+        }), o());
+        if (200 !== s.status) throw copyLikeStatusError(s.status);
+        let n = JSON.parse(s.body);
+        const l = new Map, u = e => {
+            e.forEach(e => l.set(e.uuid, e.name));
+        };
+        u(n.results.list);
+        const c = n.results.total;
+        let d = 100;
+        for (;d < c; ) {
+            if (s = await Network.get(buildCopyLikeGroupChaptersUrl({
+                apiUrl: t.apiUrl,
+                id: t.id,
+                groupPath: r,
+                limit: 100,
+                offset: d
+            }), o()), 200 !== s.status) throw copyLikeStatusError(s.status);
+            n = JSON.parse(s.body), u(n.results.list), d += 100;
+        }
+        a[e] = l;
+    })), isCopyLikeAppVersionAfter(t.appVersion, "1.3.0")) {
+        const e = new Map;
+        for (const o of r) e.set(t.groups[o].name, a[o]);
+        return e;
+    }
+    const i = new Map;
+    for (const e of r) for (const [t, r] of a[e]) i.set(t, r);
+    return i;
+}
+
+async function loadCopyLikeChapterData(e) {
+    const t = e || {};
+    let r = 0;
+    for (;r < 5; ) try {
+        const e = t.getRequestId ? await t.getRequestId() : t.requestId, r = await Network.get(buildCopyLikeChapterUrl({
+            apiUrl: t.apiUrl,
+            comicId: t.comicId,
+            chapterId: t.chapterId,
+            chapterEndpoint: t.chapterEndpoint,
+            inMainland: t.inMainland,
+            requestId: e,
+            platform: t.platform,
+            update: t.update
+        }), {
+            ...t.getHeaders ? t.getHeaders() : t.headers || {}
+        });
+        if (210 === r.status) {
+            let e = 4e4;
+            try {
+                const t = JSON.parse(r.body);
+                if (t.message && t.message.includes("Expected available in")) {
+                    const r = t.message.match(/(\d+)\s*seconds/);
+                    r && r[1] && (e = 1e3 * parseInt(r[1]));
+                }
+            } catch (e) {
+                console.log("Unable to parse wait time, using default wait time 40s");
+            }
+            throw console.log(`Chapter${t.chapterId} access too frequent, waiting ${e / 1e3}s`),
+            await new Promise(t => setTimeout(t, e)), "Retry";
+        }
+        if (200 !== r.status) throw copyLikeStatusError(r.status);
+        const a = JSON.parse(r.body);
+        return t.mapResponse ? t.mapResponse(a) : a;
+    } catch (e) {
+        if ("Retry" !== e) throw e;
+        if (r += 1, r >= 5) throw e;
+    }
+}
 
 const COPY_LIKE_ENDPOINT_PATHS = {
     LOGIN: "/api/v3/login",
     RANKS: "/api/v3/ranks",
     COMICS: "/api/v3/comics",
     SEARCH_COMIC: "/api/v3/search/comic",
+    HOME_INDEX: "/api/v3/h5/homeIndex",
     HOME_INDEX_COMICS: "/api/v3/h5/homeIndex/comics",
     FAVORITE_COMICS: "/api/v3/member/collect/comics",
     FAVORITE_COMIC_ACTION: "/api/v3/member/collect/comic",
@@ -1984,13 +2048,7 @@ function buildCopyLikeEndpointUrl(e, t) {
 }
 
 function buildCopyLikeQueryString(e) {
-    const t = [];
-    for (const r of e || []) {
-        if (!Array.isArray(r) || r.length < 2) continue;
-        const e = r[0], a = r[1];
-        null != e && null != a && t.push(`${String(e)}=${String(a)}`);
-    }
-    return t.join("&");
+    return joinRawQueryEntries(e);
 }
 
 function buildCopyLikeUrlWithQuery(e, t, r) {
@@ -2090,7 +2148,7 @@ function buildCopyLikeHomeSections(e, t, r) {
 }
 
 async function loadCopyLikeHomeSectionsModule(e) {
-    return buildCopyLikeHomeSections(await getRuntimeJson(`${e.apiUrl}${e.endpoint || "/api/v3/h5/homeIndex"}`, e.headers, e.context || "copy_like home"), e.sections || [], e.parseComic);
+    return buildCopyLikeHomeSections(await getRuntimeJson(`${e.apiUrl}${e.endpoint || COPY_LIKE_ENDPOINT_PATHS.HOME_INDEX}`, e.headers, e.context || "copy_like home"), e.sections || [], e.parseComic);
 }
 
 async function loadCopyLikeListModule(e) {
@@ -2266,6 +2324,14 @@ function createCopyLikeSearchLoaderFeature(e) {
 }
 
 "undefined" != typeof module && module && module.exports && (module.exports = {
+    COPY_LIKE_MULTI_GROUP_MINIMUM_APP_VERSION: "1.3.0",
+    COPY_LIKE_LOGIN_EXPIRED: "Login expired",
+    copyLikeStatusError,
+    isCopyLikeAppVersionAfter,
+    loadCopyLikeFavoriteStatus,
+    updateCopyLikeFavorite,
+    loadCopyLikeGroupChapters,
+    loadCopyLikeChapterData,
     normalizeCopyLikeBaseUrl,
     buildCopyLikeApiUrl,
     buildCopyLikePageUrl,
@@ -2698,13 +2764,7 @@ function buildPicacgEndpointUrl(e, t) {
 }
 
 function buildPicacgQueryString(e) {
-    const t = [];
-    for (const r of e || []) {
-        if (!Array.isArray(r) || r.length < 2) continue;
-        const e = r[0], a = r[1];
-        null != e && null != a && t.push(`${String(e)}=${String(a)}`);
-    }
-    return t.join("&");
+    return joinRawQueryEntries(e);
 }
 
 function buildPicacgPathWithQuery(e, t) {
@@ -2788,6 +2848,14 @@ const pluginFeatureGenericApi = {
     extractSelfHostedUrlEntriesFromTagMap,
     buildSelfHostedEmojiRatingTag
 }, pluginFeatureCopyLikeApi = {
+    COPY_LIKE_LOGIN_EXPIRED: "Login expired",
+    copyLikeStatusError,
+    loadCopyLikeGroupChapters,
+    COPY_LIKE_MULTI_GROUP_MINIMUM_APP_VERSION: "1.3.0",
+    isCopyLikeAppVersionAfter,
+    updateCopyLikeFavorite,
+    loadCopyLikeFavoriteStatus,
+    loadCopyLikeChapterData,
     normalizeCopyLikeBaseUrl,
     buildCopyLikeApiUrl,
     buildCopyLikePageUrl,
@@ -2898,105 +2966,7 @@ function resolvePluginUpdateUrl(e) {
 }
 
 "undefined" != typeof module && module && module.exports && (module.exports = {
-    resolveMappedCategoryTagAction,
-    createMappedCategoryTagActionResolver,
-    createSelfHostedReferenceCacheFeature,
-    createSafeInitFeature,
-    createStaticCategoryPart,
-    createStoredCategoryPart,
-    createOffsetSearchLoader,
-    toSelfHostedTagArray,
-    startsWithSelfHostedTagPrefix,
-    extractSelfHostedTagValue,
-    removeSelfHostedTagsByPrefix,
-    filterSelfHostedDisplayTags,
-    parseSelfHostedRatingValueFromTags,
-    extractSelfHostedUrlEntriesFromTagMap,
-    buildSelfHostedEmojiRatingTag,
-    normalizeCopyLikeBaseUrl,
-    buildCopyLikeApiUrl,
-    buildCopyLikePageUrl,
-    buildCopyLikeTokenHeader,
-    buildCopyLikeBearerTokenHeader,
-    buildCopyLikeRequestSigningMeta,
-    buildCopyLikeHmacSignature,
-    COPY_LIKE_ENDPOINT_PATHS,
-    COPY_LIKE_FORM_URLENCODED_CONTENT_TYPE,
-    withCopyLikeFormHeaders,
-    buildCopyLikeEndpointUrl,
-    buildCopyLikeQueryString,
-    buildCopyLikeUrlWithQuery,
-    buildCopyLikeRankingUrl,
-    buildCopyLikeComicsUrl,
-    buildCopyLikeSearchUrl,
-    buildCopyLikeHomeIndexComicsUrl,
-    buildCopyLikeFavoriteComicsUrl,
-    buildCopyLikeComicDetailUrl,
-    buildCopyLikeComicQueryUrl,
-    buildCopyLikeGroupChaptersUrl,
-    buildCopyLikeChapterUrl,
-    normalizeCopyLikeCategoryParam,
-    parseCopyLikeDetailAuthors,
-    parseCopyLikeDetailTags,
-    buildCopyLikeDetailTagMap,
-    resolveCopyLikeTagAction,
-    buildCopyLikeHomeSections,
-    loadCopyLikeHomeSectionsModule,
-    loadCopyLikeListModule,
-    parseCopyLikeAuthorKeyword,
-    loadCopyLikeSearchModule,
-    createCopyLikeExploreFeature,
-    createCopyLikeCategoryLoadFeature,
-    createCopyLikeSearchLoadFeature,
-    createCopyLikeCategoryRequestUrlBuilder,
-    createCopyLikeSearchRequestUrlBuilders,
-    createCopyLikeDetailTagMapper,
-    createCopyLikeTagClickActionHandler,
-    createCopyLikeExploreSectionsFeature,
-    createCopyLikeCategoryLoaderFeature,
-    createCopyLikeSearchLoaderFeature,
-    MH_LIKE_USER_AGENT,
-    MH_LIKE_ENDPOINT_PATHS,
-    normalizeMhLikeId,
-    normalizeMhLikeDomain,
-    buildMhLikeBaseUrl,
-    buildMhLikeHeaders,
-    normalizeMhLikePath,
-    buildMhLikeRelativeUrl,
-    buildMhLikeApiBaseUrl,
-    buildMhLikeCategoryUrl,
-    buildMhLikeSearchUrl,
-    buildMhLikeChapterListUrl,
-    buildMhLikeChapterEndpointUrl,
-    buildMhLikeChapterInfoUrl,
-    buildMhLikeChapterContentUrl,
-    createMhLikeRouteHelpers,
-    parseMhLikeComicCards,
-    parseMhLikeHomeSections,
-    parseMhLikeMaxPage,
-    parseMhLikeDetailTags,
-    parseMhLikeRecommendComics,
-    loadMhLikePagedComicsFromUrl,
-    createMhLikeExploreFeature,
-    createMhLikeCategoryLoadFeature,
-    createMhLikeSearchLoadFeature,
-    loadMhLikeBaseComicInfo,
-    createMhLikeCategoryRequestUrlBuilder,
-    createMhLikeSearchRequestUrlBuilder,
-    createMhLikeChapterRequestUrlBuilders,
-    buildMhLikeChapterUrl,
-    createMhLikeExplorePageFeature,
-    createMhLikeCategoryLoaderFeature,
-    createMhLikeSearchLoaderFeature,
-    loadMhLikeBaseComicInfoFeature,
-    PICACG_ENDPOINT_PATHS,
-    PICACG_TAG_NAMESPACES,
-    normalizePicacgBaseUrl,
-    buildPicacgEndpointUrl,
-    buildPicacgQueryString,
-    buildPicacgPathWithQuery,
-    createPicacgRouteHelpers,
-    resolvePicacgTagAction,
+    ...pluginFeatureContractApi,
     pluginFeatureGenericApi,
     pluginFeatureCopyLikeApi,
     pluginFeatureMhLikeApi,
@@ -3043,6 +3013,10 @@ function isLrrTankId(e) {
 
 function isLrrArchiveId(e) {
     return /^[a-f0-9]{40}$/i.test(String(e || ""));
+}
+
+function isLrrObject(e) {
+    return null !== e && "object" == typeof e && !Array.isArray(e);
 }
 
 function lrrPagePath(e) {

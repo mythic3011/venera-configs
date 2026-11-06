@@ -18,21 +18,19 @@ class Wnacg extends ComicSource {
             title: "紳士漫畫",
             type: "multiPartPage",
             load: async e => {
-                let t = await Network.get(this.baseUrl, {});
-                if (200 !== t.status) throw `Invalid Status Code ${t.status}`;
-                let a = new HtmlDocument(t.body), l = a.querySelectorAll("div.title_sort"), i = a.querySelectorAll("div.bodywrap");
-                if (l.length !== i.length) throw "Invalid Page";
-                let r = [];
-                for (let e = 0; e < l.length; e++) {
-                    let t = l[e].querySelector("div.title_h2").text.replaceAll(/\s+/g, ""), a = l[e].querySelector("div.r > a").attributes.href, s = [], o = i[e].querySelectorAll("div.gallary_wrap > ul.cc > li");
+                let t = await this._getPageDocument(this.baseUrl), a = t.querySelectorAll("div.title_sort"), l = t.querySelectorAll("div.bodywrap");
+                if (a.length !== l.length) throw "Invalid Page";
+                let i = [];
+                for (let e = 0; e < a.length; e++) {
+                    let t = a[e].querySelector("div.title_h2").text.replaceAll(/\s+/g, ""), r = a[e].querySelector("div.r > a").attributes.href, s = [], o = l[e].querySelectorAll("div.gallary_wrap > ul.cc > li");
                     for (let e of o) s.push(this.parseComic(e));
-                    r.push({
+                    i.push({
                         title: t,
                         comics: s,
-                        viewMore: `category:${t}@${a}`
+                        viewMore: `category:${t}@${r}`
                     });
                 }
-                return a.dispose(), r;
+                return t.dispose(), i;
             }
         } ], this.category = {
             title: "紳士漫畫",
@@ -81,14 +79,12 @@ class Wnacg extends ComicSource {
                     let e = i.split("albums-");
                     e[1] = `index-page-${l}${e[1]}`, i = `${e[0]}albums-${e[1]}`;
                 }
-                let r = await Network.get(i, {});
-                if (200 !== r.status) throw `Invalid Status Code ${r.status}`;
-                let s = new HtmlDocument(r.body), o = s.querySelectorAll("div.grid div.gallary_wrap > ul.cc > li"), n = [];
-                for (let e of o) n.push(this.parseComic(e));
-                let c = s.querySelectorAll("div.f_left.paginator > a"), u = Number(c[c.length - 1].text);
-                return s.dispose(), {
-                    comics: n,
-                    maxPage: u
+                let r = await this._getPageDocument(i), s = r.querySelectorAll("div.grid div.gallary_wrap > ul.cc > li"), o = [];
+                for (let e of s) o.push(this.parseComic(e));
+                let n = r.querySelectorAll("div.f_left.paginator > a"), c = Number(n[n.length - 1].text);
+                return r.dispose(), {
+                    comics: o,
+                    maxPage: c
                 };
             },
             ranking: {
@@ -96,14 +92,12 @@ class Wnacg extends ComicSource {
                 load: async (e, t) => {
                     let a = `${this.baseUrl}/albums-favorite_ranking-type-${e}.html`;
                     0 !== t && (a = `${this.baseUrl}/albums-favorite_ranking-page-${t}-type-${e}.html`);
-                    let l = await Network.get(a, {});
-                    if (200 !== l.status) throw `Invalid Status Code ${l.status}`;
-                    let i = new HtmlDocument(l.body), r = i.querySelectorAll("div.grid div.gallary_wrap > ul.cc > li"), s = [];
-                    for (let e of r) s.push(this.parseComic(e));
-                    let o = i.querySelectorAll("div.f_left.paginator > a"), n = 1;
-                    return o.length > 0 && (n = Number(o[o.length - 1].text)), i.dispose(), {
-                        comics: s,
-                        maxPage: n
+                    let l = await this._getPageDocument(a), i = l.querySelectorAll("div.grid div.gallary_wrap > ul.cc > li"), r = [];
+                    for (let e of i) r.push(this.parseComic(e));
+                    let s = l.querySelectorAll("div.f_left.paginator > a"), o = 1;
+                    return s.length > 0 && (o = Number(s[s.length - 1].text)), l.dispose(), {
+                        comics: r,
+                        maxPage: o
                     };
                 }
             }
@@ -111,14 +105,12 @@ class Wnacg extends ComicSource {
             load: async (e, t, a) => {
                 let l = `${this.baseUrl}/search/?q=${encodeURIComponent(e)}&f=_all&s=create_time_DESC&syn=yes`;
                 0 !== a && (l += `&p=${a}`);
-                let i = await Network.get(l, {});
-                if (200 !== i.status) throw `Invalid Status Code ${i.status}`;
-                let r = new HtmlDocument(i.body), s = r.querySelectorAll("div.grid div.gallary_wrap > ul.cc > li"), o = [];
-                for (let e of s) o.push(this.parseComic(e));
-                let n = r.querySelectorAll("p.result > b")[0].text.replaceAll(",", ""), c = Math.ceil(Number(n) / 24);
-                return r.dispose(), {
-                    comics: o,
-                    maxPage: c
+                let i = await this._getPageDocument(l), r = i.querySelectorAll("div.grid div.gallary_wrap > ul.cc > li"), s = [];
+                for (let e of r) s.push(this.parseComic(e));
+                let o = i.querySelectorAll("p.result > b")[0].text.replaceAll(",", ""), n = Math.ceil(Number(o) / 24);
+                return i.dispose(), {
+                    comics: s,
+                    maxPage: n
                 };
             }
         }, this.favorites = {
@@ -182,7 +174,7 @@ class Wnacg extends ComicSource {
                 i = "https:" + i, i = i.substring(0, 6) + i.substring(8);
                 let r = a.querySelectorAll("div.asTBcell.uwconn > label"), s = r[0].text.split("：")[1], o = r[1].text.split("：")[1], n = a.querySelectorAll("a.tagshow"), c = new Map;
                 c.set("頁數", [ o ]), c.set("分類", [ s ]), n.length > 0 && c.set("標籤", n.map(e => e.text));
-                let u = a.querySelector("div.asTBcell.uwconn > p").text, d = a.querySelector("div.asTBcell.uwuinfo > a > p").text;
+                let u = a.querySelector("div.asTBcell.uwconn > p").text, m = a.querySelector("div.asTBcell.uwuinfo > a > p").text;
                 return new ComicDetails({
                     id: e,
                     title: l,
@@ -190,7 +182,7 @@ class Wnacg extends ComicSource {
                     pages: o,
                     tags: c,
                     description: u,
-                    uploader: d
+                    uploader: m
                 });
             },
             loadThumbnails: async (e, t) => {
@@ -338,6 +330,11 @@ class Wnacg extends ComicSource {
             cover: l,
             description: r
         });
+    }
+    async _getPageDocument(e) {
+        let t = await Network.get(e, {});
+        if (200 !== t.status) throw `Invalid Status Code ${t.status}`;
+        return new HtmlDocument(t.body);
     }
 }
 

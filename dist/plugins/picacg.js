@@ -4,7 +4,7 @@ class Picacg extends ComicSource {
         this.minAppVersion = "1.0.0", this.url = resolvePluginUpdateUrl("picacg.js"), this.apiKey = "C69BAF41DA5ABD1FFEDC6D2FEA56B",
         this._routes = null, this.account = {
             reLogin: async () => {
-                if (!this.isLogged) throw new Error("Not logged in");
+                this.requireLogin(!0);
                 let e = this.loadData("account");
                 if (!Array.isArray(e)) throw new Error("Failed to reLogin: Invalid account data");
                 let t = e[0], r = e[1];
@@ -31,93 +31,21 @@ class Picacg extends ComicSource {
         }, this.explore = [ {
             title: "Picacg Random",
             type: "multiPageComicList",
-            load: async e => {
-                if (!this.isLogged) throw "Not logged in";
-                const t = this.routes.randomComicsRequest();
-                let r = await Network.get(this.buildRequestUrl(t.path), this.buildRequestHeaders("GET", t, this.loadData("token")));
-                if (401 === r.status && (await this.account.reLogin(), r = await Network.get(this.buildRequestUrl(t.path), this.buildRequestHeaders("GET", t, this.loadData("token")))),
-                200 !== r.status) throw "Invalid status code: " + r.status;
-                let o = JSON.parse(r.body), a = [];
-                return o.data.comics.forEach(e => {
-                    a.push(this.parseComic(e));
-                }), {
-                    comics: a
-                };
-            }
+            load: () => this.loadExploreComics(this.routes.randomComicsRequest())
         }, {
             title: "Picacg Latest",
             type: "multiPageComicList",
-            load: async e => {
-                if (!this.isLogged) throw "Not logged in";
-                const t = this.routes.latestComicsRequest({
-                    page: e,
-                    sort: "dd"
-                });
-                let r = await Network.get(this.buildRequestUrl(t.path), this.buildRequestHeaders("GET", t, this.loadData("token")));
-                if (401 === r.status && (await this.account.reLogin(), r = await Network.get(this.buildRequestUrl(t.path), this.buildRequestHeaders("GET", t, this.loadData("token")))),
-                200 !== r.status) throw "Invalid status code: " + r.status;
-                let o = JSON.parse(r.body), a = [];
-                return o.data.comics.docs.forEach(e => {
-                    a.push(this.parseComic(e));
-                }), {
-                    comics: a
-                };
-            }
-        }, {
-            title: "Picacg H24",
+            load: e => this.loadExploreComics(this.routes.latestComicsRequest({
+                page: e,
+                sort: "dd"
+            }), !0)
+        }, ...[ "H24", "D7", "D30" ].map(e => ({
+            title: `Picacg ${e}`,
             type: "multiPageComicList",
-            load: async e => {
-                if (!this.isLogged) throw "Not logged in";
-                const t = this.routes.leaderboardRequest({
-                    option: "H24"
-                });
-                let r = await Network.get(this.buildRequestUrl(t.path), this.buildRequestHeaders("GET", t, this.loadData("token")));
-                if (401 === r.status && (await this.account.reLogin(), r = await Network.get(this.buildRequestUrl(t.path), this.buildRequestHeaders("GET", t, this.loadData("token")))),
-                200 !== r.status) throw "Invalid status code: " + r.status;
-                let o = JSON.parse(r.body), a = [];
-                return o.data.comics.forEach(e => {
-                    a.push(this.parseComic(e));
-                }), {
-                    comics: a
-                };
-            }
-        }, {
-            title: "Picacg D7",
-            type: "multiPageComicList",
-            load: async e => {
-                if (!this.isLogged) throw "Not logged in";
-                const t = this.routes.leaderboardRequest({
-                    option: "D7"
-                });
-                let r = await Network.get(this.buildRequestUrl(t.path), this.buildRequestHeaders("GET", t, this.loadData("token")));
-                if (401 === r.status && (await this.account.reLogin(), r = await Network.get(this.buildRequestUrl(t.path), this.buildRequestHeaders("GET", t, this.loadData("token")))),
-                200 !== r.status) throw "Invalid status code: " + r.status;
-                let o = JSON.parse(r.body), a = [];
-                return o.data.comics.forEach(e => {
-                    a.push(this.parseComic(e));
-                }), {
-                    comics: a
-                };
-            }
-        }, {
-            title: "Picacg D30",
-            type: "multiPageComicList",
-            load: async e => {
-                if (!this.isLogged) throw "Not logged in";
-                const t = this.routes.leaderboardRequest({
-                    option: "D30"
-                });
-                let r = await Network.get(this.buildRequestUrl(t.path), this.buildRequestHeaders("GET", t, this.loadData("token")));
-                if (401 === r.status && (await this.account.reLogin(), r = await Network.get(this.buildRequestUrl(t.path), this.buildRequestHeaders("GET", t, this.loadData("token")))),
-                200 !== r.status) throw "Invalid status code: " + r.status;
-                let o = JSON.parse(r.body), a = [];
-                return o.data.comics.forEach(e => {
-                    a.push(this.parseComic(e));
-                }), {
-                    comics: a
-                };
-            }
-        } ], this.category = {
+            load: () => this.loadExploreComics(this.routes.leaderboardRequest({
+                option: e
+            }))
+        })) ], this.category = {
             title: "Picacg",
             parts: [ {
                 name: "主题",
@@ -135,15 +63,12 @@ class Picacg extends ComicSource {
                     category: encodeURIComponent(e),
                     sort: r[0]
                 });
-                let s = await Network.get(this.buildRequestUrl(i.path), this.buildRequestHeaders("GET", i, this.loadData("token")));
-                if (401 === s.status && (await this.account.reLogin(), s = await Network.get(this.buildRequestUrl(i.path), this.buildRequestHeaders("GET", i, this.loadData("token")))),
-                200 !== s.status) throw "Invalid status code: " + s.status;
-                let l = JSON.parse(s.body), n = [];
-                return l.data.comics.docs.forEach(e => {
-                    n.push(this.parseComic(e));
-                }), {
-                    comics: n,
-                    maxPage: l.data.comics.pages
+                let s = await this.requestJson(i, {
+                    retry401: !0
+                });
+                return {
+                    comics: this.parseComics(s.data.comics.docs),
+                    maxPage: s.data.comics.pages
                 };
             },
             optionList: [ {
@@ -155,14 +80,11 @@ class Picacg extends ComicSource {
                     const r = this.routes.leaderboardRequest({
                         option: e
                     });
-                    let o = await Network.get(this.buildRequestUrl(r.path), this.buildRequestHeaders("GET", r, this.loadData("token")));
-                    if (401 === o.status && (await this.account.reLogin(), o = await Network.get(this.buildRequestUrl(r.path), this.buildRequestHeaders("GET", r, this.loadData("token")))),
-                    200 !== o.status) throw "Invalid status code: " + o.status;
-                    let a = JSON.parse(o.body), i = [];
-                    return a.data.comics.forEach(e => {
-                        i.push(this.parseComic(e));
-                    }), {
-                        comics: i,
+                    let o = await this.requestJson(r, {
+                        retry401: !0
+                    });
+                    return {
+                        comics: this.parseComics(o.data.comics),
                         maxPage: 1
                     };
                 }
@@ -172,20 +94,17 @@ class Picacg extends ComicSource {
                 const o = this.routes.advancedSearchRequest({
                     page: r
                 });
-                let a = await Network.post(this.buildRequestUrl(o.path), this.buildRequestHeaders("POST", o, this.loadData("token")), JSON.stringify({
-                    keyword: e,
-                    sort: t[0]
-                }));
-                if (401 === a.status && (await this.account.reLogin(), a = await Network.post(this.buildRequestUrl(o.path), this.buildRequestHeaders("POST", o, this.loadData("token")), JSON.stringify({
-                    keyword: e,
-                    sort: t[0]
-                }))), 200 !== a.status) throw "Invalid status code: " + a.status;
-                let i = JSON.parse(a.body), s = [];
-                return i.data.comics.docs.forEach(e => {
-                    s.push(this.parseComic(e));
-                }), {
-                    comics: s,
-                    maxPage: i.data.comics.pages
+                let a = await this.requestJson(o, {
+                    method: "POST",
+                    body: JSON.stringify({
+                        keyword: e,
+                        sort: t[0]
+                    }),
+                    retry401: !0
+                });
+                return {
+                    comics: this.parseComics(a.data.comics.docs),
+                    maxPage: a.data.comics.pages
                 };
             },
             optionList: [ {
@@ -209,15 +128,12 @@ class Picacg extends ComicSource {
                     page: e,
                     sort: r
                 });
-                let a = await Network.get(this.buildRequestUrl(o.path), this.buildRequestHeaders("GET", o, this.loadData("token")));
-                if (401 === a.status) throw "Login expired";
-                if (200 !== a.status) throw "Invalid status code: " + a.status;
-                let i = JSON.parse(a.body), s = [];
-                return i.data.comics.docs.forEach(e => {
-                    s.push(this.parseComic(e));
-                }), {
-                    comics: s,
-                    maxPage: i.data.comics.pages
+                let a = await this.requestJson(o, {
+                    unauthorizedError: "Login expired"
+                });
+                return {
+                    comics: this.parseComics(a.data.comics.docs),
+                    maxPage: a.data.comics.pages
                 };
             }
         }, this.comic = {
@@ -227,45 +143,37 @@ class Picacg extends ComicSource {
                     const t = this.routes.comicInfoRequest({
                         comicId: e
                     });
-                    let r = await Network.get(this.buildRequestUrl(t.path), this.buildRequestHeaders("GET", t, this.loadData("token")));
-                    if (200 !== r.status) throw "Invalid status code: " + r.status;
-                    return JSON.parse(r.body).data.comic;
-                }, l = async () => {
+                    return (await this.requestJson(t)).data.comic;
+                }, n = async () => {
                     let t = new Map, r = 1, o = 1, a = [];
                     for (;;) {
                         const t = this.routes.comicEpsRequest({
                             comicId: e,
                             page: r
                         });
-                        let o = await Network.get(this.buildRequestUrl(t.path), this.buildRequestHeaders("GET", t, this.loadData("token")));
-                        if (200 !== o.status) throw "Invalid status code: " + o.status;
-                        let i = JSON.parse(o.body);
-                        if (a.push(...i.data.eps.docs), i.data.eps.pages === r) break;
+                        let o = await this.requestJson(t);
+                        if (a.push(...o.data.eps.docs), o.data.eps.pages === r) break;
                         r++;
                     }
                     return a.sort((e, t) => e.order - t.order), a.forEach(e => {
                         t.set(o.toString(), e.title), o++;
                     }), t;
-                }, n = async () => {
+                }, l = async () => {
                     const t = this.routes.comicRecommendationRequest({
                         comicId: e
                     });
-                    let r = await Network.get(this.buildRequestUrl(t.path), this.buildRequestHeaders("GET", t, this.loadData("token")));
-                    if (200 !== r.status) throw "Invalid status code: " + r.status;
-                    let o = JSON.parse(r.body), a = [];
-                    return o.data.comics.forEach(e => {
-                        a.push(this.parseComic(e));
-                    }), a;
+                    let r = await this.requestJson(t);
+                    return this.parseComics(r.data.comics);
                 };
                 try {
-                    [o, a, i] = await Promise.all([ s(), l(), n() ]);
+                    [o, a, i] = await Promise.all([ s(), n(), l() ]);
                 } catch (e) {
-                    throw "Invalid status code: 401" === e && (await this.account.reLogin(), [o, a, i] = await Promise.all([ s(), l(), n() ])),
+                    throw "Invalid status code: 401" === e && (await this.account.reLogin(), [o, a, i] = await Promise.all([ s(), n(), l() ])),
                     e;
                 }
                 let u = {};
                 o.author && (u.Author = [ o.author ]), o.chineseTeam && (u["Chinese Team"] = [ o.chineseTeam ]);
-                let c = new Date(o.updated_at), d = c.getFullYear() + "-" + (c.getMonth() + 1) + "-" + c.getDate();
+                let c = new Date(o.updated_at), p = c.getFullYear() + "-" + (c.getMonth() + 1) + "-" + c.getDate();
                 return new ComicDetails({
                     title: o.title,
                     cover: o.thumb.fileServer + "/static/" + o.thumb.path,
@@ -282,7 +190,7 @@ class Picacg extends ComicSource {
                     commentCount: o.commentsCount,
                     likesCount: o.likesCount,
                     uploader: o._creator.name,
-                    updateTime: d,
+                    updateTime: p,
                     maxPage: o.pagesCount
                 });
             },
@@ -294,12 +202,10 @@ class Picacg extends ComicSource {
                         epId: t,
                         page: o
                     });
-                    let i = await Network.get(this.buildRequestUrl(a.path), this.buildRequestHeaders("GET", a, this.loadData("token")));
-                    if (200 !== i.status) throw "Invalid status code: " + i.status;
-                    let s = JSON.parse(i.body);
-                    if (s.data.pages.docs.forEach(e => {
+                    let i = await this.requestJson(a);
+                    if (i.data.pages.docs.forEach(e => {
                         r.push(e.media.fileServer + "/static/" + e.media.path);
-                    }), s.data.pages.pages === o) break;
+                    }), i.data.pages.pages === o) break;
                     o++;
                 }
                 return {
@@ -315,46 +221,30 @@ class Picacg extends ComicSource {
                 return "ok";
             },
             loadComments: async (e, t, r, o) => {
-                function a(e) {
-                    var t;
-                    return new Comment({
-                        userName: e._user.name,
-                        avatar: e._user.avatar ? e._user.avatar.fileServer + "/static/" + e._user.avatar.path : void 0,
-                        id: e._id,
-                        content: e.content,
-                        isLiked: e.isLiked,
-                        score: null != (t = e.likesCount) ? t : 0,
-                        replyCount: e.commentsCount,
-                        time: e.created_at
-                    });
-                }
-                let i = [], s = 1;
-                if (o) {
-                    const e = this.routes.commentChildrenRequest({
-                        replyTo: o,
-                        page: r
-                    });
-                    let t = await Network.get(this.buildRequestUrl(e.path), this.buildRequestHeaders("GET", e, this.loadData("token")));
-                    if (200 !== t.status) throw "Invalid status code: " + t.status;
-                    let l = JSON.parse(t.body);
-                    l.data.comments.docs.forEach(e => {
-                        i.push(a(e));
-                    }), s = l.data.comments.pages;
-                } else {
-                    const t = this.routes.comicCommentsRequest({
-                        comicId: e,
-                        page: r
-                    });
-                    let o = await Network.get(this.buildRequestUrl(t.path), this.buildRequestHeaders("GET", t, this.loadData("token")));
-                    if (200 !== o.status) throw "Invalid status code: " + o.status;
-                    let l = JSON.parse(o.body);
-                    l.data.comments.docs.forEach(e => {
-                        i.push(a(e));
-                    }), s = l.data.comments.pages;
-                }
-                return {
-                    comments: i,
-                    maxPage: s
+                let a = [];
+                const i = o ? this.routes.commentChildrenRequest({
+                    replyTo: o,
+                    page: r
+                }) : this.routes.comicCommentsRequest({
+                    comicId: e,
+                    page: r
+                });
+                let s = await this.requestJson(i);
+                return s.data.comments.docs.forEach(e => {
+                    var t, r;
+                    a.push((t = e, new Comment({
+                        userName: t._user.name,
+                        avatar: t._user.avatar ? t._user.avatar.fileServer + "/static/" + t._user.avatar.path : void 0,
+                        id: t._id,
+                        content: t.content,
+                        isLiked: t.isLiked,
+                        score: null != (r = t.likesCount) ? r : 0,
+                        replyCount: t.commentsCount,
+                        time: t.created_at
+                    })));
+                }), {
+                    comments: a,
+                    maxPage: s.data.comments.pages
                 };
             },
             sendComment: async (e, t, r, o) => {
@@ -524,6 +414,35 @@ class Picacg extends ComicSource {
             maxPage: e.pagesCount
         });
     }
+    parseComics(e) {
+        const t = [];
+        return e.forEach(e => t.push(this.parseComic(e))), t;
+    }
+    requireLogin(e = !1) {
+        if (this.isLogged) return;
+        const t = "Not logged in";
+        if (e) throw new Error(t);
+        throw t;
+    }
+    async loadExploreComics(e, t = !1) {
+        this.requireLogin();
+        const r = await this.requestJson(e, {
+            retry401: !0
+        }), o = t ? r.data.comics.docs : r.data.comics;
+        return {
+            comics: this.parseComics(o)
+        };
+    }
+    async requestJson(e, t = {}) {
+        const r = t.method || "GET", o = () => {
+            const o = this.buildRequestUrl(e.path), a = this.buildRequestHeaders(r, e, this.loadData("token"));
+            return "POST" === r ? Network.post(o, a, t.body) : Network.get(o, a);
+        };
+        let a = await o();
+        if (t.retry401 && 401 === a.status) await this.account.reLogin(), a = await o(); else if (401 === a.status && t.unauthorizedError) throw t.unauthorizedError;
+        if (200 !== a.status) throw "Invalid status code: " + a.status;
+        return JSON.parse(a.body);
+    }
 }
 
 function buildOffsetByPage(e, t) {
@@ -658,7 +577,7 @@ function joinSelfHostedRoutePath(e, t) {
 }
 
 function createKomgaRouteHelpers(e) {
-    const t = e && "object" == typeof e && !Array.isArray(e) ? e : {}, r = normalizeSelfHostedRoutePath(t.apiV1Root, "/api/v1"), o = normalizeSelfHostedRoutePath(t.apiV2Root, "/api/v2"), a = normalizeSelfHostedRoutePath(t.seriesWebRoot, "/series"), i = normalizeSelfHostedRoutePath(t.booksWebRoot, "/books"), s = joinSelfHostedRoutePath(r, [ "series" ]), l = joinSelfHostedRoutePath(r, [ "books" ]), n = joinSelfHostedRoutePath(r, [ "collections" ]);
+    const t = e && "object" == typeof e && !Array.isArray(e) ? e : {}, r = normalizeSelfHostedRoutePath(t.apiV1Root, "/api/v1"), o = normalizeSelfHostedRoutePath(t.apiV2Root, "/api/v2"), a = normalizeSelfHostedRoutePath(t.seriesWebRoot, "/series"), i = normalizeSelfHostedRoutePath(t.booksWebRoot, "/books"), s = joinSelfHostedRoutePath(r, [ "series" ]), n = joinSelfHostedRoutePath(r, [ "books" ]), l = joinSelfHostedRoutePath(r, [ "collections" ]);
     return {
         apiV1Root: r,
         apiV2Root: o,
@@ -667,47 +586,47 @@ function createKomgaRouteHelpers(e) {
         librariesPath: () => joinSelfHostedRoutePath(r, [ "libraries" ]),
         seriesTagsPath: () => joinSelfHostedRoutePath(r, [ "tags", "series" ]),
         languagesPath: () => joinSelfHostedRoutePath(r, [ "languages" ]),
-        collectionsPath: () => n,
+        collectionsPath: () => l,
         genresPath: () => joinSelfHostedRoutePath(r, [ "genres" ]),
         currentUserPath: () => joinSelfHostedRoutePath(o, [ "users", "me" ]),
         seriesPath: () => s,
         latestSeriesPath: () => joinSelfHostedRoutePath(s, [ "latest" ]),
         updatedSeriesPath: () => joinSelfHostedRoutePath(s, [ "updated" ]),
-        collectionSeriesPath: e => joinSelfHostedRoutePath(n, [ e, "series" ]),
+        collectionSeriesPath: e => joinSelfHostedRoutePath(l, [ e, "series" ]),
         seriesDetailsPath: e => joinSelfHostedRoutePath(s, [ e ]),
         seriesBooksPath: e => joinSelfHostedRoutePath(s, [ e, "books" ]),
         seriesThumbnailPath: e => joinSelfHostedRoutePath(s, [ e, "thumbnail" ]),
         seriesWebPath: e => joinSelfHostedRoutePath(a, [ e ]),
-        bookDetailsPath: e => joinSelfHostedRoutePath(l, [ e ]),
-        bookThumbnailPath: e => joinSelfHostedRoutePath(l, [ e, "thumbnail" ]),
-        bookPagesPath: e => joinSelfHostedRoutePath(l, [ e, "pages" ]),
-        bookPageImagePath: (e, t) => joinSelfHostedRoutePath(l, [ e, "pages", t ]),
+        bookDetailsPath: e => joinSelfHostedRoutePath(n, [ e ]),
+        bookThumbnailPath: e => joinSelfHostedRoutePath(n, [ e, "thumbnail" ]),
+        bookPagesPath: e => joinSelfHostedRoutePath(n, [ e, "pages" ]),
+        bookPageImagePath: (e, t) => joinSelfHostedRoutePath(n, [ e, "pages", t ]),
         bookWebPath: e => joinSelfHostedRoutePath(i, [ e ])
     };
 }
 
 function createKavitaRouteHelpers(e) {
-    const t = e && "object" == typeof e && !Array.isArray(e) ? e : {}, r = normalizeSelfHostedRoutePath(t.apiRoot, "/api"), o = normalizeSelfHostedRoutePath(t.libraryRoot, `${r}/Library`), a = normalizeSelfHostedRoutePath(t.metadataRoot, `${r}/Metadata`), i = normalizeSelfHostedRoutePath(t.metadataLegacyRoot, `${r}/metadata`), s = normalizeSelfHostedRoutePath(t.accountRoot, `${r}/Account`), l = normalizeSelfHostedRoutePath(t.seriesRoot, `${r}/Series`), n = normalizeSelfHostedRoutePath(t.imageRoot, `${r}/Image`), u = normalizeSelfHostedRoutePath(t.readerRoot, `${r}/Reader`), c = normalizeSelfHostedRoutePath(t.searchRoot, `${r}/Search`);
+    const t = e && "object" == typeof e && !Array.isArray(e) ? e : {}, r = normalizeSelfHostedRoutePath(t.apiRoot, "/api"), o = normalizeSelfHostedRoutePath(t.libraryRoot, `${r}/Library`), a = normalizeSelfHostedRoutePath(t.metadataRoot, `${r}/Metadata`), i = normalizeSelfHostedRoutePath(t.metadataLegacyRoot, `${r}/metadata`), s = normalizeSelfHostedRoutePath(t.accountRoot, `${r}/Account`), n = normalizeSelfHostedRoutePath(t.seriesRoot, `${r}/Series`), l = normalizeSelfHostedRoutePath(t.imageRoot, `${r}/Image`), u = normalizeSelfHostedRoutePath(t.readerRoot, `${r}/Reader`), c = normalizeSelfHostedRoutePath(t.searchRoot, `${r}/Search`);
     return {
         apiRoot: r,
         libraryRoot: o,
         metadataRoot: a,
         metadataLegacyRoot: i,
         accountRoot: s,
-        seriesRoot: l,
-        imageRoot: n,
+        seriesRoot: n,
+        imageRoot: l,
         readerRoot: u,
         searchRoot: c,
         librariesPath: () => joinSelfHostedRoutePath(o, [ "libraries" ]),
         genresPath: () => joinSelfHostedRoutePath(a, [ "genres" ]),
         peopleByRolePath: () => joinSelfHostedRoutePath(i, [ "people-by-role" ]),
         loginPath: () => joinSelfHostedRoutePath(s, [ "login" ]),
-        seriesV2Path: () => joinSelfHostedRoutePath(l, [ "v2" ]),
-        seriesDetailsPath: e => joinSelfHostedRoutePath(l, [ e ]),
-        seriesMetadataPath: () => joinSelfHostedRoutePath(l, [ "metadata" ]),
-        seriesVolumesPath: () => joinSelfHostedRoutePath(l, [ "volumes" ]),
-        seriesCoverPath: () => joinSelfHostedRoutePath(n, [ "series-cover" ]),
-        chapterPath: () => joinSelfHostedRoutePath(l, [ "chapter" ]),
+        seriesV2Path: () => joinSelfHostedRoutePath(n, [ "v2" ]),
+        seriesDetailsPath: e => joinSelfHostedRoutePath(n, [ e ]),
+        seriesMetadataPath: () => joinSelfHostedRoutePath(n, [ "metadata" ]),
+        seriesVolumesPath: () => joinSelfHostedRoutePath(n, [ "volumes" ]),
+        seriesCoverPath: () => joinSelfHostedRoutePath(l, [ "series-cover" ]),
+        chapterPath: () => joinSelfHostedRoutePath(n, [ "chapter" ]),
         readerImagePath: () => joinSelfHostedRoutePath(u, [ "image" ]),
         searchPath: () => joinSelfHostedRoutePath(c, [ "search" ])
     };
@@ -835,16 +754,26 @@ const pluginSourcePagingApi = {
 function resolveMappedCategoryTagAction(e, t, r) {
     const o = r && "object" == typeof r && !Array.isArray(r) ? r : {}, a = null == o.namespace ? "标签" : String(o.namespace);
     if (String(e) !== a) throw o.unsupportedMessage || "Unsupported tag namespace";
-    const i = o.mapping && "object" == typeof o.mapping ? o.mapping : {}, s = String(null == t ? "" : t), l = i[s], n = "function" == typeof o.keywordFormatter ? o.keywordFormatter(s, l, e) : s, u = "function" == typeof o.paramFormatter ? o.paramFormatter(s, l, e) : String(l);
+    const i = o.mapping && "object" == typeof o.mapping ? o.mapping : {}, s = String(null == t ? "" : t), n = i[s], l = "function" == typeof o.keywordFormatter ? o.keywordFormatter(s, n, e) : s, u = "function" == typeof o.paramFormatter ? o.paramFormatter(s, n, e) : String(n);
     return {
         action: o.action || "category",
-        keyword: n,
+        keyword: l,
         param: u
     };
 }
 
 function createMappedCategoryTagActionResolver(e) {
     return (t, r) => resolveMappedCategoryTagAction(t, r, e);
+}
+
+function joinRawQueryEntries(e) {
+    const t = [];
+    for (const r of e || []) {
+        if (!Array.isArray(r) || r.length < 2) continue;
+        const [e, o] = r;
+        null != e && null != o && t.push(`${String(e)}=${String(o)}`);
+    }
+    return t.join("&");
 }
 
 function runtimeGet(e, t) {
@@ -869,10 +798,10 @@ async function getSelfHostedJson(e, t, r, o) {
 
 async function postSelfHostedJson(e, t, r, o, a) {
     if (!e || "object" != typeof e) throw new Error("postSelfHostedJson requires plugin source");
-    const i = a && "object" == typeof a && !Array.isArray(a) ? a : {}, s = i.headers || e.headers, l = await Network.post(e.buildUrl(t, r), s, o);
-    return ensureSelfHostedHttpOk(l, i), {
-        body: parseSelfHostedJsonBody(l.body),
-        headers: l.headers || {}
+    const i = a && "object" == typeof a && !Array.isArray(a) ? a : {}, s = i.headers || e.headers, n = await Network.post(e.buildUrl(t, r), s, o);
+    return ensureSelfHostedHttpOk(n, i), {
+        body: parseSelfHostedJsonBody(n.body),
+        headers: n.headers || {}
     };
 }
 
@@ -954,34 +883,7 @@ function markCooldown(e, t, r) {
 }
 
 "undefined" != typeof module && module && module.exports && (module.exports = {
-    buildOffsetByPage,
-    normalizeStarOption,
-    normalizeStarOptions,
-    stripSelfHostedTrailingSlash,
-    normalizeSelfHostedPathRoot,
-    normalizeSelfHostedPathSegment,
-    joinSelfHostedPath,
-    createSelfHostedRouteHelpers,
-    buildSelfHostedUrlFromSource,
-    buildSelfHostedQueryFromSource,
-    normalizeWebSourceBaseUrl,
-    normalizeWebSourcePath,
-    joinWebSourcePath,
-    buildWebSourceQuery,
-    buildWebSourceUrl,
-    toWebSourceAbsoluteUrl,
-    replaceWebSourceBaseUrl,
-    ensureWebSourceTrailingSlash,
-    normalizeSelfHostedBaseUrl,
-    normalizeSelfHostedRoutePath,
-    joinSelfHostedRoutePath,
-    createKomgaRouteHelpers,
-    createKavitaRouteHelpers,
-    resolveSelfHostedBaseUrl,
-    buildSelfHostedQuery,
-    buildSelfHostedUrl,
-    readSelfHostedOffset,
-    updateSelfHostedOffset,
+    ...pluginSourceContractApi,
     pluginSourcePagingApi,
     pluginSourceWebApi,
     pluginSourceSelfHostedPathApi,
@@ -997,21 +899,21 @@ function markCooldown(e, t, r) {
 }, ManagedRequestClient.prototype.head = function(e, t, r) {
     return this.send("HEAD", e, t || {}, null, r || {});
 }, ManagedRequestClient.prototype.send = async function(e, t, r, o, a) {
-    const i = this.source, s = a && "object" == typeof a && !Array.isArray(a) ? a : {}, l = null == s.mutation ? "GET" !== e : !0 === s.mutation, n = s.requestKey || defaultRequestKey(e, t, o, l), u = "function" == typeof this.hooks.domainKeyResolver ? this.hooks.domainKeyResolver : defaultManagedDomainKey, c = {
+    const i = this.source, s = a && "object" == typeof a && !Array.isArray(a) ? a : {}, n = null == s.mutation ? "GET" !== e : !0 === s.mutation, l = s.requestKey || defaultRequestKey(e, t, o, n), u = "function" == typeof this.hooks.domainKeyResolver ? this.hooks.domainKeyResolver : defaultManagedDomainKey, c = {
         action: s.action || `${e} ${t}`,
-        requestKey: n,
+        requestKey: l,
         domainKey: s.domainKey || u(t, e, o, s, i, this),
         expectedStatus: null == s.expectedStatus ? 200 : s.expectedStatus,
         maxRetries: null == s.maxRetries ? "GET" === e ? 1 : 0 : s.maxRetries,
         cooldownMs: null == s.cooldownMs ? 6e4 : s.cooldownMs,
         classifyBody: null == s.classifyBody || s.classifyBody,
-        mutation: l,
-        allowDedup: null == s.allowDedup ? !l : s.allowDedup
-    }, d = i.requestState.cooldownUntil.get(c.domainKey);
-    if (d && d > Date.now()) throw `${c.action} blocked: temporary cooldown in effect`;
-    const p = this._resolveHeaders(e, t, r || {}, c), h = c.requestKey;
+        mutation: n,
+        allowDedup: null == s.allowDedup ? !n : s.allowDedup
+    }, p = i.requestState.cooldownUntil.get(c.domainKey);
+    if (p && p > Date.now()) throw `${c.action} blocked: temporary cooldown in effect`;
+    const d = this._resolveHeaders(e, t, r || {}, c), h = c.requestKey;
     if (c.allowDedup && h && i.requestState.inflight.has(h)) return i.requestState.inflight.get(h);
-    const m = createDomainQueue(i.requestState, c.domainKey, () => this._sendWithRetry(e, t, p, o, c));
+    const m = createDomainQueue(i.requestState, c.domainKey, () => this._sendWithRetry(e, t, d, o, c));
     c.allowDedup && h && i.requestState.inflight.set(h, m);
     try {
         return await m;
@@ -1024,18 +926,18 @@ function markCooldown(e, t, r) {
     let i = 0;
     const s = Math.max(0, a.maxRetries) + 1;
     for (;i < s; ) {
-        let l;
+        let n;
         i += 1;
         try {
-            l = await this._dispatch(e, t, r, o, a);
+            n = await this._dispatch(e, t, r, o, a);
         } catch (e) {
             if (i >= s) throw defaultManagedRequestError(this.source, a.action, e);
             continue;
         }
-        if (this._shouldCooldown(l, a)) throw this._markCooldown(a.domainKey, a.cooldownMs),
-        defaultManagedResponseError(this.source, a.action, l);
-        if (l.status === a.expectedStatus) return l;
-        if (i >= s || a.mutation) throw defaultManagedResponseError(this.source, a.action, l);
+        if (this._shouldCooldown(n, a)) throw this._markCooldown(a.domainKey, a.cooldownMs),
+        defaultManagedResponseError(this.source, a.action, n);
+        if (n.status === a.expectedStatus) return n;
+        if (i >= s || a.mutation) throw defaultManagedResponseError(this.source, a.action, n);
     }
     throw `${a.action} failed after retries`;
 }, ManagedRequestClient.prototype._dispatch = function(e, t, r, o, a) {
@@ -1067,6 +969,7 @@ function markCooldown(e, t, r) {
 });
 
 const httpRequestApi = {
+    joinRawQueryEntries,
     runtimeGet,
     getRuntimeJson,
     getRuntimeDocument,
@@ -1090,8 +993,8 @@ const httpRequestApi = {
 };
 
 function createSelfHostedReferenceCacheFeature(e) {
-    const t = e && "object" == typeof e && !Array.isArray(e) ? e : {}, r = Number(t.ttlMs || 3e5), o = String(t.metaTimestampKey || ""), a = t.resetData && "object" == typeof t.resetData ? t.resetData : {}, i = "function" == typeof t.hasToken ? t.hasToken : () => !1, s = "function" == typeof t.loadPayload ? t.loadPayload : null, l = "function" == typeof t.savePayload ? t.savePayload : null, n = "function" == typeof t.shouldRethrow ? t.shouldRethrow : null;
-    if (!o || !s || !l) throw new Error("Invalid createSelfHostedReferenceCacheFeature options");
+    const t = e && "object" == typeof e && !Array.isArray(e) ? e : {}, r = Number(t.ttlMs || 3e5), o = String(t.metaTimestampKey || ""), a = t.resetData && "object" == typeof t.resetData ? t.resetData : {}, i = "function" == typeof t.hasToken ? t.hasToken : () => !1, s = "function" == typeof t.loadPayload ? t.loadPayload : null, n = "function" == typeof t.savePayload ? t.savePayload : null, l = "function" == typeof t.shouldRethrow ? t.shouldRethrow : null;
+    if (!o || !s || !n) throw new Error("Invalid createSelfHostedReferenceCacheFeature options");
     const u = e => {
         for (const [t, r] of Object.entries(a)) Array.isArray(r) ? e.saveData(t, r.slice()) : r && "object" == typeof r ? e.saveData(t, {
             ...r
@@ -1103,9 +1006,9 @@ function createSelfHostedReferenceCacheFeature(e) {
         const a = Date.now(), c = Number(e.loadData(o) || 0);
         if (!(!t && c > 0 && a - c < r)) try {
             const t = await s(e);
-            await l(e, t, a), e.saveData(o, a);
+            await n(e, t, a), e.saveData(o, a);
         } catch (t) {
-            if (u(e), n && n(t, e)) throw t;
+            if (u(e), l && l(t, e)) throw t;
         }
     };
 }
@@ -1139,24 +1042,24 @@ function createStaticCategoryPart(e, t, r, o) {
 }
 
 function createStoredCategoryPart(e) {
-    const t = e && "object" == typeof e && !Array.isArray(e) ? e : {}, r = String(t.partName || ""), o = String(t.storageKey || ""), a = "function" == typeof t.getLabel ? t.getLabel : null, i = "function" == typeof t.getCategory ? t.getCategory : null, s = "function" == typeof t.getParam ? t.getParam : null, l = !0 === t.usePageJumpTarget, n = "function" == typeof t.getSource ? t.getSource : null;
+    const t = e && "object" == typeof e && !Array.isArray(e) ? e : {}, r = String(t.partName || ""), o = String(t.storageKey || ""), a = "function" == typeof t.getLabel ? t.getLabel : null, i = "function" == typeof t.getCategory ? t.getCategory : null, s = "function" == typeof t.getParam ? t.getParam : null, n = !0 === t.usePageJumpTarget, l = "function" == typeof t.getSource ? t.getSource : null;
     if (!(r && o && a && i && s)) throw new Error("Invalid createStoredCategoryPart options");
     return {
         name: r,
         type: "dynamic",
         loader: function() {
-            const e = n ? n() : this, t = e && "function" == typeof e.loadData ? e.loadData(o) : null;
+            const e = l ? l() : this, t = e && "function" == typeof e.loadData ? e.loadData(o) : null;
             if (!Array.isArray(t) || !t.length) return [];
             const r = [];
             for (const e of t) {
-                const t = a(e), o = i(e), n = s(e);
+                const t = a(e), o = i(e), l = s(e);
                 if (!t || !o) continue;
                 const u = {
                     category: o,
-                    param: null == n ? null : n
+                    param: null == l ? null : l
                 };
                 let c;
-                c = l && "function" == typeof PageJumpTarget ? new PageJumpTarget({
+                c = n && "function" == typeof PageJumpTarget ? new PageJumpTarget({
                     page: "category",
                     attributes: u
                 }) : {
@@ -1173,23 +1076,23 @@ function createStoredCategoryPart(e) {
 }
 
 function createOffsetSearchLoader(e) {
-    const t = e && "object" == typeof e && !Array.isArray(e) ? e : {}, r = String(t.path || "/api/search"), o = "function" == typeof t.getOffsetKey ? t.getOffsetKey : null, a = "function" == typeof t.buildQuery ? t.buildQuery : null, i = "function" == typeof t.mapComic ? t.mapComic : null, s = "function" == typeof t.onResponse ? t.onResponse : null, l = String(t.statusErrorPrefix || "Invalid status code");
+    const t = e && "object" == typeof e && !Array.isArray(e) ? e : {}, r = String(t.path || "/api/search"), o = "function" == typeof t.getOffsetKey ? t.getOffsetKey : null, a = "function" == typeof t.buildQuery ? t.buildQuery : null, i = "function" == typeof t.mapComic ? t.mapComic : null, s = "function" == typeof t.onResponse ? t.onResponse : null, n = String(t.statusErrorPrefix || "Invalid status code");
     if (!o || !a || !i) throw new Error("Invalid createOffsetSearchLoader options");
     return async function(e, t) {
         if (!e || "object" != typeof e) throw new Error("runOffsetSearch requires plugin source");
-        const n = t && "object" == typeof t && !Array.isArray(t) ? t : {}, u = Number(n.page || 1), c = stripSelfHostedTrailingSlash(e.baseUrl), d = o(n), p = readSelfHostedOffset(e, d, u), h = buildSelfHostedQueryFromSource(a(n, p)), m = h ? `${c}${r}?${h}` : `${c}${r}`, y = await Network.get(m, e.headers);
-        if (200 !== y.status) throw `${l}: ${y.status}`;
+        const l = t && "object" == typeof t && !Array.isArray(t) ? t : {}, u = Number(l.page || 1), c = stripSelfHostedTrailingSlash(e.baseUrl), p = o(l), d = readSelfHostedOffset(e, p, u), h = buildSelfHostedQueryFromSource(a(l, d)), m = h ? `${c}${r}?${h}` : `${c}${r}`, y = await Network.get(m, e.headers);
+        if (200 !== y.status) throw `${n}: ${y.status}`;
         const g = parseSelfHostedJsonBody(y.body) || {}, f = Array.isArray(g.data) ? g.data : [], C = f.map(t => i(t, {
             source: e,
             base: c,
-            input: n
+            input: l
         })), S = f.length;
-        updateSelfHostedOffset(e, d, S);
-        const k = "number" == typeof g.recordsFiltered && g.recordsFiltered >= 0 ? g.recordsFiltered : p + S, L = S || 1, P = Math.max(1, Math.ceil(k / L));
+        updateSelfHostedOffset(e, p, S);
+        const k = "number" == typeof g.recordsFiltered && g.recordsFiltered >= 0 ? g.recordsFiltered : d + S, L = S || 1, P = Math.max(1, Math.ceil(k / L));
         return s && s({
             source: e,
-            input: n,
-            start: p,
+            input: l,
+            start: d,
             returned: S,
             data: g,
             list: f,
@@ -1213,8 +1116,8 @@ function startsWithSelfHostedTagPrefix(e, t, r) {
 }
 
 function extractSelfHostedTagValue(e, t, r) {
-    const o = r && "object" == typeof r && !Array.isArray(r) ? r : {}, a = !1 !== o.caseSensitive, i = "function" == typeof o.transform ? o.transform : e => e, s = toSelfHostedTagArray(e, o), l = String(t || "");
-    for (const e of s) if (startsWithSelfHostedTagPrefix(e, l, a)) return i(String(e).slice(l.length).trim(), e);
+    const o = r && "object" == typeof r && !Array.isArray(r) ? r : {}, a = !1 !== o.caseSensitive, i = "function" == typeof o.transform ? o.transform : e => e, s = toSelfHostedTagArray(e, o), n = String(t || "");
+    for (const e of s) if (startsWithSelfHostedTagPrefix(e, n, a)) return i(String(e).slice(n.length).trim(), e);
     return null;
 }
 
@@ -1224,9 +1127,9 @@ function removeSelfHostedTagsByPrefix(e, t, r) {
 }
 
 function filterSelfHostedDisplayTags(e, t) {
-    const r = t && "object" == typeof t && !Array.isArray(t) ? t : {}, o = Array.isArray(r.blockedPrefixes) ? r.blockedPrefixes : [], a = !0 === r.caseSensitive, i = !1 !== r.excludeUrlLike, s = "function" == typeof r.extraFilter ? r.extraFilter : null, l = toSelfHostedTagArray(e, r), n = [];
-    for (const e of l) o.some(t => startsWithSelfHostedTagPrefix(e, t, a)) || i && String(e).includes("://") || s && !s(e) || n.push(e);
-    return n;
+    const r = t && "object" == typeof t && !Array.isArray(t) ? t : {}, o = Array.isArray(r.blockedPrefixes) ? r.blockedPrefixes : [], a = !0 === r.caseSensitive, i = !1 !== r.excludeUrlLike, s = "function" == typeof r.extraFilter ? r.extraFilter : null, n = toSelfHostedTagArray(e, r), l = [];
+    for (const e of n) o.some(t => startsWithSelfHostedTagPrefix(e, t, a)) || i && String(e).includes("://") || s && !s(e) || l.push(e);
+    return l;
 }
 
 function parseSelfHostedRatingValueFromTags(e, t) {
@@ -1255,7 +1158,7 @@ function extractSelfHostedUrlEntriesFromTagMap(e, t) {
         if (i.has(t)) continue;
         const r = e[t];
         if (!Array.isArray(r)) continue;
-        const l = [];
+        const n = [];
         for (const e of r) if ("string" == typeof e) if (e.includes("://")) s.push(e); else {
             if (String(t).toLowerCase() === o) {
                 let t = e;
@@ -1263,9 +1166,9 @@ function extractSelfHostedUrlEntriesFromTagMap(e, t) {
                 s.push(t);
                 continue;
             }
-            l.push(e);
-        } else l.push(e);
-        e[t] = l;
+            n.push(e);
+        } else n.push(e);
+        e[t] = n;
     }
     return s;
 }
@@ -1318,20 +1221,7 @@ function createHtmlDocument(e) {
 }
 
 "undefined" != typeof module && module && module.exports && (module.exports = {
-    runtimeGet,
-    getRuntimeJson,
-    getRuntimeDocument,
-    getSelfHostedJson,
-    postSelfHostedJson,
-    ManagedRequestClient,
-    createManagedRequestClient,
-    parseRuntimeJsonBody,
-    ensureSelfHostedHttpOk,
-    parseSelfHostedJsonBody,
-    hasNonWhitespaceText,
-    defaultRequestKey,
-    createDomainQueue,
-    markCooldown,
+    ...httpSupportApi,
     httpRequestApi,
     httpResponseApi,
     httpCooldownApi,
@@ -1445,25 +1335,135 @@ function buildCopyLikeHmacSignature(e, t) {
 }
 
 "undefined" != typeof module && module && module.exports && (module.exports = {
-    unwrapCopyLikeComic,
-    readCopyLikePath,
-    parseCopyLikeThemeTags,
-    parseCopyLikePrimaryAuthor,
-    parseCopyLikeAuthorCount,
-    formatCopyLikeRankingDescription,
-    computeCopyLikeMaxPage,
-    createCopyLikeComicParser,
-    createHtmlDocument,
+    ...parserSupportApi,
     parserCopyLikeApi,
     parserHtmlApi,
     parserSupportApi
 });
+
+const COPY_LIKE_MULTI_GROUP_MINIMUM_APP_VERSION = "1.3.0", COPY_LIKE_LOGIN_EXPIRED = "Login expired", COPY_LIKE_RETRY_ERROR = "Retry", COPY_LIKE_CHAPTER_RETRY_LIMIT = 5, COPY_LIKE_CHAPTER_RATE_LIMIT_STATUS = 210, COPY_LIKE_CHAPTER_DEFAULT_WAIT_MS = 4e4, COPY_LIKE_GROUP_CHAPTER_PAGE_SIZE = 100;
+
+function isCopyLikeAppVersionAfter(e, t) {
+    const r = e.split("."), o = t.split(".");
+    for (let e = 0; e < 3; e++) if (parseInt(r[e]) < parseInt(o[e])) return !1;
+    return !0;
+}
+
+function copyLikeStatusError(e) {
+    return `Invalid status code: ${e}`;
+}
+
+async function loadCopyLikeFavoriteStatus(e) {
+    const t = e || {}, r = await Network.get(buildCopyLikeComicQueryUrl({
+        apiUrl: t.apiUrl,
+        id: t.id
+    }), t.headers);
+    if (200 !== r.status) throw copyLikeStatusError(r.status);
+    return null != JSON.parse(r.body).results.collect;
+}
+
+async function updateCopyLikeFavorite(e) {
+    const t = e || {}, r = t.getRequestId ? await t.getRequestId() : void 0, o = await Network.get(buildCopyLikeComicDetailUrl({
+        apiUrl: t.apiUrl,
+        id: t.comicId,
+        inMainland: !0,
+        requestId: r,
+        platform: 3
+    }), t.getHeaders ? t.getHeaders() : t.headers);
+    if (200 !== o.status) throw copyLikeStatusError(o.status);
+    const a = JSON.parse(o.body).results.comic.uuid, i = await Network.post(buildCopyLikeEndpointUrl(t.apiUrl, COPY_LIKE_ENDPOINT_PATHS.FAVORITE_COMIC_ACTION), withCopyLikeFormHeaders(t.getHeaders ? t.getHeaders() : t.headers), `comic_id=${a}&is_collect=${t.isAdding ? 1 : 0}&authorization=Token+${t.token}`);
+    if (401 === i.status) throw "Login expired";
+    if (200 !== i.status) throw copyLikeStatusError(i.status);
+    return "ok";
+}
+
+async function loadCopyLikeGroupChapters(e) {
+    const t = e || {}, r = Object.keys(t.groups), o = {}, a = () => t.getHeaders ? t.getHeaders() : t.headers;
+    if (await Promise.all(r.map(async e => {
+        const r = t.groups[e].path_word, i = t.getRequestId ? await t.getRequestId() : void 0;
+        let s = await Network.get(buildCopyLikeGroupChaptersUrl({
+            apiUrl: t.apiUrl,
+            id: t.id,
+            groupPath: r,
+            limit: 100,
+            offset: 0,
+            inMainland: t.inMainland,
+            requestId: i
+        }), a());
+        if (200 !== s.status) throw copyLikeStatusError(s.status);
+        let n = JSON.parse(s.body);
+        const l = new Map, u = e => {
+            e.forEach(e => l.set(e.uuid, e.name));
+        };
+        u(n.results.list);
+        const c = n.results.total;
+        let p = 100;
+        for (;p < c; ) {
+            if (s = await Network.get(buildCopyLikeGroupChaptersUrl({
+                apiUrl: t.apiUrl,
+                id: t.id,
+                groupPath: r,
+                limit: 100,
+                offset: p
+            }), a()), 200 !== s.status) throw copyLikeStatusError(s.status);
+            n = JSON.parse(s.body), u(n.results.list), p += 100;
+        }
+        o[e] = l;
+    })), isCopyLikeAppVersionAfter(t.appVersion, "1.3.0")) {
+        const e = new Map;
+        for (const a of r) e.set(t.groups[a].name, o[a]);
+        return e;
+    }
+    const i = new Map;
+    for (const e of r) for (const [t, r] of o[e]) i.set(t, r);
+    return i;
+}
+
+async function loadCopyLikeChapterData(e) {
+    const t = e || {};
+    let r = 0;
+    for (;r < 5; ) try {
+        const e = t.getRequestId ? await t.getRequestId() : t.requestId, r = await Network.get(buildCopyLikeChapterUrl({
+            apiUrl: t.apiUrl,
+            comicId: t.comicId,
+            chapterId: t.chapterId,
+            chapterEndpoint: t.chapterEndpoint,
+            inMainland: t.inMainland,
+            requestId: e,
+            platform: t.platform,
+            update: t.update
+        }), {
+            ...t.getHeaders ? t.getHeaders() : t.headers || {}
+        });
+        if (210 === r.status) {
+            let e = 4e4;
+            try {
+                const t = JSON.parse(r.body);
+                if (t.message && t.message.includes("Expected available in")) {
+                    const r = t.message.match(/(\d+)\s*seconds/);
+                    r && r[1] && (e = 1e3 * parseInt(r[1]));
+                }
+            } catch (e) {
+                console.log("Unable to parse wait time, using default wait time 40s");
+            }
+            throw console.log(`Chapter${t.chapterId} access too frequent, waiting ${e / 1e3}s`),
+            await new Promise(t => setTimeout(t, e)), "Retry";
+        }
+        if (200 !== r.status) throw copyLikeStatusError(r.status);
+        const o = JSON.parse(r.body);
+        return t.mapResponse ? t.mapResponse(o) : o;
+    } catch (e) {
+        if ("Retry" !== e) throw e;
+        if (r += 1, r >= 5) throw e;
+    }
+}
 
 const COPY_LIKE_ENDPOINT_PATHS = {
     LOGIN: "/api/v3/login",
     RANKS: "/api/v3/ranks",
     COMICS: "/api/v3/comics",
     SEARCH_COMIC: "/api/v3/search/comic",
+    HOME_INDEX: "/api/v3/h5/homeIndex",
     HOME_INDEX_COMICS: "/api/v3/h5/homeIndex/comics",
     FAVORITE_COMICS: "/api/v3/member/collect/comics",
     FAVORITE_COMIC_ACTION: "/api/v3/member/collect/comic",
@@ -1488,13 +1488,7 @@ function buildCopyLikeEndpointUrl(e, t) {
 }
 
 function buildCopyLikeQueryString(e) {
-    const t = [];
-    for (const r of e || []) {
-        if (!Array.isArray(r) || r.length < 2) continue;
-        const e = r[0], o = r[1];
-        null != e && null != o && t.push(`${String(e)}=${String(o)}`);
-    }
-    return t.join("&");
+    return joinRawQueryEntries(e);
 }
 
 function buildCopyLikeUrlWithQuery(e, t, r) {
@@ -1560,12 +1554,12 @@ function parseCopyLikeDetailTags(e) {
 }
 
 function buildCopyLikeDetailTagMap(e, t) {
-    const r = t || {}, o = r.authorNamespace || "作者", a = r.updateNamespace || "更新", i = r.tagNamespace || "标签", s = r.statusNamespace || "状态", l = e && e.datetime_updated ? e.datetime_updated : "", n = e && e.status && e.status.display ? e.status.display : "";
+    const r = t || {}, o = r.authorNamespace || "作者", a = r.updateNamespace || "更新", i = r.tagNamespace || "标签", s = r.statusNamespace || "状态", n = e && e.datetime_updated ? e.datetime_updated : "", l = e && e.status && e.status.display ? e.status.display : "";
     return {
         [o]: parseCopyLikeDetailAuthors(e),
-        [a]: [ l ],
+        [a]: [ n ],
         [i]: parseCopyLikeDetailTags(e),
-        [s]: [ n ]
+        [s]: [ l ]
     };
 }
 
@@ -1594,7 +1588,7 @@ function buildCopyLikeHomeSections(e, t, r) {
 }
 
 async function loadCopyLikeHomeSectionsModule(e) {
-    return buildCopyLikeHomeSections(await getRuntimeJson(`${e.apiUrl}${e.endpoint || "/api/v3/h5/homeIndex"}`, e.headers, e.context || "copy_like home"), e.sections || [], e.parseComic);
+    return buildCopyLikeHomeSections(await getRuntimeJson(`${e.apiUrl}${e.endpoint || COPY_LIKE_ENDPOINT_PATHS.HOME_INDEX}`, e.headers, e.context || "copy_like home"), e.sections || [], e.parseComic);
 }
 
 async function loadCopyLikeListModule(e) {
@@ -1683,9 +1677,9 @@ function createCopyLikeSearchLoadFeature(e) {
 
 function createCopyLikeCategoryRequestUrlBuilder(e) {
     return ({category: t, param: r, options: o, page: a}) => {
-        const i = Array.isArray(o) ? o : [], s = !1 === e.normalizeOptions ? i : normalizeStarOptions(i), l = e.getApiUrl();
+        const i = Array.isArray(o) ? o : [], s = !1 === e.normalizeOptions ? i : normalizeStarOptions(i), n = e.getApiUrl();
         if ("function" == typeof e.isRankingCategory && e.isRankingCategory(t, r)) return buildCopyLikeRankingUrl({
-            apiUrl: l,
+            apiUrl: n,
             page: a,
             limit: null == e.rankingLimit ? 30 : e.rankingLimit,
             freeType: e.rankingFreeType,
@@ -1694,20 +1688,20 @@ function createCopyLikeCategoryRequestUrlBuilder(e) {
             dateType: null == e.rankingDateOptionIndex ? void 0 : i[e.rankingDateOptionIndex]
         });
         if ("function" == typeof e.isHomepageCategory && e.isHomepageCategory(t, r)) return buildCopyLikeHomeIndexComicsUrl({
-            apiUrl: l,
+            apiUrl: n,
             page: a,
             limit: null == e.homepageLimit ? 20 : e.homepageLimit,
             top: r,
             ordering: null == e.homepageOrderingOptionIndex ? void 0 : i[e.homepageOrderingOptionIndex]
         });
-        const n = normalizeCopyLikeCategoryParam(t, e.categoryParamMap, r);
+        const l = normalizeCopyLikeCategoryParam(t, e.categoryParamMap, r);
         return buildCopyLikeComicsUrl({
-            apiUrl: l,
+            apiUrl: n,
             page: a,
             limit: null == e.themedLimit ? 30 : e.themedLimit,
             freeType: e.themedFreeType,
             ordering: null == e.themedOrderingOptionIndex ? void 0 : s[e.themedOrderingOptionIndex],
-            theme: n || "",
+            theme: l || "",
             top: null == e.themedTopOptionIndex ? void 0 : s[e.themedTopOptionIndex]
         });
     };
@@ -1770,6 +1764,14 @@ function createCopyLikeSearchLoaderFeature(e) {
 }
 
 "undefined" != typeof module && module && module.exports && (module.exports = {
+    COPY_LIKE_MULTI_GROUP_MINIMUM_APP_VERSION: "1.3.0",
+    COPY_LIKE_LOGIN_EXPIRED: "Login expired",
+    copyLikeStatusError,
+    isCopyLikeAppVersionAfter,
+    loadCopyLikeFavoriteStatus,
+    updateCopyLikeFavorite,
+    loadCopyLikeGroupChapters,
+    loadCopyLikeChapterData,
     normalizeCopyLikeBaseUrl,
     buildCopyLikeApiUrl,
     buildCopyLikePageUrl,
@@ -2202,13 +2204,7 @@ function buildPicacgEndpointUrl(e, t) {
 }
 
 function buildPicacgQueryString(e) {
-    const t = [];
-    for (const r of e || []) {
-        if (!Array.isArray(r) || r.length < 2) continue;
-        const e = r[0], o = r[1];
-        null != e && null != o && t.push(`${String(e)}=${String(o)}`);
-    }
-    return t.join("&");
+    return joinRawQueryEntries(e);
 }
 
 function buildPicacgPathWithQuery(e, t) {
@@ -2292,6 +2288,14 @@ const pluginFeatureGenericApi = {
     extractSelfHostedUrlEntriesFromTagMap,
     buildSelfHostedEmojiRatingTag
 }, pluginFeatureCopyLikeApi = {
+    COPY_LIKE_LOGIN_EXPIRED: "Login expired",
+    copyLikeStatusError,
+    loadCopyLikeGroupChapters,
+    COPY_LIKE_MULTI_GROUP_MINIMUM_APP_VERSION: "1.3.0",
+    isCopyLikeAppVersionAfter,
+    updateCopyLikeFavorite,
+    loadCopyLikeFavoriteStatus,
+    loadCopyLikeChapterData,
     normalizeCopyLikeBaseUrl,
     buildCopyLikeApiUrl,
     buildCopyLikePageUrl,
@@ -2395,112 +2399,14 @@ function __veneraNormalizeAuthorityPart(e, t, r) {
 }
 
 function resolvePluginUpdateUrl(e) {
-    const t = __veneraGetRuntimeGlobal(), r = t.__VENERA_RELEASE_AUTHORITY__ && "object" == typeof t.__VENERA_RELEASE_AUTHORITY__ ? t.__VENERA_RELEASE_AUTHORITY__ : {}, o = __veneraNormalizeAuthorityPart(r.cdnOrigin, "https://cdn.jsdelivr.net", !1).replace(/\/+$/, ""), a = __veneraNormalizeAuthorityPart(r.providerPath, "gh", !0), i = __veneraNormalizeAuthorityPart(r.repository, "mythic3011/venera-configs", !0), s = __veneraNormalizeAuthorityPart(r.releaseRef, "main", !1), l = __veneraNormalizeAuthorityPart(r.artifactPathPrefix, "dist/plugins", !0), n = String(e || "").replace(/^\/+/, "");
-    if (!n) return `${o}/${a}/${i}@${s}`;
-    const u = l ? `${l}/${n}` : n;
-    return `${o}/${a}/${i}@${s}/${n.startsWith(`${l}/`) ? n : u}`;
+    const t = __veneraGetRuntimeGlobal(), r = t.__VENERA_RELEASE_AUTHORITY__ && "object" == typeof t.__VENERA_RELEASE_AUTHORITY__ ? t.__VENERA_RELEASE_AUTHORITY__ : {}, o = __veneraNormalizeAuthorityPart(r.cdnOrigin, "https://cdn.jsdelivr.net", !1).replace(/\/+$/, ""), a = __veneraNormalizeAuthorityPart(r.providerPath, "gh", !0), i = __veneraNormalizeAuthorityPart(r.repository, "mythic3011/venera-configs", !0), s = __veneraNormalizeAuthorityPart(r.releaseRef, "main", !1), n = __veneraNormalizeAuthorityPart(r.artifactPathPrefix, "dist/plugins", !0), l = String(e || "").replace(/^\/+/, "");
+    if (!l) return `${o}/${a}/${i}@${s}`;
+    const u = n ? `${n}/${l}` : l;
+    return `${o}/${a}/${i}@${s}/${l.startsWith(`${n}/`) ? l : u}`;
 }
 
 "undefined" != typeof module && module && module.exports && (module.exports = {
-    resolveMappedCategoryTagAction,
-    createMappedCategoryTagActionResolver,
-    createSelfHostedReferenceCacheFeature,
-    createSafeInitFeature,
-    createStaticCategoryPart,
-    createStoredCategoryPart,
-    createOffsetSearchLoader,
-    toSelfHostedTagArray,
-    startsWithSelfHostedTagPrefix,
-    extractSelfHostedTagValue,
-    removeSelfHostedTagsByPrefix,
-    filterSelfHostedDisplayTags,
-    parseSelfHostedRatingValueFromTags,
-    extractSelfHostedUrlEntriesFromTagMap,
-    buildSelfHostedEmojiRatingTag,
-    normalizeCopyLikeBaseUrl,
-    buildCopyLikeApiUrl,
-    buildCopyLikePageUrl,
-    buildCopyLikeTokenHeader,
-    buildCopyLikeBearerTokenHeader,
-    buildCopyLikeRequestSigningMeta,
-    buildCopyLikeHmacSignature,
-    COPY_LIKE_ENDPOINT_PATHS,
-    COPY_LIKE_FORM_URLENCODED_CONTENT_TYPE,
-    withCopyLikeFormHeaders,
-    buildCopyLikeEndpointUrl,
-    buildCopyLikeQueryString,
-    buildCopyLikeUrlWithQuery,
-    buildCopyLikeRankingUrl,
-    buildCopyLikeComicsUrl,
-    buildCopyLikeSearchUrl,
-    buildCopyLikeHomeIndexComicsUrl,
-    buildCopyLikeFavoriteComicsUrl,
-    buildCopyLikeComicDetailUrl,
-    buildCopyLikeComicQueryUrl,
-    buildCopyLikeGroupChaptersUrl,
-    buildCopyLikeChapterUrl,
-    normalizeCopyLikeCategoryParam,
-    parseCopyLikeDetailAuthors,
-    parseCopyLikeDetailTags,
-    buildCopyLikeDetailTagMap,
-    resolveCopyLikeTagAction,
-    buildCopyLikeHomeSections,
-    loadCopyLikeHomeSectionsModule,
-    loadCopyLikeListModule,
-    parseCopyLikeAuthorKeyword,
-    loadCopyLikeSearchModule,
-    createCopyLikeExploreFeature,
-    createCopyLikeCategoryLoadFeature,
-    createCopyLikeSearchLoadFeature,
-    createCopyLikeCategoryRequestUrlBuilder,
-    createCopyLikeSearchRequestUrlBuilders,
-    createCopyLikeDetailTagMapper,
-    createCopyLikeTagClickActionHandler,
-    createCopyLikeExploreSectionsFeature,
-    createCopyLikeCategoryLoaderFeature,
-    createCopyLikeSearchLoaderFeature,
-    MH_LIKE_USER_AGENT,
-    MH_LIKE_ENDPOINT_PATHS,
-    normalizeMhLikeId,
-    normalizeMhLikeDomain,
-    buildMhLikeBaseUrl,
-    buildMhLikeHeaders,
-    normalizeMhLikePath,
-    buildMhLikeRelativeUrl,
-    buildMhLikeApiBaseUrl,
-    buildMhLikeCategoryUrl,
-    buildMhLikeSearchUrl,
-    buildMhLikeChapterListUrl,
-    buildMhLikeChapterEndpointUrl,
-    buildMhLikeChapterInfoUrl,
-    buildMhLikeChapterContentUrl,
-    createMhLikeRouteHelpers,
-    parseMhLikeComicCards,
-    parseMhLikeHomeSections,
-    parseMhLikeMaxPage,
-    parseMhLikeDetailTags,
-    parseMhLikeRecommendComics,
-    loadMhLikePagedComicsFromUrl,
-    createMhLikeExploreFeature,
-    createMhLikeCategoryLoadFeature,
-    createMhLikeSearchLoadFeature,
-    loadMhLikeBaseComicInfo,
-    createMhLikeCategoryRequestUrlBuilder,
-    createMhLikeSearchRequestUrlBuilder,
-    createMhLikeChapterRequestUrlBuilders,
-    buildMhLikeChapterUrl,
-    createMhLikeExplorePageFeature,
-    createMhLikeCategoryLoaderFeature,
-    createMhLikeSearchLoaderFeature,
-    loadMhLikeBaseComicInfoFeature,
-    PICACG_ENDPOINT_PATHS,
-    PICACG_TAG_NAMESPACES,
-    normalizePicacgBaseUrl,
-    buildPicacgEndpointUrl,
-    buildPicacgQueryString,
-    buildPicacgPathWithQuery,
-    createPicacgRouteHelpers,
-    resolvePicacgTagAction,
+    ...pluginFeatureContractApi,
     pluginFeatureGenericApi,
     pluginFeatureCopyLikeApi,
     pluginFeatureMhLikeApi,

@@ -44,78 +44,12 @@ class Hitomi extends ComicSource {
             load: async (e, t, a, r) => {
                 const s = t;
                 if (!s.includes(":")) throw new Error("不合法的标签，请使用namespace:tag的格式");
-                if (1 === r) {
-                    const e = {
-                        term: s,
-                        orderby: "date",
-                        orderbykey: "added",
-                        orderbydirection: "desc"
-                    };
-                    switch (parseInt(a[0])) {
-                      case 1:
-                        e.orderbykey = "published";
-                        break;
-
-                      case 2:
-                        e.orderby = "popular", e.orderbykey = "today";
-                        break;
-
-                      case 3:
-                        e.orderby = "popular", e.orderbykey = "week";
-                        break;
-
-                      case 4:
-                        e.orderby = "popular", e.orderbykey = "month";
-                        break;
-
-                      case 5:
-                        e.orderby = "popular", e.orderbykey = "year";
-                        break;
-
-                      case 6:
-                        e.orderbydirection = "random";
-                    }
-                    const t = await search(e);
-                    if ("single" === t.type) {
-                        const e = (await get_galleryblocks(t.gids)).map(e => this._mapGalleryBlockInfoToComic(e));
-                        return this.categoryResultCache = {
-                            type: "single",
-                            state: t.state,
-                            count: t.count
-                        }, {
-                            comics: e,
-                            maxPage: Math.ceil(t.count / 25)
-                        };
-                    }
-                    {
-                        const e = (await get_galleryblocks(t.gids.slice(25 * r - 25, 25 * r))).map(e => this._mapGalleryBlockInfoToComic(e));
-                        return this.categoryResultCache = {
-                            type: "all",
-                            gids: t.gids,
-                            count: t.count
-                        }, {
-                            comics: e,
-                            maxPage: Math.ceil(t.count / 25)
-                        };
-                    }
-                }
-                if ("single" === this.categoryResultCache.type) {
-                    const e = await getSingleTagSearchPage({
-                        state: this.categoryResultCache.state,
-                        page: r - 1
-                    });
-                    return {
-                        comics: (await get_galleryblocks(e.galleryids)).map(e => this._mapGalleryBlockInfoToComic(e)),
-                        maxPage: Math.ceil(this.categoryResultCache.count / 25)
-                    };
-                }
-                return {
-                    comics: (await get_galleryblocks(this.categoryResultCache.gids.slice(25 * r - 25, 25 * r))).map(e => this._mapGalleryBlockInfoToComic(e)),
-                    maxPage: Math.ceil(this.categoryResultCache.count / 25)
-                };
+                return 1 === r ? await loadHitomiFirstResultPage(this, s, a, r, e => {
+                    this.categoryResultCache = e;
+                }) : await loadHitomiCachedResultPage(this, this.categoryResultCache, r);
             },
             optionList: [ {
-                options: [ "0-Date Added", "1-Date Published", "2-Popular:Today", "3-Popular:Week", "4-Popular:Month", "5-Popular:Year", "6-Random" ],
+                options: hitomiSortLabels(),
                 notShowWhen: null,
                 showWhen: null
             } ],
@@ -143,83 +77,14 @@ class Hitomi extends ComicSource {
         }, this.search = {
             load: async (e, t, a) => {
                 const r = (e || "") + "|" + t.join(",");
-                if (1 === a) {
-                    const s = {
-                        term: e,
-                        orderby: "date",
-                        orderbykey: "added",
-                        orderbydirection: "desc"
-                    };
-                    switch (parseInt(t[0])) {
-                      case 1:
-                        s.orderbykey = "published";
-                        break;
-
-                      case 2:
-                        s.orderby = "popular", s.orderbykey = "today";
-                        break;
-
-                      case 3:
-                        s.orderby = "popular", s.orderbykey = "week";
-                        break;
-
-                      case 4:
-                        s.orderby = "popular", s.orderbykey = "month";
-                        break;
-
-                      case 5:
-                        s.orderby = "popular", s.orderbykey = "year";
-                        break;
-
-                      case 6:
-                        s.orderbydirection = "random";
-                    }
-                    const n = await search(s);
-                    if ("single" === n.type) {
-                        const e = (await get_galleryblocks(n.gids)).map(e => this._mapGalleryBlockInfoToComic(e));
-                        return this.searchResultCaches.set(r, {
-                            type: "single",
-                            state: n.state,
-                            count: n.count
-                        }), {
-                            comics: e,
-                            maxPage: Math.ceil(n.count / 25)
-                        };
-                    }
-                    {
-                        const e = (await get_galleryblocks(n.gids.slice(25 * a - 25, 25 * a))).map(e => this._mapGalleryBlockInfoToComic(e));
-                        return this.searchResultCaches.set(r, {
-                            type: "all",
-                            gids: n.gids,
-                            count: n.count
-                        }), {
-                            comics: e,
-                            maxPage: Math.ceil(n.count / 25)
-                        };
-                    }
-                }
-                {
-                    const e = this.searchResultCaches.get(r);
-                    if ("single" === e.type) {
-                        const t = await getSingleTagSearchPage({
-                            state: e.state,
-                            page: a - 1
-                        });
-                        return {
-                            comics: (await get_galleryblocks(t.galleryids)).map(e => this._mapGalleryBlockInfoToComic(e)),
-                            maxPage: Math.ceil(e.count / 25)
-                        };
-                    }
-                    return {
-                        comics: (await get_galleryblocks(e.gids.slice(25 * a - 25, 25 * a))).map(e => this._mapGalleryBlockInfoToComic(e)),
-                        maxPage: Math.ceil(e.count / 25)
-                    };
-                }
+                if (1 === a) return await loadHitomiFirstResultPage(this, e, t, a, e => this.searchResultCaches.set(r, e));
+                const s = this.searchResultCaches.get(r);
+                return await loadHitomiCachedResultPage(this, s, a);
             },
             loadNext: async (e, t, a) => {},
             optionList: [ {
                 type: "select",
-                options: [ "0-Date Added", "1-Date Published", "2-Popular:Today", "3-Popular:Week", "4-Popular:Month", "5-Popular:Year", "6-Random" ],
+                options: hitomiSortLabels(),
                 label: "sort",
                 default: null
             } ],
@@ -367,10 +232,10 @@ function __veneraNormalizeAuthorityPart(e, t, a) {
 }
 
 function resolvePluginUpdateUrl(e) {
-    const t = __veneraGetRuntimeGlobal(), a = t.__VENERA_RELEASE_AUTHORITY__ && "object" == typeof t.__VENERA_RELEASE_AUTHORITY__ ? t.__VENERA_RELEASE_AUTHORITY__ : {}, r = __veneraNormalizeAuthorityPart(a.cdnOrigin, "https://cdn.jsdelivr.net", !1).replace(/\/+$/, ""), s = __veneraNormalizeAuthorityPart(a.providerPath, "gh", !0), n = __veneraNormalizeAuthorityPart(a.repository, "mythic3011/venera-configs", !0), o = __veneraNormalizeAuthorityPart(a.releaseRef, "main", !1), i = __veneraNormalizeAuthorityPart(a.artifactPathPrefix, "dist/plugins", !0), l = String(e || "").replace(/^\/+/, "");
-    if (!l) return `${r}/${s}/${n}@${o}`;
-    const c = i ? `${i}/${l}` : l;
-    return `${r}/${s}/${n}@${o}/${l.startsWith(`${i}/`) ? l : c}`;
+    const t = __veneraGetRuntimeGlobal(), a = t.__VENERA_RELEASE_AUTHORITY__ && "object" == typeof t.__VENERA_RELEASE_AUTHORITY__ ? t.__VENERA_RELEASE_AUTHORITY__ : {}, r = __veneraNormalizeAuthorityPart(a.cdnOrigin, "https://cdn.jsdelivr.net", !1).replace(/\/+$/, ""), s = __veneraNormalizeAuthorityPart(a.providerPath, "gh", !0), n = __veneraNormalizeAuthorityPart(a.repository, "mythic3011/venera-configs", !0), i = __veneraNormalizeAuthorityPart(a.releaseRef, "main", !1), o = __veneraNormalizeAuthorityPart(a.artifactPathPrefix, "dist/plugins", !0), l = String(e || "").replace(/^\/+/, "");
+    if (!l) return `${r}/${s}/${n}@${i}`;
+    const c = o ? `${o}/${l}` : l;
+    return `${r}/${s}/${n}@${i}/${l.startsWith(`${o}/`) ? l : c}`;
 }
 
 "undefined" != typeof module && module && module.exports && (module.exports = {
@@ -379,7 +244,23 @@ function resolvePluginUpdateUrl(e) {
 
 "use strict";
 
-const domain2 = "gold-usergeneratedcontent.net", domain = "ltn." + domain2, nozomiextension = ".nozomi", separator = "-", extension = ".html", galleriesdir = "galleries", index_dir = "tagindex", galleries_index_dir = "galleriesindex", languages_index_dir = "languagesindex", nozomiurl_index_dir = "nozomiurlindex", max_node_size = 464, B = 16, compressed_nozomi_prefix = "n", tag_index_domain = "tagindex.hitomi.la", namespaces = [ "artist", "character", "female", "group", "language", "male", "series", "tag", "type" ], refererUrl = "https://hitomi.la/";
+const domain2 = "gold-usergeneratedcontent.net", domain = "ltn." + domain2, nozomiextension = ".nozomi", separator = "-", extension = ".html", galleriesdir = "galleries", index_dir = "tagindex", galleries_index_dir = "galleriesindex", languages_index_dir = "languagesindex", nozomiurl_index_dir = "nozomiurlindex", max_node_size = 464, B = 16, compressed_nozomi_prefix = "n", tag_index_domain = "tagindex.hitomi.la", namespaces = [ "artist", "character", "female", "group", "language", "male", "series", "tag", "type" ], HITOMI_RESULT_PAGE_SIZE = 25, HITOMI_SEARCH_SORTS = [ [ "Date Added", "date", "added", "desc" ], [ "Date Published", "date", "published", "desc" ], [ "Popular:Today", "popular", "today", "desc" ], [ "Popular:Week", "popular", "week", "desc" ], [ "Popular:Month", "popular", "month", "desc" ], [ "Popular:Year", "popular", "year", "desc" ], [ "Random", "date", "added", "random" ] ];
+
+function buildHitomiSearchOptions(e, t) {
+    const a = HITOMI_SEARCH_SORTS[parseInt(t[0])] || HITOMI_SEARCH_SORTS[0];
+    return {
+        term: e,
+        orderby: a[1],
+        orderbykey: a[2],
+        orderbydirection: a[3]
+    };
+}
+
+function hitomiSortLabels() {
+    return HITOMI_SEARCH_SORTS.map((e, t) => `${t}-${e[0]}`);
+}
+
+const refererUrl = "https://hitomi.la/";
 
 let gg, galleries_index_version = "";
 
@@ -443,21 +324,21 @@ function decode_node(e) {
         if (!t || t > 32) throw new Error("fatal: !key_size || key_size > 32");
         r += 4, n.push(e.slice(r, r + t)), r += t;
     }
-    const o = a.getInt32(r, !1);
+    const i = a.getInt32(r, !1);
     r += 4;
-    let i = [];
-    for (let e = 0; e < o; e++) {
+    let o = [];
+    for (let e = 0; e < i; e++) {
         const e = getUint64(a, r, !1);
         r += 8;
         const t = a.getInt32(r, !1);
-        r += 4, i.push([ e, t ]);
+        r += 4, o.push([ e, t ]);
     }
     let l = [];
     for (let e = 0; e < 17; e++) {
         let e = getUint64(a, r, !1);
         r += 8, l.push(e);
     }
-    return t.keys = n, t.datas = i, t.subnode_addresses = l, t;
+    return t.keys = n, t.datas = o, t.subnode_addresses = l, t;
 }
 
 async function get_url_at_range(e, t) {
@@ -480,12 +361,12 @@ async function get_galleryids_from_data(e) {
     let t = "https://" + domain + "/galleriesindex/galleries." + galleries_index_version + ".data", [a, r] = e;
     if (r > 1e8 || r <= 0) throw new Error("length " + r + " is too long");
     const s = await get_url_at_range(t, [ a, a + r - 1 ]);
-    let n = [], o = 0, i = new DataView(s.buffer), l = i.getInt32(o, !1);
-    o += 4;
+    let n = [], i = 0, o = new DataView(s.buffer), l = o.getInt32(i, !1);
+    i += 4;
     let c = 4 * l + 4;
     if (l > 1e7 || l <= 0) throw new Error("number_of_galleryids " + l + " is too long");
     if (s.byteLength !== c) throw new Error("inbuf.byteLength " + s.byteLength + " !== expected_length " + c);
-    for (let e = 0; e < l; ++e) n.push(i.getInt32(o, !1)), o += 4;
+    for (let e = 0; e < l; ++e) n.push(o.getInt32(i, !1)), i += 4;
     return n;
 }
 
@@ -510,8 +391,8 @@ async function B_search(e, t, a) {
         return !0;
     }(a)) return;
     if (0 == a.subnode_addresses[n]) return void console.error("non-root node address 0");
-    const o = await get_node_at_address(e, a.subnode_addresses[n]);
-    return await B_search(e, t, o);
+    const i = await get_node_at_address(e, a.subnode_addresses[n]);
+    return await B_search(e, t, i);
 }
 
 async function get_galleryids_for_query_without_namespace(e) {
@@ -526,7 +407,7 @@ function nozomi_address_from_state(e, t) {
 
 async function get_galleryids_from_state(e) {
     const t = nozomi_address_from_state(e, !0), a = await get_url_at_range(t);
-    for (var r = [], s = new DataView(a.buffer), n = s.byteLength / 4, o = 0; o < n; o++) r.push(s.getInt32(4 * o, !1));
+    for (var r = [], s = new DataView(a.buffer), n = s.byteLength / 4, i = 0; i < n; i++) r.push(s.getInt32(4 * i, !1));
     return r;
 }
 
@@ -539,11 +420,11 @@ async function get_galleryids_and_count({range: e, state: t}) {
     const s = await Network.fetchBytes("GET", nozomi_address_from_state(t, !1), r);
     if (200 !== s.status && 206 !== s.status) throw `failed fetch: ${s.status}`;
     let n = 0;
-    const o = parseInt(null == (a = s.headers["content-range"]) ? void 0 : a.replace(/^[Bb]ytes \d+-\d+\//, ""));
-    !isNaN(o) && o > 0 && (n = o / 4);
-    const i = s.body, l = [];
-    if (i) {
-        const e = new DataView(i), t = e.byteLength / 4;
+    const i = parseInt(null == (a = s.headers["content-range"]) ? void 0 : a.replace(/^[Bb]ytes \d+-\d+\//, ""));
+    !isNaN(i) && i > 0 && (n = i / 4);
+    const o = s.body, l = [];
+    if (o) {
+        const e = new DataView(o), t = e.byteLength / 4;
         for (let a = 0; a < t; a++) l.push(e.getInt32(4 * a, !1));
     }
     return {
@@ -603,12 +484,12 @@ async function get_image_srcs(e) {
         t || ("webp" === r ? s = "w" : "avif" === r && (s = "a"));
         var n = /\/[0-9a-f]{61}([0-9a-f]{2})([0-9a-f])/.exec(e);
         if (!n) return s;
-        var o = parseInt(n[2] + n[1], 16);
-        return isNaN(o) || (t ? s = String.fromCharCode(97 + a.m(o)) + t : s += 1 + a.m(o)),
+        var i = parseInt(n[2] + n[1], 16);
+        return isNaN(i) || (t ? s = String.fromCharCode(97 + a.m(i)) + t : s += 1 + a.m(i)),
         s;
     })(e, t, r) + "." + domain2 + "/"), s = e => a.b + a.s(e) + "/" + e;
-    return e.map(e => ((e, t, a, n, o) => r(((e, t, a, r) => (r = r || a || t.name.split(".").pop(),
-    "webp" === a || "avif" === a ? a = "" : a += "/", "https://a." + domain2 + "/" + a + s(t.hash) + "." + r))(0, t, a, n), o, a))(0, e, "avif"));
+    return e.map(e => ((e, t, a, n, i) => r(((e, t, a, r) => (r = r || a || t.name.split(".").pop(),
+    "webp" === a || "avif" === a ? a = "" : a += "/", "https://a." + domain2 + "/" + a + s(t.hash) + "." + r))(0, t, a, n), i, a))(0, e, "avif"));
 }
 
 function get_thumbnail_url_from_hash(e, t) {
@@ -629,28 +510,28 @@ function parseQuery(e) {
     const s = e.toLowerCase().trim().split(/\s+/);
     return s.forEach((e, n) => {
         if ("or" === e) return;
-        let o, i = "";
+        let i, o = "";
         if (e.split("").filter(e => ":" === e).length > 1) throw new Error("不合法的标签，请使用namespace:tag的格式");
         if (e.includes(":")) {
             const t = e.split(":"), a = t[0].replace(/^-/, "");
             if (!namespaces.includes(a)) throw new Error("不合法的namespace");
-            if (o = a, !t[1]) throw new Error("不合法，标签为空");
-            i = t[1].replace(/_/g, " ");
-        } else i = e.replace(/_/g, " ");
+            if (i = a, !t[1]) throw new Error("不合法，标签为空");
+            o = t[1].replace(/_/g, " ");
+        } else o = e.replace(/_/g, " ");
         const l = n > 0 && "or" === s[n - 1], c = n + 1 < s.length && "or" === s[n + 1];
         if (l || c) {
             if (e.match(/^-/)) throw new Error("不合法，或搜索中只能使用正向关键词");
             return r[r.length - 1].push({
-                namespace: o,
-                value: i
+                namespace: i,
+                value: o
             }), void (c || r.push([]));
         }
         e.match(/^-/) ? a.push({
-            namespace: o,
-            value: i
+            namespace: i,
+            value: o
         }) : t.push({
-            namespace: o,
-            value: i
+            namespace: i,
+            value: o
         });
     }), r.filter(e => 1 === e.length).forEach(e => {
         t.push(e[0]);
@@ -668,6 +549,41 @@ async function getSingleTagSearchPage({state: e, page: t}) {
         state: e,
         range: `bytes=${100 * t}-${100 * (t + 1) - 1}`
     });
+}
+
+async function mapHitomiGalleryIds(e, t) {
+    return (await get_galleryblocks(t)).map(t => e._mapGalleryBlockInfoToComic(t));
+}
+
+function createHitomiResultCache(e) {
+    return "single" === e.type ? {
+        type: "single",
+        state: e.state,
+        count: e.count
+    } : {
+        type: "all",
+        gids: e.gids,
+        count: e.count
+    };
+}
+
+async function loadHitomiFirstResultPage(e, t, a, r, s) {
+    const n = await search(buildHitomiSearchOptions(t, a)), i = "single" === n.type ? n.gids : n.gids.slice(25 * r - 25, 25 * r), o = await mapHitomiGalleryIds(e, i);
+    return s(createHitomiResultCache(n)), {
+        comics: o,
+        maxPage: Math.ceil(n.count / 25)
+    };
+}
+
+async function loadHitomiCachedResultPage(e, t, a) {
+    let r;
+    return r = "single" === t.type ? (await getSingleTagSearchPage({
+        state: t.state,
+        page: a - 1
+    })).galleryids : t.gids.slice(25 * a - 25, 25 * a), {
+        comics: await mapHitomiGalleryIds(e, r),
+        maxPage: Math.ceil(t.count / 25)
+    };
 }
 
 async function multiTagSearch(e) {
@@ -692,15 +608,15 @@ async function multiTagSearch(e) {
         orderby: e.orderby,
         orderbykey: e.orderbykey,
         orderbydirection: e.orderbydirection
-    }), a = parseQuery(e.term), r = [ ...a.positive_terms.map(e => t(e)), ...a.negative_terms.map(e => t(e)), ...a.or_terms.flat().map(e => t(e)) ], s = await Promise.all(r), n = a.positive_terms.length, o = a.negative_terms.length;
-    let i = intersectAll(s.slice(0, n));
-    for (let e = n; e < n + o; e++) i = subtract(i, s[e]);
-    let l = n + o;
+    }), a = parseQuery(e.term), r = [ ...a.positive_terms.map(e => t(e)), ...a.negative_terms.map(e => t(e)), ...a.or_terms.flat().map(e => t(e)) ], s = await Promise.all(r), n = a.positive_terms.length, i = a.negative_terms.length;
+    let o = intersectAll(s.slice(0, n));
+    for (let e = n; e < n + i; e++) o = subtract(o, s[e]);
+    let l = n + i;
     for (const e of a.or_terms) {
         const t = e.length;
-        i = intersectAll([ i, unionAll(s.slice(l, l + t)) ]), l += t;
+        o = intersectAll([ o, unionAll(s.slice(l, l + t)) ]), l += t;
     }
-    return i;
+    return o;
 }
 
 async function search(e) {
@@ -769,8 +685,8 @@ function parseGalleryBlockInfo(e) {
             n.push(e);
         }
     });
-    const o = Array.from(t.querySelectorAll(".artist-list li a")).map(e => e.text.trim());
-    let i, l, c = [];
+    const i = Array.from(t.querySelectorAll(".artist-list li a")).map(e => e.text.trim());
+    let o, l, c = [];
     t.querySelectorAll(".dj-desc tr").forEach(e => {
         const t = e.children[0].text.trim().toLowerCase(), a = e.children[1];
         switch (t) {
@@ -785,7 +701,7 @@ function parseGalleryBlockInfo(e) {
           case "language":
             if (a.querySelector("a")) {
                 const e = a.querySelector("a").attributes.href, t = /\/index-(\w+)\.html/.exec(e);
-                t && (i = t[1]);
+                t && (o = t[1]);
             }
         }
     });
@@ -799,8 +715,8 @@ function parseGalleryBlockInfo(e) {
         gid: r,
         title: s,
         type: l,
-        language: i,
-        artists: o,
+        language: o,
+        artists: i,
         series: c,
         females: g,
         males: u,
@@ -811,13 +727,13 @@ function parseGalleryBlockInfo(e) {
 }
 
 function parseGalleryDetail(e) {
-    const t = JSON.parse(e.slice(18)), a = [], r = [], s = [], n = [], o = [], i = [], l = [], c = [], g = [];
+    const t = JSON.parse(e.slice(18)), a = [], r = [], s = [], n = [], i = [], o = [], l = [], c = [], g = [];
     return "artists" in t && Array.isArray(t.artists) && t.artists.length > 0 && t.artists.forEach(e => a.push(e.artist)),
     "groups" in t && Array.isArray(t.groups) && t.groups.length > 0 && t.groups.forEach(e => r.push(e.group)),
     "parodys" in t && Array.isArray(t.parodys) && t.parodys.length > 0 && t.parodys.forEach(e => s.push(e.parody)),
     "characters" in t && Array.isArray(t.characters) && t.characters.length > 0 && t.characters.forEach(e => n.push(e.character)),
-    "tags" in t && Array.isArray(t.tags) && t.tags.length > 0 && (t.tags.filter(e => "1" === e.female).forEach(e => o.push(e.tag)),
-    t.tags.filter(e => "1" === e.male).forEach(e => i.push(e.tag)), t.tags.filter(e => !e.male && !e.female).forEach(e => l.push(e.tag))),
+    "tags" in t && Array.isArray(t.tags) && t.tags.length > 0 && (t.tags.filter(e => "1" === e.female).forEach(e => i.push(e.tag)),
+    t.tags.filter(e => "1" === e.male).forEach(e => o.push(e.tag)), t.tags.filter(e => !e.male && !e.female).forEach(e => l.push(e.tag))),
     "languages" in t && Array.isArray(t.languages) && t.languages.length > 0 && t.languages.forEach(e => {
         c.push({
             gid: e.galleryid,
@@ -835,8 +751,8 @@ function parseGalleryDetail(e) {
         groups: r,
         series: s,
         characters: n,
-        females: o,
-        males: i,
+        females: i,
+        males: o,
         others: l,
         thumbnail_hash: t.files[0].hash,
         files: t.files,
