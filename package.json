@@ -21,16 +21,11 @@
     "test:runtime": "node scripts/runtime/run-runtime-tests.js",
     "audit:support-boundaries": "node scripts/audit/support-boundaries.js",
     "audit:unsafe-runtime-code": "node scripts/audit/unsafe-runtime-code.js",
-    "pipeline:validate": "npm run validate:release-authority && npm run validate:plugins && npm run audit:support-boundaries",
-    "prepipeline:build": "npm run pipeline:validate",
-    "pipeline:build": "npm run generate",
-    "postpipeline:build": "npm run check-generated",
-    "pipeline:test": "npm run test",
-    "postpipeline:test": "npm run test:runtime && npm run audit:unsafe-runtime-code",
-    "prepipeline:verify": "npm run pipeline:build",
-    "pipeline:verify": "npm run check:index",
-    "postpipeline:verify": "npm run pipeline:test",
-    "pipeline:ci": "npm run pipeline:verify"
+    "pipeline:validate": "node scripts/build/pipeline.js validate",
+    "pipeline:build": "node scripts/build/pipeline.js build",
+    "pipeline:test": "node scripts/build/pipeline.js test",
+    "pipeline:verify": "node scripts/build/pipeline.js verify",
+    "pipeline:ci": "node scripts/build/pipeline.js ci"
   },
   "devDependencies": {
     "@babel/core": "^7.23.0",

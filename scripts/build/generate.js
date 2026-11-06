@@ -16,17 +16,7 @@ const { finalMinify } = require("./final-minify");
 const { buildManifest } = require("./write-build-manifest");
 const { indexFromManifest } = require("./write-public-index");
 
-const { spawnSync } = require("node:child_process");
-
-function runScript(scriptPath, args = []) {
-  const result = spawnSync(process.execPath, [scriptPath, ...args], {
-    cwd: REPO_ROOT,
-    stdio: "inherit",
-  });
-  if (result.status !== 0) {
-    throw new Error(`Script failed: ${scriptPath}`);
-  }
-}
+const { runNodeScript } = require("./run-node-script");
 
 function parseArgs(argv) {
   const args = {
@@ -45,7 +35,7 @@ function parseArgs(argv) {
 async function main() {
   const args = parseArgs(process.argv.slice(2));
 
-  runScript(path.join("scripts", "build", "validate-plugin-config.js"));
+  runNodeScript(path.join("scripts", "build", "validate-plugin-config.js"));
 
   const manifest = buildManifest();
   const plugins = manifest.plugins.filter((plugin) => {
