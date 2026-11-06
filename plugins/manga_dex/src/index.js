@@ -99,6 +99,16 @@ class MangaDex extends ComicSource {
         artists: artists,
       };
     },
+    parseMangaList: (data) => {
+      let comics = [];
+      for (let comic of data["data"]) {
+        comics.push(this.api.parseComic(comic));
+      }
+      return {
+        comics: comics,
+        maxPage: Math.ceil(data["total"] / this.comicsPerPage),
+      };
+    },
     getPopular: async (page) => {
       let time = new Date();
       time = new Date(time.getTime() - 30 * 24 * 60 * 60 * 1000);
@@ -116,16 +126,7 @@ class MangaDex extends ComicSource {
       }
       let res = await fetch(popularUrl);
       let data = await res.json();
-      let total = data["total"];
-      let maxPage = Math.ceil(total / this.comicsPerPage);
-      let comics = [];
-      for (let comic of data["data"]) {
-        comics.push(this.api.parseComic(comic));
-      }
-      return {
-        comics: comics,
-        maxPage: maxPage,
-      };
+      return this.api.parseMangaList(data);
     },
     getRecent: async (page) => {
       let recentUrl =
@@ -141,16 +142,7 @@ class MangaDex extends ComicSource {
       }
       let res = await fetch(recentUrl);
       let data = await res.json();
-      let total = data["total"];
-      let maxPage = Math.ceil(total / this.comicsPerPage);
-      let comics = [];
-      for (let comic of data["data"]) {
-        comics.push(this.api.parseComic(comic));
-      }
-      return {
-        comics: comics,
-        maxPage: maxPage,
-      };
+      return this.api.parseMangaList(data);
     },
     getUpdated: async (page) => {
       let updatedUrl =
@@ -168,16 +160,7 @@ class MangaDex extends ComicSource {
       }
       let res = await fetch(updatedUrl);
       let data = await res.json();
-      let total = data["total"];
-      let maxPage = Math.ceil(total / this.comicsPerPage);
-      let comics = [];
-      for (let comic of data["data"]) {
-        comics.push(this.api.parseComic(comic));
-      }
-      return {
-        comics: comics,
-        maxPage: maxPage,
-      };
+      return this.api.parseMangaList(data);
     },
   };
 
@@ -334,11 +317,7 @@ class MangaDex extends ComicSource {
       }
 
       let url = `https://api.mangadex.org/manga?${params.join("&")}`;
-      let res = await fetch(url);
-      if (!res.ok) {
-        throw new Error("Network response was not ok");
-      }
-      let data = await res.json();
+      let data = await fetchMangaDexJson(url);
       let total = data["total"] || 0;
       let comics = [];
       for (let comic of data["data"] || []) {
@@ -467,21 +446,8 @@ class MangaDex extends ComicSource {
         keyword = reformated.join(" ");
         if (keyword !== "") url += `&title=${keyword}`;
       }
-      let res = await fetch(url);
-      if (!res.ok) {
-        throw new Error("Network response was not ok");
-      }
-      let data = await res.json();
-      let total = data["total"];
-      let maxPage = Math.ceil(total / this.comicsPerPage);
-      let comics = [];
-      for (let comic of data["data"]) {
-        comics.push(this.api.parseComic(comic));
-      }
-      return {
-        comics: comics,
-        maxPage: maxPage,
-      };
+      let data = await fetchMangaDexJson(url);
+      return this.api.parseMangaList(data);
     },
 
     // provide options for search
@@ -528,23 +494,15 @@ class MangaDex extends ComicSource {
   /// single comic related
   comic = {
     getComic: async (id) => {
-      let res = await fetch(
+      let data = await fetchMangaDexJson(
         `https://api.mangadex.org/manga/${id}?includes[]=cover_art&includes[]=artist&includes[]=author`,
       );
-      if (!res.ok) {
-        throw new Error("Network response was not ok");
-      }
-      let data = await res.json();
       return this.api.parseComic(data["data"]);
     },
     getChapters: async (id) => {
-      let res = await fetch(
+      let data = await fetchMangaDexJson(
         `https://api.mangadex.org/manga/${id}/feed?limit=500&translatedLanguage[]=en&order[chapter]=asc`,
       );
-      if (!res.ok) {
-        throw new Error("Network response was not ok");
-      }
-      let data = await res.json();
       let chapters = new Map();
       for (let chapter of data["data"]) {
         let id = chapter["id"];
@@ -569,11 +527,7 @@ class MangaDex extends ComicSource {
       return chapters;
     },
     getStats: async (id) => {
-      let res = await fetch(`https://api.mangadex.org/statistics/manga/${id}`);
-      if (!res.ok) {
-        throw new Error("Network response was not ok");
-      }
-      let data = await res.json();
+      let data = await fetchMangaDexJson(`https://api.mangadex.org/statistics/manga/${id}`);
       return {
         comments: data["statistics"][id]["comments"]?.["repliesCount"] || 0,
         threadId: data["statistics"][id]["comments"]?.["threadId"],
@@ -637,11 +591,7 @@ class MangaDex extends ComicSource {
       if (!epId) {
         throw new Error("No chapter id provided");
       }
-      let res = await fetch(`https://api.mangadex.org/at-home/server/${epId}`);
-      if (!res.ok) {
-        throw new Error("Network response was not ok");
-      }
-      let data = await res.json();
+      let data = await fetchMangaDexJson(`https://api.mangadex.org/at-home/server/${epId}`);
       let images = [];
       let image_quality = this.loadSetting("image_quality");
       if (image_quality == "Original") {
@@ -971,4 +921,10 @@ class MangaDex extends ComicSource {
   // [authors] and [artists] are dynamic map
   authors = {};
   artists = {};
+}
+
+async function fetchMangaDexJson(url) {
+  const response = await fetch(url);
+  if (!response.ok) throw new Error("Network response was not ok");
+  return await response.json();
 }

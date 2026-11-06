@@ -71,9 +71,7 @@ class Picacg extends ComicSource {
 
   account = {
     reLogin: async () => {
-      if (!this.isLogged) {
-        throw new Error("Not logged in");
-      }
+      this.requireLogin(true);
       let account = this.loadData("account");
       if (!Array.isArray(account)) {
         throw new Error("Failed to reLogin: Invalid account data");
@@ -127,170 +125,74 @@ class Picacg extends ComicSource {
     });
   }
 
+  parseComics(records) {
+    const comics = [];
+    records.forEach((comic) => comics.push(this.parseComic(comic)));
+    return comics;
+  }
+
+  requireLogin(asError = false) {
+    if (this.isLogged) return;
+    const message = "Not logged in";
+    if (asError) throw new Error(message);
+    throw message;
+  }
+
+  async loadExploreComics(request, useDocs = false) {
+    this.requireLogin();
+    const data = await this.requestJson(request, { retry401: true });
+    const records = useDocs ? data.data.comics.docs : data.data.comics;
+    const comics = this.parseComics(records);
+    return { comics };
+  }
+
+  async requestJson(request, options = {}) {
+    const method = options.method || "GET";
+    const send = () => {
+      const url = this.buildRequestUrl(request.path);
+      const headers = this.buildRequestHeaders(
+        method,
+        request,
+        this.loadData("token"),
+      );
+      return method === "POST"
+        ? Network.post(url, headers, options.body)
+        : Network.get(url, headers);
+    };
+    let response = await send();
+    if (options.retry401 && response.status === 401) {
+      await this.account.reLogin();
+      response = await send();
+    } else if (response.status === 401 && options.unauthorizedError) {
+      throw options.unauthorizedError;
+    }
+    if (response.status !== 200) {
+      throw "Invalid status code: " + response.status;
+    }
+    return JSON.parse(response.body);
+  }
+
   explore = [
     {
       title: "Picacg Random",
       type: "multiPageComicList",
-      load: async (page) => {
-        if (!this.isLogged) {
-          throw "Not logged in";
-        }
-        const request = this.routes.randomComicsRequest();
-        let res = await Network.get(
-          this.buildRequestUrl(request.path),
-          this.buildRequestHeaders("GET", request, this.loadData("token")),
-        );
-        if (res.status === 401) {
-          await this.account.reLogin();
-          res = await Network.get(
-            this.buildRequestUrl(request.path),
-            this.buildRequestHeaders("GET", request, this.loadData("token")),
-          );
-        }
-        if (res.status !== 200) {
-          throw "Invalid status code: " + res.status;
-        }
-        let data = JSON.parse(res.body);
-        let comics = [];
-        data.data.comics.forEach((c) => {
-          comics.push(this.parseComic(c));
-        });
-        return {
-          comics: comics,
-        };
-      },
+      load: () => this.loadExploreComics(this.routes.randomComicsRequest()),
     },
     {
       title: "Picacg Latest",
       type: "multiPageComicList",
-      load: async (page) => {
-        if (!this.isLogged) {
-          throw "Not logged in";
-        }
-        const request = this.routes.latestComicsRequest({
-          page,
-          sort: "dd",
-        });
-        let res = await Network.get(
-          this.buildRequestUrl(request.path),
-          this.buildRequestHeaders("GET", request, this.loadData("token")),
-        );
-        if (res.status === 401) {
-          await this.account.reLogin();
-          res = await Network.get(
-            this.buildRequestUrl(request.path),
-            this.buildRequestHeaders("GET", request, this.loadData("token")),
-          );
-        }
-        if (res.status !== 200) {
-          throw "Invalid status code: " + res.status;
-        }
-        let data = JSON.parse(res.body);
-        let comics = [];
-        data.data.comics.docs.forEach((c) => {
-          comics.push(this.parseComic(c));
-        });
-        return {
-          comics: comics,
-        };
-      },
+      load: (page) =>
+        this.loadExploreComics(
+          this.routes.latestComicsRequest({ page, sort: "dd" }),
+          true,
+        ),
     },
-    {
-      title: "Picacg H24",
+    ...["H24", "D7", "D30"].map((option) => ({
+      title: `Picacg ${option}`,
       type: "multiPageComicList",
-      load: async (page) => {
-        if (!this.isLogged) {
-          throw "Not logged in";
-        }
-        const request = this.routes.leaderboardRequest({ option: "H24" });
-        let res = await Network.get(
-          this.buildRequestUrl(request.path),
-          this.buildRequestHeaders("GET", request, this.loadData("token")),
-        );
-        if (res.status === 401) {
-          await this.account.reLogin();
-          res = await Network.get(
-            this.buildRequestUrl(request.path),
-            this.buildRequestHeaders("GET", request, this.loadData("token")),
-          );
-        }
-        if (res.status !== 200) {
-          throw "Invalid status code: " + res.status;
-        }
-        let data = JSON.parse(res.body);
-        let comics = [];
-        data.data.comics.forEach((c) => {
-          comics.push(this.parseComic(c));
-        });
-        return {
-          comics: comics,
-        };
-      },
-    },
-    {
-      title: "Picacg D7",
-      type: "multiPageComicList",
-      load: async (page) => {
-        if (!this.isLogged) {
-          throw "Not logged in";
-        }
-        const request = this.routes.leaderboardRequest({ option: "D7" });
-        let res = await Network.get(
-          this.buildRequestUrl(request.path),
-          this.buildRequestHeaders("GET", request, this.loadData("token")),
-        );
-        if (res.status === 401) {
-          await this.account.reLogin();
-          res = await Network.get(
-            this.buildRequestUrl(request.path),
-            this.buildRequestHeaders("GET", request, this.loadData("token")),
-          );
-        }
-        if (res.status !== 200) {
-          throw "Invalid status code: " + res.status;
-        }
-        let data = JSON.parse(res.body);
-        let comics = [];
-        data.data.comics.forEach((c) => {
-          comics.push(this.parseComic(c));
-        });
-        return {
-          comics: comics,
-        };
-      },
-    },
-    {
-      title: "Picacg D30",
-      type: "multiPageComicList",
-      load: async (page) => {
-        if (!this.isLogged) {
-          throw "Not logged in";
-        }
-        const request = this.routes.leaderboardRequest({ option: "D30" });
-        let res = await Network.get(
-          this.buildRequestUrl(request.path),
-          this.buildRequestHeaders("GET", request, this.loadData("token")),
-        );
-        if (res.status === 401) {
-          await this.account.reLogin();
-          res = await Network.get(
-            this.buildRequestUrl(request.path),
-            this.buildRequestHeaders("GET", request, this.loadData("token")),
-          );
-        }
-        if (res.status !== 200) {
-          throw "Invalid status code: " + res.status;
-        }
-        let data = JSON.parse(res.body);
-        let comics = [];
-        data.data.comics.forEach((c) => {
-          comics.push(this.parseComic(c));
-        });
-        return {
-          comics: comics,
-        };
-      },
-    },
+      load: () =>
+        this.loadExploreComics(this.routes.leaderboardRequest({ option })),
+    })),
   ];
 
   /// 分类页面
@@ -360,25 +262,8 @@ class Picacg extends ComicSource {
         category: encodeURIComponent(category),
         sort: options[0],
       });
-      let res = await Network.get(
-        this.buildRequestUrl(request.path),
-        this.buildRequestHeaders("GET", request, this.loadData("token")),
-      );
-      if (res.status === 401) {
-        await this.account.reLogin();
-        res = await Network.get(
-          this.buildRequestUrl(request.path),
-          this.buildRequestHeaders("GET", request, this.loadData("token")),
-        );
-      }
-      if (res.status !== 200) {
-        throw "Invalid status code: " + res.status;
-      }
-      let data = JSON.parse(res.body);
-      let comics = [];
-      data.data.comics.docs.forEach((c) => {
-        comics.push(this.parseComic(c));
-      });
+      let data = await this.requestJson(request, { retry401: true });
+      let comics = this.parseComics(data.data.comics.docs);
       return {
         comics: comics,
         maxPage: data.data.comics.pages,
@@ -399,25 +284,8 @@ class Picacg extends ComicSource {
       options: ["H24-Day", "D7-Week", "D30-Month"],
       load: async (option, page) => {
         const request = this.routes.leaderboardRequest({ option });
-        let res = await Network.get(
-          this.buildRequestUrl(request.path),
-          this.buildRequestHeaders("GET", request, this.loadData("token")),
-        );
-        if (res.status === 401) {
-          await this.account.reLogin();
-          res = await Network.get(
-            this.buildRequestUrl(request.path),
-            this.buildRequestHeaders("GET", request, this.loadData("token")),
-          );
-        }
-        if (res.status !== 200) {
-          throw "Invalid status code: " + res.status;
-        }
-        let data = JSON.parse(res.body);
-        let comics = [];
-        data.data.comics.forEach((c) => {
-          comics.push(this.parseComic(c));
-        });
+        let data = await this.requestJson(request, { retry401: true });
+        let comics = this.parseComics(data.data.comics);
         return {
           comics: comics,
           maxPage: 1,
@@ -430,33 +298,12 @@ class Picacg extends ComicSource {
   search = {
     load: async (keyword, options, page) => {
       const request = this.routes.advancedSearchRequest({ page });
-      let res = await Network.post(
-        this.buildRequestUrl(request.path),
-        this.buildRequestHeaders("POST", request, this.loadData("token")),
-        JSON.stringify({
-          keyword: keyword,
-          sort: options[0],
-        }),
-      );
-      if (res.status === 401) {
-        await this.account.reLogin();
-        res = await Network.post(
-          this.buildRequestUrl(request.path),
-          this.buildRequestHeaders("POST", request, this.loadData("token")),
-          JSON.stringify({
-            keyword: keyword,
-            sort: options[0],
-          }),
-        );
-      }
-      if (res.status !== 200) {
-        throw "Invalid status code: " + res.status;
-      }
-      let data = JSON.parse(res.body);
-      let comics = [];
-      data.data.comics.docs.forEach((c) => {
-        comics.push(this.parseComic(c));
+      let data = await this.requestJson(request, {
+        method: "POST",
+        body: JSON.stringify({ keyword, sort: options[0] }),
+        retry401: true,
       });
+      let comics = this.parseComics(data.data.comics.docs);
       return {
         comics: comics,
         maxPage: data.data.comics.pages,
@@ -498,21 +345,10 @@ class Picacg extends ComicSource {
     loadComics: async (page, folder) => {
       let sort = this.loadSetting("favoriteSort");
       const request = this.routes.userFavoritesRequest({ page, sort });
-      let res = await Network.get(
-        this.buildRequestUrl(request.path),
-        this.buildRequestHeaders("GET", request, this.loadData("token")),
-      );
-      if (res.status === 401) {
-        throw `Login expired`;
-      }
-      if (res.status !== 200) {
-        throw "Invalid status code: " + res.status;
-      }
-      let data = JSON.parse(res.body);
-      let comics = [];
-      data.data.comics.docs.forEach((c) => {
-        comics.push(this.parseComic(c));
+      let data = await this.requestJson(request, {
+        unauthorizedError: "Login expired",
       });
+      let comics = this.parseComics(data.data.comics.docs);
       return {
         comics: comics,
         maxPage: data.data.comics.pages,
@@ -526,14 +362,7 @@ class Picacg extends ComicSource {
     loadInfo: async (id) => {
       let infoLoader = async () => {
         const request = this.routes.comicInfoRequest({ comicId: id });
-        let res = await Network.get(
-          this.buildRequestUrl(request.path),
-          this.buildRequestHeaders("GET", request, this.loadData("token")),
-        );
-        if (res.status !== 200) {
-          throw "Invalid status code: " + res.status;
-        }
-        let data = JSON.parse(res.body);
+        let data = await this.requestJson(request);
         return data.data.comic;
       };
       let epsLoader = async () => {
@@ -546,14 +375,7 @@ class Picacg extends ComicSource {
             comicId: id,
             page: i,
           });
-          let res = await Network.get(
-            this.buildRequestUrl(request.path),
-            this.buildRequestHeaders("GET", request, this.loadData("token")),
-          );
-          if (res.status !== 200) {
-            throw "Invalid status code: " + res.status;
-          }
-          let data = JSON.parse(res.body);
+          let data = await this.requestJson(request);
           allEps.push(...data.data.eps.docs);
           if (data.data.eps.pages === i) {
             break;
@@ -569,18 +391,8 @@ class Picacg extends ComicSource {
       };
       let relatedLoader = async () => {
         const request = this.routes.comicRecommendationRequest({ comicId: id });
-        let res = await Network.get(
-          this.buildRequestUrl(request.path),
-          this.buildRequestHeaders("GET", request, this.loadData("token")),
-        );
-        if (res.status !== 200) {
-          throw "Invalid status code: " + res.status;
-        }
-        let data = JSON.parse(res.body);
-        let comics = [];
-        data.data.comics.forEach((c) => {
-          comics.push(this.parseComic(c));
-        });
+        let data = await this.requestJson(request);
+        let comics = this.parseComics(data.data.comics);
         return comics;
       };
       let info, eps, related;
@@ -645,14 +457,7 @@ class Picacg extends ComicSource {
           epId,
           page: i,
         });
-        let res = await Network.get(
-          this.buildRequestUrl(request.path),
-          this.buildRequestHeaders("GET", request, this.loadData("token")),
-        );
-        if (res.status !== 200) {
-          throw "Invalid status code: " + res.status;
-        }
-        let data = JSON.parse(res.body);
+        let data = await this.requestJson(request);
         data.data.pages.docs.forEach((p) => {
           images.push(p.media.fileServer + "/static/" + p.media.path);
         });
@@ -694,41 +499,16 @@ class Picacg extends ComicSource {
         });
       }
       let comments = [];
-
-      let maxPage = 1;
-
-      if (replyTo) {
-        const request = this.routes.commentChildrenRequest({ replyTo, page });
-        let res = await Network.get(
-          this.buildRequestUrl(request.path),
-          this.buildRequestHeaders("GET", request, this.loadData("token")),
-        );
-        if (res.status !== 200) {
-          throw "Invalid status code: " + res.status;
-        }
-        let data = JSON.parse(res.body);
-        data.data.comments.docs.forEach((c) => {
-          comments.push(parseComment(c));
-        });
-        maxPage = data.data.comments.pages;
-      } else {
-        const request = this.routes.comicCommentsRequest({ comicId, page });
-        let res = await Network.get(
-          this.buildRequestUrl(request.path),
-          this.buildRequestHeaders("GET", request, this.loadData("token")),
-        );
-        if (res.status !== 200) {
-          throw "Invalid status code: " + res.status;
-        }
-        let data = JSON.parse(res.body);
-        data.data.comments.docs.forEach((c) => {
-          comments.push(parseComment(c));
-        });
-        maxPage = data.data.comments.pages;
-      }
+      const request = replyTo
+        ? this.routes.commentChildrenRequest({ replyTo, page })
+        : this.routes.comicCommentsRequest({ comicId, page });
+      let data = await this.requestJson(request);
+      data.data.comments.docs.forEach((comment) => {
+        comments.push(parseComment(comment));
+      });
       return {
         comments: comments,
-        maxPage: maxPage,
+        maxPage: data.data.comments.pages,
       };
     },
     // 发送评论, 返回任意值表示成功

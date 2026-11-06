@@ -58,12 +58,12 @@ class ManHuaGui extends ComicSource {
         throw "my cookie not found in Set-Cookie header";
       }
 
-      this.saveData("mhg_cookie", "my=" + myCookie);
+      this.saveData(MANHUAGUI_COOKIE_KEY, "my=" + myCookie);
       return "ok";
     },
 
     logout: function () {
-      this.deleteData("mhg_cookie");
+      this.deleteData(MANHUAGUI_COOKIE_KEY);
     },
 
     registerWebsite: "https://www.manhuagui.com/user/register",
@@ -83,27 +83,19 @@ class ManHuaGui extends ComicSource {
   }
 
   async getHtml(url) {
-    let mhg_cookie = this.loadData("mhg_cookie");
-    let headers = {
+    let mhg_cookie = this.loadData(MANHUAGUI_COOKIE_KEY);
+    let headers = createManhuaguiBrowserHeaders({
       accept:
         "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
-      "accept-language": "zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6",
-      "cache-control": "no-cache",
-      pragma: "no-cache",
       priority: "u=0, i",
-      "sec-ch-ua":
-        '"Microsoft Edge";v="137", "Chromium";v="137", "Not/A)Brand";v="24"',
-      "sec-ch-ua-mobile": "?0",
-      "sec-ch-ua-platform": '"Windows"',
       "sec-fetch-dest": "document",
       "sec-fetch-mode": "navigate",
       "sec-fetch-site": "same-origin",
       "sec-fetch-user": "?1",
       "upgrade-insecure-requests": "1",
       Referer: "https://www.manhuagui.com/",
-      "Referrer-Policy": "strict-origin-when-cross-origin",
       cookie: mhg_cookie,
-    };
+    });
     let res = await Network.get(url, headers);
     if (res.status !== 200) {
       throw "Invalid status code: " + res.status;
@@ -1092,24 +1084,15 @@ class ManHuaGui extends ComicSource {
      */
     onImageLoad: (url, comicId, epId) => {
       return {
-        headers: {
-          accept:
-            "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
-          "accept-language": "zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6",
-          "cache-control": "no-cache",
-          pragma: "no-cache",
+        headers: createManhuaguiBrowserHeaders({
+          accept: "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
           priority: "i",
-          "sec-ch-ua":
-            '"Microsoft Edge";v="137", "Chromium";v="137", "Not/A)Brand";v="24"',
-          "sec-ch-ua-mobile": "?0",
-          "sec-ch-ua-platform": '"Windows"',
           "sec-fetch-dest": "image",
           "sec-fetch-mode": "no-cors",
           "sec-fetch-site": "cross-site",
           "sec-fetch-storage-access": "active",
           Referer: "https://www.manhuagui.com/",
-          "Referrer-Policy": "strict-origin-when-cross-origin",
-        },
+        }),
       };
     },
     /**
@@ -1121,24 +1104,16 @@ class ManHuaGui extends ComicSource {
      * They are not supported for thumbnails.
      */
     onThumbnailLoad: (url) => {
-      let headers = {
+      let headers = createManhuaguiBrowserHeaders({
         accept:
           "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
-        "accept-language": "zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6",
-        "cache-control": "no-cache",
-        pragma: "no-cache",
         priority: "u=0, i",
-        "sec-ch-ua":
-          '"Microsoft Edge";v="137", "Chromium";v="137", "Not/A)Brand";v="24"',
-        "sec-ch-ua-mobile": "?0",
-        "sec-ch-ua-platform": '"Windows"',
         "sec-fetch-dest": "document",
         "sec-fetch-mode": "navigate",
         "sec-fetch-site": "none",
         "sec-fetch-user": "?1",
         "upgrade-insecure-requests": "1",
-        "Referrer-Policy": "strict-origin-when-cross-origin",
-      };
+      });
 
       return {
         headers,
@@ -1167,22 +1142,14 @@ class ManHuaGui extends ComicSource {
 
       let url = `${this.baseUrl}/tools/submit_ajax.ashx?action=comment_list&book_id=${comicId}&page_index=${page}`;
 
-      let headers = {
+      let headers = createManhuaguiBrowserHeaders({
         accept: "application/json, text/javascript, */*; q=0.01",
-        "accept-language": "zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6",
-        "cache-control": "no-cache",
-        pragma: "no-cache",
-        "sec-ch-ua":
-          '"Microsoft Edge";v="137", "Chromium";v="137", "Not/A)Brand";v="24"',
-        "sec-ch-ua-mobile": "?0",
-        "sec-ch-ua-platform": '"Windows"',
         "sec-fetch-dest": "empty",
         "sec-fetch-mode": "cors",
         "sec-fetch-site": "same-origin",
         "x-requested-with": "XMLHttpRequest",
         Referer: `${this.baseUrl}/comic/${comicId}/`,
-        "Referrer-Policy": "strict-origin-when-cross-origin",
-      };
+      });
 
       let res = await Network.get(url, headers);
 
@@ -1289,32 +1256,24 @@ class ManHuaGui extends ComicSource {
     },
 
     sendComment: async (comicId, subId, content, replyTo) => {
-      let mhg_cookie = this.loadData("mhg_cookie");
+      let mhg_cookie = this.loadData(MANHUAGUI_COOKIE_KEY);
       if (!mhg_cookie) {
         throw "请先登录漫画柜账号";
       }
       let url = `${this.baseUrl}/tools/submit_ajax.ashx?action=comment_add`;
 
-      let headers = {
+      let headers = createManhuaguiBrowserHeaders({
         accept: "application/json, text/javascript, */*; q=0.01",
-        "accept-language": "zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6",
-        "cache-control": "no-cache",
-        pragma: "no-cache",
-        "sec-ch-ua":
-          '"Microsoft Edge";v="137", "Chromium";v="137", "Not/A)Brand";v="24"',
-        "sec-ch-ua-mobile": "?0",
-        "sec-ch-ua-platform": '"Windows"',
         "sec-fetch-dest": "empty",
         "sec-fetch-mode": "cors",
         "sec-fetch-site": "same-origin",
         "x-requested-with": "XMLHttpRequest",
         Referer: `${this.baseUrl}/comic/${comicId}/`,
-        "Referrer-Policy": "strict-origin-when-cross-origin",
         cookie: mhg_cookie,
         dnt: 1,
         origin: "https://www.manhuagui.com",
         "content-type": "application/x-www-form-urlencoded; charset=UTF-8",
-      };
+      });
 
       let bodyParams = "";
       bodyParams += `book_id=${comicId}&`;
@@ -1392,7 +1351,7 @@ class ManHuaGui extends ComicSource {
      * @returns {Promise<{comics: Comic[], maxPage: number}>}
      */
     loadComics: async (page, folder) => {
-      let mhg_cookie = this.loadData("mhg_cookie");
+      let mhg_cookie = this.loadData(MANHUAGUI_COOKIE_KEY);
       if (!mhg_cookie) {
         throw "请先登录漫画柜账号";
       }
@@ -1500,7 +1459,7 @@ class ManHuaGui extends ComicSource {
       if (!isAdding) {
         throw "暂不支持取消收藏";
       }
-      let mhg_cookie = this.loadData("mhg_cookie");
+      let mhg_cookie = this.loadData(MANHUAGUI_COOKIE_KEY);
       if (!mhg_cookie) {
         throw "请先登录漫画柜账号";
       }
@@ -1527,3 +1486,20 @@ class ManHuaGui extends ComicSource {
     },
   };
 }
+
+
+const MANHUAGUI_BROWSER_HEADERS = {
+  "accept-language": "zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6",
+  "cache-control": "no-cache",
+  pragma: "no-cache",
+  "sec-ch-ua": '"Microsoft Edge";v="137", "Chromium";v="137", "Not/A)Brand";v="24"',
+  "sec-ch-ua-mobile": "?0",
+  "sec-ch-ua-platform": '"Windows"',
+  "Referrer-Policy": "strict-origin-when-cross-origin",
+};
+
+function createManhuaguiBrowserHeaders(overrides) {
+  return Object.assign({}, MANHUAGUI_BROWSER_HEADERS, overrides);
+}
+
+const MANHUAGUI_COOKIE_KEY = "mhg_cookie";
