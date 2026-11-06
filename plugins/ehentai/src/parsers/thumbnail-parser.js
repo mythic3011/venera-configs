@@ -1,13 +1,6 @@
 function parseThumbnailPage(document, next) {
-  function safeAttr(node, key, fallback) {
-    if (node && node.attributes && typeof node.attributes[key] !== "undefined") {
-      return node.attributes[key];
-    }
-    return fallback;
-  }
-
   const parseImageUrl = (e) => {
-    let style = safeAttr(e, "style", "");
+    let style = ehSafeAttr(e, "style", "");
     if (!style) {
       return "";
     }
@@ -57,7 +50,7 @@ function parseThumbnailPage(document, next) {
     .map((e) => parseImageUrl(e))
     .filter((url) => !!url);
   images.push(
-    ...collectImageUrls("div.gdtl > a > img", (e) => safeAttr(e, "src", "")),
+    ...collectImageUrls("div.gdtl > a > img", (e) => ehSafeAttr(e, "src", "")),
   );
 
   if (images.length === 0) {
@@ -74,7 +67,7 @@ function parseThumbnailPage(document, next) {
 
   let urls = collectImageUrls(
     "table.ptb > tbody > tr > td > a",
-    (e) => safeAttr(e, "href", ""),
+    (e) => ehSafeAttr(e, "href", ""),
   );
   let maxPage = 0;
   for (let e of urls) {
@@ -88,7 +81,7 @@ function parseThumbnailPage(document, next) {
   current += 1;
   let nextToken = current > maxPage ? null : current.toString();
 
-  let imagePageUrls = collectImageUrls("div#gdt a", (e) => safeAttr(e, "href", ""));
+  let imagePageUrls = collectImageUrls("div#gdt a", (e) => ehSafeAttr(e, "href", ""));
 
   return {
     thumbnails: images,

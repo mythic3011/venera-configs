@@ -1,13 +1,6 @@
 function parseGalleryDetails(
   document,
 ) {
-  function safeText(node, fallback) {
-    if (node && typeof node.text === "string") {
-      return node.text;
-    }
-    return fallback;
-  }
-
   function firstMatch(text, regExp) {
     if (!text) {
       return null;
@@ -22,7 +15,7 @@ function parseGalleryDetails(
   )) {
     let keyNode = tr.children.length > 0 ? tr.children[0] : null;
     let valuesNode = tr.children.length > 1 ? tr.children[1] : null;
-    let keyText = safeText(keyNode, "");
+    let keyText = ehSafeText(keyNode, "");
     if (!keyText) {
       continue;
     }
@@ -60,7 +53,7 @@ function parseGalleryDetails(
   }
 
   let isFavorited =
-    safeText(document.querySelector("a#favoritelink"), "") !== " Add to Favorites";
+    ehSafeText(document.querySelector("a#favoritelink"), "") !== " Add to Favorites";
 
   let folder = null;
   if (isFavorited) {
@@ -100,13 +93,13 @@ function parseGalleryDetails(
   let _star = _parts.length > 1 ? _parts[1].trim() : "0";
   let stars = Number(_star);
 
-  let category = safeText(document.querySelector("div.cs"), "Unknown");
+  let category = ehSafeText(document.querySelector("div.cs"), "Unknown");
   tags.set("Category", [category]);
   if (uploader) {
     tags.set("uploader", [uploader]);
   }
 
-  let time = safeText(
+  let time = ehSafeText(
     document.querySelector("div#gdd > table > tbody > tr > td.gdt2"),
     "",
   );
@@ -122,8 +115,8 @@ function parseGalleryDetails(
     variables.set(match[1], match[2]);
   }
 
-  let title = safeText(document.querySelector("h1#gn"), "Unknown");
-  let subtitle = safeText(document.querySelector("h1#gj"), null);
+  let title = ehSafeText(document.querySelector("h1#gn"), "Unknown");
+  let subtitle = ehSafeText(document.querySelector("h1#gj"), null);
   if (subtitle != null && subtitle.trim() === "") {
     subtitle = null;
   }

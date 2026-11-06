@@ -1,6 +1,6 @@
-function buildQuery(params) {
+function buildEncodedPairs(params, includeValue) {
   return Object.entries(params)
-    .filter(([, value]) => hasValue(value))
+    .filter(([, value]) => includeValue(value))
     .map(
       ([key, value]) =>
         `${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`,
@@ -8,12 +8,10 @@ function buildQuery(params) {
     .join("&");
 }
 
+function buildQuery(params) {
+  return buildEncodedPairs(params, hasValue);
+}
+
 function buildFormBody(params) {
-  return Object.entries(params)
-    .filter(([, value]) => value !== null && value !== undefined)
-    .map(
-      ([key, value]) =>
-        `${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`,
-    )
-    .join("&");
+  return buildEncodedPairs(params, (value) => value !== null && value !== undefined);
 }

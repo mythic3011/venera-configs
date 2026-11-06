@@ -6,6 +6,7 @@ const vm = require("node:vm");
 function loadParsers() {
   const source = [
     fs.readFileSync("./plugins/ehentai/src/index.js", "utf8"),
+    fs.readFileSync("./plugins/ehentai/src/parsers/node-value-helpers.js", "utf8"),
     fs.readFileSync("./plugins/ehentai/src/parsers/gallery-list-parser.js", "utf8"),
     fs.readFileSync("./plugins/ehentai/src/parsers/gallery-detail-parser.js", "utf8"),
     fs.readFileSync("./plugins/ehentai/src/parsers/thumbnail-parser.js", "utf8"),

@@ -25,6 +25,7 @@
       "plugins/ehentai/src/api-payloads.js",
       "plugins/ehentai/src/form-payloads.js",
       "plugins/ehentai/src/cache-keys.js",
+      "plugins/ehentai/src/parsers/node-value-helpers.js",
       "plugins/ehentai/src/parsers/gallery-list-parser.js",
       "plugins/ehentai/src/parsers/gallery-detail-parser.js",
       "plugins/ehentai/src/parsers/thumbnail-parser.js",
