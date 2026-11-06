@@ -254,10 +254,17 @@ class JM extends ComicSource {
    * @param url {string}
    * @returns {Promise<string>}
    */
-  async get(url) {
+  async request(method, url, body) {
     let time = Math.floor(Date.now() / 1000);
     let kJmSecret = "185Hcomic3PAPP7R";
-    let res = await Network.get(url, this.getApiHeaders(time));
+    let headers = this.getApiHeaders(time);
+    let res;
+    if (method === "GET") {
+      res = await Network.get(url, headers);
+    } else {
+      headers["Content-Type"] = "application/x-www-form-urlencoded";
+      res = await Network.post(url, headers, body);
+    }
     if (res.status !== 200) {
       if (res.status === 401) {
         let json = JSON.parse(res.body);
@@ -277,34 +284,12 @@ class JM extends ComicSource {
     return this.convertData(data, `${time}${kJmSecret}`);
   }
 
+  async get(url) {
+    return await this.request("GET", url);
+  }
+
   async post(url, body) {
-    let time = Math.floor(Date.now() / 1000);
-    let kJmSecret = "185Hcomic3PAPP7R";
-    let res = await Network.post(
-      url,
-      {
-        ...this.getApiHeaders(time),
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-      body,
-    );
-    if (res.status !== 200) {
-      if (res.status === 401) {
-        let json = JSON.parse(res.body);
-        let message = json.errorMsg;
-        if (message === "請先登入會員" && this.isLogged) {
-          throw "Login expired";
-        }
-        throw message ?? "Invalid Status Code: " + res.status;
-      }
-      throw "Invalid Status Code: " + res.status;
-    }
-    let json = JSON.parse(res.body);
-    let data = json.data;
-    if (typeof data !== "string") {
-      throw "Invalid Data";
-    }
-    return this.convertData(data, `${time}${kJmSecret}`);
+    return await this.request("POST", url, body);
   }
 
   async dailyCheckIn(isTask = false) {
