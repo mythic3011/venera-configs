@@ -139,6 +139,16 @@ class JComic extends ComicSource {
     return JCOMIC_BASE + path;
   }
 
+  async _loadComicPage(url) {
+    const response = await Network.get(url, { referer: JCOMIC_REFERER });
+    if (response.status !== 200) throw new Error(response.status);
+    const document = new HtmlDocument(response.body);
+    return {
+      comics: parseComicList(document),
+      maxPage: parseMaxPage(document),
+    };
+  }
+
   /**
    * [Optional] init
    */
@@ -156,14 +166,7 @@ class JComic extends ComicSource {
         const path = page === 1 ? `/cat/${encoded}` : `/cat/${encoded}/${page}`;
         const url = this._buildUrl(path);
 
-        const resp = await Network.get(url, { referer: JCOMIC_REFERER });
-        if (resp.status !== 200) throw new Error(resp.status);
-
-        const doc = new HtmlDocument(resp.body);
-        const comics = parseComicList(doc);
-        const maxPage = parseMaxPage(doc);
-
-        return { comics, maxPage };
+        return await this._loadComicPage(url);
       },
       loadNext(next) {},
     },
@@ -273,14 +276,7 @@ class JComic extends ComicSource {
       const path = page === 1 ? `/cat/${encoded}` : `/cat/${encoded}/${page}`;
       const url = this._buildUrl(path);
 
-      const resp = await Network.get(url, { referer: JCOMIC_REFERER });
-      if (resp.status !== 200) throw new Error(resp.status);
-
-      const doc = new HtmlDocument(resp.body);
-      const comics = parseComicList(doc);
-      const maxPage = parseMaxPage(doc);
-
-      return { comics, maxPage };
+      return await this._loadComicPage(url);
     },
     optionList: [],
     ranking: null,
@@ -304,14 +300,7 @@ class JComic extends ComicSource {
         page === 1 ? `/search/${encoded}` : `/search/${encoded}/${page}`;
       const url = this._buildUrl(path);
 
-      const resp = await Network.get(url, { referer: JCOMIC_REFERER });
-      if (resp.status !== 200) throw new Error(resp.status);
-
-      const doc = new HtmlDocument(resp.body);
-      const comics = parseComicList(doc);
-      const maxPage = parseMaxPage(doc);
-
-      return { comics, maxPage };
+      return await this._loadComicPage(url);
     },
     loadNext: async (keyword, options, next) => {},
     optionList: [

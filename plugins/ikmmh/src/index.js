@@ -1,5 +1,16 @@
 /** @type {import('./_venera_.js')} */
 
+function parseIkmComicCards(document) {
+  return document.querySelectorAll("li.comic-item").map((item) => ({
+    title: item.querySelector("p.title").text.split("~")[0],
+    cover: item.querySelector("img").attributes["src"],
+    id: Ikm.baseUrl + item.querySelector("a").attributes["href"],
+    subTitle: item.querySelector("span.chapter").text,
+  }));
+}
+
+const IKMMH_WEEKDAYS = ["星期一", "星期二", "星期三", "星期四", "星期五", "星期六", "星期日"];
+
 function getValidatorCookie(htmlString) {
   // 正则表达式匹配 document.cookie 设置语句
   const cookieRegex = /document\.cookie\s*=\s*"([^"]+)"/;
@@ -238,12 +249,7 @@ class Ikm extends ComicSource {
           }
 
           let document = new HtmlDocument(res.body);
-          let comics = document.querySelectorAll("li.comic-item").map((e) => ({
-            title: e.querySelector("p.title").text.split("~")[0],
-            cover: e.querySelector("img").attributes["src"],
-            id: `${Ikm.baseUrl}${e.querySelector("a").attributes["href"]}`,
-            subTitle: e.querySelector("span.chapter").text,
-          }));
+          let comics = parseIkmComicCards(document);
           return {
             comics,
             maxPage: 1,
@@ -291,15 +297,7 @@ class Ikm extends ComicSource {
         // 对于单个选项, 使用-分割, 左侧为用于数据加载的值, 即传给load函数的options参数; 右侧为显示给用户的文本
 
         options: ["3-全部", "4-连载中", "1-已完结"],
-        notShowWhen: [
-          "星期一",
-          "星期二",
-          "星期三",
-          "星期四",
-          "星期五",
-          "星期六",
-          "星期日",
-        ],
+        notShowWhen: IKMMH_WEEKDAYS.slice(),
         showWhen: null,
       },
       {
@@ -312,15 +310,7 @@ class Ikm extends ComicSource {
           "5-韩漫",
           "6-未分类",
         ],
-        notShowWhen: [
-          "星期一",
-          "星期二",
-          "星期三",
-          "星期四",
-          "星期五",
-          "星期六",
-          "星期日",
-        ],
+        notShowWhen: IKMMH_WEEKDAYS.slice(),
         showWhen: null,
       },
     ],
@@ -344,12 +334,7 @@ class Ikm extends ComicSource {
 
         let document = new HtmlDocument(res.body);
         return {
-          comics: document.querySelectorAll("li.comic-item").map((e) => ({
-            title: e.querySelector("p.title").text.split("~")[0],
-            cover: e.querySelector("img").attributes["src"],
-            id: `${Ikm.baseUrl}${e.querySelector("a").attributes["href"]}`,
-            subTitle: e.querySelector("span.chapter").text,
-          })),
+          comics: parseIkmComicCards(document),
           maxPage: 1,
         };
       } catch (err) {

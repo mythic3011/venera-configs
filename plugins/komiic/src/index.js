@@ -59,51 +59,10 @@ class Komiic extends ComicSource {
     let operationName = query["operationName"];
     let json = await this.queryJson(query);
 
-    function parseComic(comic) {
-      let author = "";
-      if (comic.authors.length > 0) {
-        author = comic.authors[0].name;
-      }
-      let tags = [];
-      comic.categories.forEach((c) => {
-        tags.push(c.name);
-      });
-
-      function getTimeDifference(date) {
-        const now = new Date();
-        const timeDifference = now - date;
-
-        const millisecondsPerHour = 1000 * 60 * 60;
-        const millisecondsPerDay = millisecondsPerHour * 24;
-
-        if (timeDifference < millisecondsPerHour) {
-          return "剛剛更新";
-        } else if (timeDifference < millisecondsPerDay) {
-          const hours = Math.floor(timeDifference / millisecondsPerHour);
-          return `${hours}小時前更新`;
-        } else {
-          const days = Math.floor(timeDifference / millisecondsPerDay);
-          return `${days}天前更新`;
-        }
-      }
-
-      let updateTime = new Date(comic.dateUpdated);
-      let description = getTimeDifference(updateTime);
-      let formatedTime = `${updateTime.getFullYear()}-${updateTime.getMonth() + 1}-${updateTime.getDate()}`;
-
-      return {
-        id: comic.id,
-        title: comic.title,
-        subTitle: author,
-        cover: comic.imageUrl,
-        tags: tags,
-        description: description,
-        updateTime: formatedTime,
-      };
-    }
-
     return {
-      comics: json.data[operationName].map(parseComic),
+      comics: json.data[operationName].map((comic) =>
+        mapKomiicComic(comic, true),
+      ),
       // 没找到最大页数的接口
       maxPage: null,
     };
@@ -353,49 +312,10 @@ class Komiic extends ComicSource {
           "query searchComicAndAuthorQuery($keyword: String!) {\n  searchComicsAndAuthors(keyword: $keyword) {\n    comics {\n      id\n      title\n      status\n      year\n      imageUrl\n      authors {\n        id\n        name\n        __typename\n      }\n      categories {\n        id\n        name\n        __typename\n      }\n      dateUpdated\n      monthViews\n      views\n      favoriteCount\n      lastBookUpdate\n      lastChapterUpdate\n      __typename\n    }\n    authors {\n      id\n      name\n      chName\n      enName\n      wikiLink\n      comicCount\n      views\n      __typename\n    }\n    __typename\n  }\n}",
       });
 
-      function parseComic(comic) {
-        let author = "";
-        if (comic.authors.length > 0) {
-          author = comic.authors[0].name;
-        }
-        let tags = [];
-        comic.categories.forEach((c) => {
-          tags.push(c.name);
-        });
-
-        function getTimeDifference(date) {
-          const now = new Date();
-          const timeDifference = now - date;
-
-          const millisecondsPerHour = 1000 * 60 * 60;
-          const millisecondsPerDay = millisecondsPerHour * 24;
-
-          if (timeDifference < millisecondsPerHour) {
-            return "剛剛更新";
-          } else if (timeDifference < millisecondsPerDay) {
-            const hours = Math.floor(timeDifference / millisecondsPerHour);
-            return `${hours}小時前更新`;
-          } else {
-            const days = Math.floor(timeDifference / millisecondsPerDay);
-            return `${days}天前更新`;
-          }
-        }
-
-        let updateTime = new Date(comic.dateUpdated);
-        let description = getTimeDifference(updateTime);
-
-        return {
-          id: comic.id,
-          title: comic.title,
-          subTitle: author,
-          cover: comic.imageUrl,
-          tags: tags,
-          description: description,
-        };
-      }
-
       return {
-        comics: json.data.searchComicsAndAuthors.comics.map(parseComic),
+        comics: json.data.searchComicsAndAuthors.comics.map((comic) =>
+          mapKomiicComic(comic, false),
+        ),
         // 没找到最大页数的接口
         maxPage: 1,
       };
@@ -678,4 +598,39 @@ class Komiic extends ComicSource {
       return "ok";
     },
   };
+}
+
+function getKomiicTimeDifference(date) {
+  const now = new Date();
+  const timeDifference = now - date;
+
+  const millisecondsPerHour = 1000 * 60 * 60;
+  const millisecondsPerDay = millisecondsPerHour * 24;
+
+  if (timeDifference < millisecondsPerHour) {
+    return "剛剛更新";
+  } else if (timeDifference < millisecondsPerDay) {
+    const hours = Math.floor(timeDifference / millisecondsPerHour);
+    return `${hours}小時前更新`;
+  } else {
+    const days = Math.floor(timeDifference / millisecondsPerDay);
+    return `${days}天前更新`;
+  }
+}
+
+function mapKomiicComic(comic, includeUpdateTime) {
+  const author = comic.authors.length ? comic.authors[0].name : "";
+  const updateTime = new Date(comic.dateUpdated);
+  const result = {
+    id: comic.id,
+    title: comic.title,
+    subTitle: author,
+    cover: comic.imageUrl,
+    tags: comic.categories.map((category) => category.name),
+    description: getKomiicTimeDifference(updateTime),
+  };
+  if (includeUpdateTime) {
+    result.updateTime = `${updateTime.getFullYear()}-${updateTime.getMonth() + 1}-${updateTime.getDate()}`;
+  }
+  return result;
 }
