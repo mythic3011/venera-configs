@@ -13,6 +13,11 @@
 
 A schema-validated source catalog for Venera plugin configs and generated build metadata.
 
+Start with the [repository map and build flow](docs/repository-layout.md) to find
+the owning source, shared helpers, and generated output. Use
+`npm run build:plugin -- <plugin-id>` for one plugin and `npm run pipeline:ci`
+for the full validation flow.
+
 ## Index
 
 - [venera-configs](#venera-configs)
@@ -102,23 +107,50 @@ helpers only through domain indexes.
   - `import { helperA, helperB as localName } from "support/<domain>/index.js"`
 - Supported specifiers:
   - `support/<domain>/index.js`
-  - relative `./...` and `../...` paths ending with `.js`
+  - relative `./...` and `../...` paths ending with `.js` or `.json`
 - Not supported:
   - deep support imports such as `support/http/request-client.js`
   - plugin imports from `support/testing`
   - `shared/...`
   - package/bare imports
-  - default imports
+  - default JavaScript imports (JSON modules use a default import)
   - namespace imports (`* as`)
 
 The build pipeline inlines imported module code and emits standalone plugin
 artifacts without `import`/`export` at runtime.
 
-Source files should also avoid runtime features that `flutter_qjs` does not
-support well:
+### Shared translations
 
-- initialize fields inside `constructor()`; do not use class field initializers
-- do not rely on optional chaining, nullish coalescing, `.at()`, `replaceAll()`, or `matchAll()` in root source files
+`support/i18n/tags.json` owns the shared namespace and metadata labels. Its
+format is `{ "en_US": { "artist": "Artist" }, "zh_TW": { "artist": "畫師" } }`.
+Edit this file to add languages or keys, then rebuild consuming plugins.
+JSON modules support default imports from relative paths; plugin sources
+continue to access shared code through domain indexes:
+
+```js
+import { createSharedTranslations, loadSharedTranslations } from "support/i18n/index.js";
+
+// Inside a ComicSource class:
+translation = createSharedTranslations();
+// Optional plugin-specific overrides:
+// translation = createSharedTranslations(undefined, { en_US: { custom: "Custom" } });
+```
+
+The shared JSON is embedded in each consuming artifact for offline use.
+LANraragi's **Translation JSON URL** defaults to this repository's catalog,
+using the configured release authority. A raw GitHub HTTPS URL serving the
+same locale-keyed format can override it. Reload the source to refresh.
+Downloaded keys override bundled keys; missing keys retain the bundled labels.
+If the default repository catalog is unavailable, the plugin logs the refresh
+failure and uses bundled translations. Invalid custom responses reject
+initialization without replacing the current translation object. Comic server
+credentials are never sent with translation requests. Clear the setting to
+use only the bundled translations.
+
+The standard pipeline transforms class fields, optional chaining, and nullish
+coalescing to the supported artifact syntax. Legacy passthrough sources must
+already use compatible syntax. Runtime APIs such as `.at()`, `replaceAll()`, and
+`matchAll()` are not polyfilled; avoid them unless the host supports them.
 
 Each generated plugin artifact records:
 
@@ -126,6 +158,17 @@ Each generated plugin artifact records:
 - `bytes`: UTF-8 byte length of the final artifact text
 
 ## Build And Verify
+
+For a repeatable AST duplication scan of plugin, support, and tooling source:
+
+```bash
+rtk proxy node scripts/audit/ast-repetition.js --json=/tmp/venera-ast-repetition.json
+```
+
+The JSON report includes all qualifying function, statement-window, string,
+and regex groups with source locations. Generated files and tests are excluded.
+Matches need semantic review before extraction; identical protocol literals or
+locale labels can have separate owners. See [the reviewed scan](docs/ast-repetition-review.md).
 
 Common checks while iterating:
 
@@ -238,8 +281,8 @@ package/bare imports、default imports、namespace imports。
 
 source files 也應避免依賴 `flutter_qjs` 不友善的語法：
 
-- 在 `constructor()` 裡初始化 fields，不要用 class field initializers
-- 不要依賴 optional chaining、nullish coalescing、`.at()`、`replaceAll()` 或 `matchAll()`
+- 標準 pipeline 會轉換 class fields、optional chaining 和 nullish coalescing；legacy passthrough source 必須自行符合 runtime 語法。
+- `.at()`、`replaceAll()` 和 `matchAll()` 等 runtime API 不會自動補 polyfill，使用前要確認 host 支援。
 
 ### 怎麼驗證
 
