@@ -1,6 +1,7 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const esbuild = require("esbuild");
+const crypto = require("node:crypto");
 const { REPO_ROOT } = require("./lib");
 const {
   resolveSupportSpecifierPath,
@@ -40,9 +41,9 @@ function resolveModuleImport(fromFilePath, specifier, pluginId, options = {}) {
       `Import escapes repository root in ${path.relative(REPO_ROOT, fromFilePath)}: ${specifier}`,
     );
   }
-  if (!resolved.endsWith(".js")) {
+  if (!resolved.endsWith(".js") && !resolved.endsWith(".json")) {
     throw new Error(
-      `Import must target a .js file in ${path.relative(REPO_ROOT, fromFilePath)}: ${specifier}`,
+      `Import must target a .js or .json file in ${path.relative(REPO_ROOT, fromFilePath)}: ${specifier}`,
     );
   }
   if (!fs.existsSync(resolved)) {
@@ -88,6 +89,10 @@ function parseNamedImports(importClause, sourcePath) {
 }
 
 function collectModuleAndImports(filePath, pluginId, options = {}) {
+  if (filePath.endsWith(".json")) {
+    const value = JSON.parse(fs.readFileSync(filePath, "utf8"));
+    return { code: `const ${jsonModuleName(filePath)} = JSON.parse(${JSON.stringify(JSON.stringify(value))});`, imports: [], aliasPairs: [] };
+  }
   const source = fs.readFileSync(filePath, "utf8").trimEnd();
   const imports = [];
   const aliasPairs = [];
@@ -103,7 +108,9 @@ function collectModuleAndImports(filePath, pluginId, options = {}) {
         allowTesting,
       });
       imports.push(resolved);
-      const named = parseNamedImports(importClause, filePath);
+      const named = resolved.endsWith(".json")
+        ? parseJsonImport(importClause, resolved)
+        : parseNamedImports(importClause, filePath);
       for (const pair of named) {
         aliasPairs.push(pair);
       }
@@ -122,6 +129,18 @@ function collectModuleAndImports(filePath, pluginId, options = {}) {
     imports,
     aliasPairs,
   };
+}
+
+function jsonModuleName(filePath) {
+  return "__veneraJson_" + crypto.createHash("sha256").update(toPosixRelative(filePath)).digest("hex").slice(0, 16);
+}
+
+function parseJsonImport(clause, filePath) {
+  const local = String(clause || "").trim();
+  if (!/^[A-Za-z_$][A-Za-z0-9_$]*$/.test(local)) {
+    throw new Error(`JSON imports require a default binding: ${toPosixRelative(filePath)}`);
+  }
+  return [{ imported: jsonModuleName(filePath), local }];
 }
 
 function collectFlattenedModules(entryPaths, pluginId, options = {}) {
@@ -148,29 +167,18 @@ function collectFlattenedModules(entryPaths, pluginId, options = {}) {
     // Keep configured plugin entry modules first to preserve parser expectations.
     // runtimeShared facades can opt into imports-first so index modules can aggregate
     // imported helpers without relying on declaration-only shells.
-    if (isEntry) {
-      if (entryMode === "entry-first") {
-        appendedModules.push(code);
-        appendedByPath.add(normalizedPath);
-      }
-      for (const importedPath of imports) {
-        visit(importedPath, false);
-      }
-      if (entryMode === "imports-first") {
-        appendedModules.push(code);
-        appendedByPath.add(normalizedPath);
-      }
-      for (const pair of localAliases) {
-        aliasPairs.push(pair);
-      }
-      return;
+    const appendBeforeImports = isEntry && entryMode === "entry-first";
+    if (appendBeforeImports) {
+      appendedModules.push(code);
+      appendedByPath.add(normalizedPath);
     }
-
     for (const importedPath of imports) {
       visit(importedPath, false);
     }
-    appendedModules.push(code);
-    appendedByPath.add(normalizedPath);
+    if (!appendBeforeImports) {
+      appendedModules.push(code);
+      appendedByPath.add(normalizedPath);
+    }
     for (const pair of localAliases) {
       aliasPairs.push(pair);
     }

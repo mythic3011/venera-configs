@@ -1,3 +1,4 @@
+import { createSharedTranslations, loadSharedTranslations } from "support/i18n/index.js";
 /** @type {import('./_venera_.js')} */
 const LRR_ROUTES = createSelfHostedRouteHelpers();
 const LRR_TAG_PREFIXES = {
@@ -65,6 +66,10 @@ function isLrrTankId(value) {
 
 function isLrrArchiveId(value) {
   return /^[a-f0-9]{40}$/i.test(String(value || ""));
+}
+
+function isLrrObject(value) {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
 }
 
 function lrrPagePath(value) {
@@ -209,11 +214,16 @@ function resolveLrrBaseUrl(rawValue, fallbackValue) {
 class Lanraragi extends ComicSource {
   name = "Lanraragi";
   key = "lanraragi";
-  version = "1.2.9";
+  version = "1.2.10";
   minAppVersion = "1.4.0";
   url = resolvePluginUpdateUrl("lanraragi.js");
 
   settings = {
+    translationUrl: {
+      title: "Translation JSON URL (optional HTTPS)",
+      type: "input",
+      default: `${resolvePluginUpdateUrl("")}/support/i18n/tags.json`,
+    },
     api: { title: "API", type: "input", default: "http://lrr.tvc-16.science" },
     apiKey: { title: "APIKEY", type: "input", default: "" },
   };
@@ -366,9 +376,7 @@ class Lanraragi extends ComicSource {
 
   _acceptTankPage(response) {
     if (
-      !response ||
-      typeof response !== "object" ||
-      Array.isArray(response) ||
+      !isLrrObject(response) ||
       !Array.isArray(response.result) ||
       response.result.length > 1000 ||
       !Number.isSafeInteger(Number(response.total)) ||
@@ -403,7 +411,7 @@ class Lanraragi extends ComicSource {
 
   _absorbTankPage(response, memberTank, covers, names, ambiguous) {
     for (const item of response.result) {
-      if (!item || typeof item !== "object" || Array.isArray(item)) continue;
+      if (!isLrrObject(item)) continue;
       if (!isLrrTankId(item.id) || !Array.isArray(item.archives)) continue;
       if (item.archives.length > 2000) continue;
       const members = [];
@@ -543,7 +551,7 @@ class Lanraragi extends ComicSource {
       const res = await this._get(url);
       if (!res || res.status !== 200) return null;
       const data = JSON.parse(res.body);
-      if (!data || typeof data !== "object" || Array.isArray(data)) return null;
+      if (!isLrrObject(data)) return null;
       const archives = Array.isArray(data.archives) ? data.archives : [];
       let cover = "";
       for (const raw of archives) {
@@ -632,25 +640,28 @@ class Lanraragi extends ComicSource {
     });
   }
 
+  async _fetchSearchJson(url) {
+    const res = await this._get(url);
+    if (!res || res.status !== 200) {
+      throw `Invalid status code: ${res ? res.status : 0}`;
+    }
+    try {
+      return JSON.parse(res.body);
+    } catch (_) {
+      throw "Invalid LANraragi search response.";
+    }
+  }
+
   async _loadRandomExplore() {
     const url = buildSelfHostedUrlFromSource(this, `${LRR_ROUTES.searchPath}/random`, {
       count: String(LRR_EXPLORE_RANDOM_COUNT),
       groupby_tanks: "true",
     });
-    const res = await this._get(url);
-    if (!res || res.status !== 200) {
-      throw `Invalid status code: ${res ? res.status : 0}`;
-    }
-    let data;
-    try {
-      data = JSON.parse(res.body);
-    } catch (_) {
-      throw "Invalid LANraragi search response.";
-    }
+    const data = await this._fetchSearchJson(url);
     const rows = data && Array.isArray(data.data) ? data.data : [];
     const comics = [];
     for (const item of rows) {
-      if (!item || typeof item !== "object" || Array.isArray(item) || !item.arcid) {
+      if (!isLrrObject(item) || !item.arcid) {
         continue;
       }
       comics.push(this._mapArchiveComic(item, this.baseUrl));
@@ -671,7 +682,7 @@ class Lanraragi extends ComicSource {
     const comics = [];
     const shown = {};
     for (const item of list) {
-      if (!item || typeof item !== "object" || Array.isArray(item)) continue;
+      if (!isLrrObject(item)) continue;
       if (isLrrTankId(item.arcid)) {
         if (shown[item.arcid]) continue;
         shown[item.arcid] = true;
@@ -734,17 +745,8 @@ class Lanraragi extends ComicSource {
       LRR_ROUTES.searchPath,
       Object.assign({}, query, { start: String(start) }),
     );
-    const res = await this._get(url);
-    if (!res || res.status !== 200) {
-      throw `Invalid status code: ${res ? res.status : 0}`;
-    }
-    let data;
-    try {
-      data = JSON.parse(res.body);
-    } catch (_) {
-      throw "Invalid LANraragi search response.";
-    }
-    if (!data || typeof data !== "object" || Array.isArray(data)) data = {};
+    let data = await this._fetchSearchJson(url);
+    if (!isLrrObject(data)) data = {};
     const list = Array.isArray(data.data) ? data.data : [];
     const total =
       typeof data.recordsFiltered === "number" && data.recordsFiltered >= 0
@@ -887,6 +889,19 @@ class Lanraragi extends ComicSource {
   }
 
   async init() {
+    const configuredUrl = this.loadSetting("translationUrl");
+    const defaultUrl = this.settings.translationUrl.default;
+    const translationUrl = configuredUrl == null ? defaultUrl : String(configuredUrl).trim();
+    let translations = createSharedTranslations();
+    if (translationUrl) {
+      try {
+        translations = await loadSharedTranslations(translationUrl);
+      } catch (error) {
+        if (translationUrl !== defaultUrl) throw error;
+        console.log("Shared translation refresh failed; using bundled translations.");
+      }
+    }
+    this.translation = translations;
     let stamp = "";
     try {
       stamp = this._serverStamp();
@@ -1515,7 +1530,7 @@ class Lanraragi extends ComicSource {
       } catch (_) {
         throw "Invalid LANraragi metadata.";
       }
-      if (!data || typeof data !== "object" || Array.isArray(data)) {
+      if (!isLrrObject(data)) {
         throw "Invalid LANraragi metadata.";
       }
 
@@ -1644,58 +1659,5 @@ class Lanraragi extends ComicSource {
     enableTagsTranslate: true,
   };
 
-  translation = {
-    zh_CN: {
-      language: "语言",
-      artist: "画师",
-      male: "男性",
-      female: "女性",
-      mixed: "混合",
-      other: "其它",
-      parody: "原作",
-      character: "角色",
-      group: "团队",
-      cosplayer: "Coser",
-      reclass: "重新分类",
-      uploader: "上传者",
-      Languages: "语言",
-      Artists: "画师",
-      Characters: "角色",
-      Groups: "团队",
-      Tags: "标签",
-      Parodies: "原作",
-      Categories: "分类",
-      Category: "分类",
-      series: "系列",
-      Series: "系列",
-      Pages: "页数",
-      Extension: "文件类型",
-    },
-    en_US: {
-      language: "Language",
-      artist: "Artist",
-      male: "Male",
-      female: "Female",
-      mixed: "Mixed",
-      other: "Other",
-      parody: "Parody",
-      character: "Character",
-      group: "Group",
-      cosplayer: "Cosplayer",
-      reclass: "Reclass",
-      uploader: "Uploader",
-      Languages: "Languages",
-      Artists: "Artists",
-      Characters: "Characters",
-      Groups: "Groups",
-      Tags: "Tags",
-      Parodies: "Parodies",
-      Categories: "Categories",
-      Category: "Category",
-      series: "Series",
-      Series: "Series",
-      Pages: "Pages",
-      Extension: "Extension",
-    },
-  };
+  translation = createSharedTranslations();
 }

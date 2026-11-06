@@ -16,7 +16,7 @@ test("lanraragi artifact boots under runtime shim", () => {
   vm.runInContext(`${source}\nthis.__Ctor__=Lanraragi;`, context, { filename: plugin.outputPath });
   const instance = new context.__Ctor__();
   assert.equal(instance.key, "lanraragi");
-  assert.equal(instance.version, "1.2.9");
+  assert.equal(instance.version, "1.2.10");
 });
 
 test("lanraragi search sends bare booleans and tanks are not archives", async () => {
