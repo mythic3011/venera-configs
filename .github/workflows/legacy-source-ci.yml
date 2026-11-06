@@ -1,0 +1,62 @@
+name: Experimental JS Sources
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "experiments/legacy-comic-sources/**"
+      - "scripts/build/generate-legacy-index.js"
+      - "tests/lanraragi.temporary.test.js"
+      - "tests/catalog-index.test.js"
+      - ".github/workflows/legacy-source-ci.yml"
+  push:
+    branches: [main]
+    paths:
+      - "experiments/legacy-comic-sources/**"
+      - "scripts/build/generate-legacy-index.js"
+      - "tests/lanraragi.temporary.test.js"
+      - "tests/catalog-index.test.js"
+      - ".github/workflows/legacy-source-ci.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: legacy-source-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate-legacy:
+    name: Validate legacy source and generated index (Node 22)
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Static syntax checks
+        run: |
+          node --check experiments/legacy-comic-sources/lanraragi_temporary.js
+          node --check scripts/build/generate-legacy-index.js
+          node --check tests/lanraragi.temporary.test.js
+
+      - name: Verify generated temporary JSON catalog and README
+        run: npm run check:legacy-index
+
+      - name: Run mock Venera/LANraragi contract tests
+        run: node --test tests/lanraragi.temporary.test.js
+
+      - name: Upload review-only temporary source catalog
+        uses: actions/upload-artifact@v4
+        with:
+          name: experimental-venera-js-${{ github.sha }}
+          if-no-files-found: error
+          retention-days: 14
+          path: |
+            experiments/legacy-comic-sources/lanraragi_temporary.js
+            experiments/legacy-comic-sources/index.json
+            experiments/legacy-comic-sources/INDEX.md
+            experiments/legacy-comic-sources/README.md

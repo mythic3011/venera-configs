@@ -25,7 +25,13 @@
     "pipeline:build": "node scripts/build/pipeline.js build",
     "pipeline:test": "node scripts/build/pipeline.js test",
     "pipeline:verify": "node scripts/build/pipeline.js verify",
-    "pipeline:ci": "node scripts/build/pipeline.js ci"
+    "pipeline:ci": "node scripts/build/pipeline.js ci",
+    "build:index": "node scripts/build/write-public-index.js",
+    "check:index-json": "node scripts/build/write-public-index.js --check",
+    "build:legacy-index": "node scripts/build/generate-legacy-index.js",
+    "check:legacy-index": "node scripts/build/generate-legacy-index.js --check",
+    "build:catalogs": "npm run build:index && npm run build:legacy-index",
+    "check:catalogs": "npm run check:index-json && npm run check:legacy-index"
   },
   "devDependencies": {
     "@babel/core": "^7.23.0",

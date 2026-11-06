@@ -11,6 +11,8 @@ const BUILD = [
   ...VALIDATION,
   ["Generate plugin artifacts", "scripts/build/generate.js"],
   ["Check generated artifacts", "scripts/build/check-generated.js"],
+  ["Write public catalog", "scripts/build/write-public-index.js"],
+  ["Write legacy catalog", "scripts/build/generate-legacy-index.js"],
 ];
 const TEST = [
   ["Run tests", null, ["--test"]],
@@ -20,6 +22,8 @@ const TEST = [
 const VERIFY = [
   ...BUILD,
   ["Check public index", "scripts/sync-index.js", ["--check"]],
+  ["Check canonical catalog", "scripts/build/write-public-index.js", ["--check"]],
+  ["Check legacy catalog", "scripts/build/generate-legacy-index.js", ["--check"]],
   ...TEST,
 ];
 const PIPELINES = {

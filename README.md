@@ -11,6 +11,10 @@
 > [![Build Manifest](https://img.shields.io/badge/build-manifest-generated-purple)](#generated-output)
 > [![Verification](https://img.shields.io/badge/verification-enabled-brightgreen)](#build-and-verify)
 
+[![CI](https://github.com/mythic3011/venera-configs/actions/workflows/ci.yml/badge.svg)](https://github.com/mythic3011/venera-configs/actions/workflows/ci.yml)
+[![JSON Catalog](https://github.com/mythic3011/venera-configs/actions/workflows/catalog-index.yml/badge.svg)](https://github.com/mythic3011/venera-configs/actions/workflows/catalog-index.yml)
+[![Experimental Sources](https://github.com/mythic3011/venera-configs/actions/workflows/legacy-source-ci.yml/badge.svg)](https://github.com/mythic3011/venera-configs/actions/workflows/legacy-source-ci.yml)
+
 A schema-validated source catalog for Venera plugin configs and generated build metadata.
 
 Start with the [repository map and build flow](docs/repository-layout.md) to find
@@ -22,6 +26,7 @@ for the full validation flow.
 
 - [venera-configs](#venera-configs)
   - [Index](#index)
+  - [Indexes](#indexes)
   - [What This Repo Contains](#what-this-repo-contains)
   - [What To Edit](#what-to-edit)
   - [Generated Output](#generated-output)
@@ -34,6 +39,36 @@ for the full validation flow.
     - [怎麼驗證](#怎麼驗證)
     - [貢獻說明](#貢獻說明)
     - [授權](#授權)
+
+## Indexes
+
+Two separate Venera-compatible JSON arrays. A JSON index is not a runtime loader
+and does not prove artifact integrity.
+
+| Channel | Index | Purpose | Source of truth |
+| --- | --- | --- | --- |
+| Canonical | [index.json](index.json) | Official plugin catalog | `.generated/build-manifest.json#publicIndex` from `plugins/*/plugin.config.json` |
+| Experimental | [experiments/legacy-comic-sources/index.json](experiments/legacy-comic-sources/index.json) | Temporary legacy JS imports | Reviewed `catalog.sources.json` allowlist and JS source |
+
+Browse [CATALOG.md](CATALOG.md) or [experiments/legacy-comic-sources/INDEX.md](experiments/legacy-comic-sources/INDEX.md).
+
+Canonical raw URL, after merge to `main`:
+
+```text
+https://raw.githubusercontent.com/mythic3011/venera-configs/main/index.json
+```
+
+Experimental raw URL, after merge to `main`:
+
+```text
+https://raw.githubusercontent.com/mythic3011/venera-configs/main/experiments/legacy-comic-sources/index.json
+```
+
+Do not paste a GitHub `blob/` HTML URL into the app. Canonical `lanraragi` and
+experimental `lanraragi_temporary` are separate source identities. The
+experimental script is not installed through the v2 package loader. See
+[experiments/legacy-comic-sources/README.md](experiments/legacy-comic-sources/README.md)
+and [docs/index-build.md](docs/index-build.md).
 
 ## What This Repo Contains
 
@@ -51,7 +86,10 @@ Primary generated outputs:
 
 - `.generated/build-manifest.json`
 - `dist/plugins/*.js`
-- `index.json`, written from plugin configs by the build
+- `index.json`
+- `CATALOG.md`
+- `experiments/legacy-comic-sources/index.json`
+- `experiments/legacy-comic-sources/INDEX.md`
 - `publicIndex` entries embedded in the build manifest
 
 The loader should derive final URLs from release authority plus the generated
@@ -192,6 +230,7 @@ For a full pre-push validation pass:
 
 ```bash
 npm run pipeline:ci
+npm run check:catalogs
 ```
 
 To build individual plugins or the full set:

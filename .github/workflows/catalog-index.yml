@@ -1,0 +1,88 @@
+name: JSON Catalog Integrity
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "index.json"
+      - "CATALOG.md"
+      - ".generated/build-manifest.json"
+      - "plugins/**"
+      - "shared/**"
+      - "scripts/build/**"
+      - "scripts/sync-index.js"
+      - "scripts/config/release-authority.json"
+      - "experiments/legacy-comic-sources/catalog.sources.json"
+      - "experiments/legacy-comic-sources/index.json"
+      - "experiments/legacy-comic-sources/INDEX.md"
+      - "package.json"
+      - "tests/catalog-index.test.js"
+      - ".github/workflows/catalog-index.yml"
+  push:
+    branches: [main]
+    paths:
+      - "index.json"
+      - "CATALOG.md"
+      - ".generated/build-manifest.json"
+      - "plugins/**"
+      - "shared/**"
+      - "scripts/build/**"
+      - "scripts/sync-index.js"
+      - "scripts/config/release-authority.json"
+      - "experiments/legacy-comic-sources/**"
+      - "package.json"
+      - "tests/catalog-index.test.js"
+      - ".github/workflows/catalog-index.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: json-catalog-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  catalog:
+    name: Verify canonical and experimental JSON indexes
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install locked build dependencies
+        run: npm ci
+
+      - name: Validate canonical manifest source of truth
+        run: npm run check:manifest
+
+      - name: Verify both committed JSON indexes and generated README
+        run: npm run check:catalogs
+
+      - name: Check catalog schema, allowed paths, identity and drift
+        run: node --test tests/catalog-index.test.js
+
+      - name: Rebuild both indexes and confirm reproducible README output
+        run: |
+          npm run build:catalogs
+          git diff --exit-code -- index.json CATALOG.md \
+            experiments/legacy-comic-sources/index.json \
+            experiments/legacy-comic-sources/INDEX.md
+
+
+      - name: Upload reviewed index artifacts (never publish from PR)
+        uses: actions/upload-artifact@v4
+        with:
+          name: venera-json-indexes-${{ github.sha }}
+          if-no-files-found: error
+          retention-days: 14
+          path: |
+            index.json
+            CATALOG.md
+            .generated/build-manifest.json
+            experiments/legacy-comic-sources/index.json
+            experiments/legacy-comic-sources/INDEX.md

@@ -45,4 +45,8 @@ jobs:
           name: generated-artifacts-${{ github.sha }}
           path: |
             .generated/build-manifest.json
+            index.json
+            CATALOG.md
+            experiments/legacy-comic-sources/index.json
+            experiments/legacy-comic-sources/INDEX.md
             dist/plugins/*.js
