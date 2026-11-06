@@ -1,4 +1,4 @@
-import { getRuntimeJson } from "../../http/index.js";
+import { getRuntimeJson, joinRawQueryEntries } from "../../http/index.js";
 import { readCopyLikePath, computeCopyLikeMaxPage } from "../../parser/index.js";
 import { buildOffsetByPage } from "../source/paging.js";
 
@@ -59,11 +59,213 @@ function buildCopyLikeHmacSignature(secretBase64, timestampSeconds) {
   );
 }
 
+const COPY_LIKE_MULTI_GROUP_MINIMUM_APP_VERSION = "1.3.0";
+const COPY_LIKE_LOGIN_EXPIRED = "Login expired";
+const COPY_LIKE_RETRY_ERROR = "Retry";
+const COPY_LIKE_CHAPTER_RETRY_LIMIT = 5;
+const COPY_LIKE_CHAPTER_RATE_LIMIT_STATUS = 210;
+const COPY_LIKE_CHAPTER_DEFAULT_WAIT_MS = 40000;
+const COPY_LIKE_GROUP_CHAPTER_PAGE_SIZE = 100;
+
+function isCopyLikeAppVersionAfter(current, target) {
+  const currentArr = current.split(".");
+  const targetArr = target.split(".");
+  for (let i = 0; i < 3; i++) {
+    if (parseInt(currentArr[i]) < parseInt(targetArr[i])) {
+      return false;
+    }
+  }
+  return true;
+}
+
+function copyLikeStatusError(status) {
+  return `Invalid status code: ${status}`;
+}
+
+async function loadCopyLikeFavoriteStatus(config) {
+  const options = config || {};
+  const res = await Network.get(
+    buildCopyLikeComicQueryUrl({ apiUrl: options.apiUrl, id: options.id }),
+    options.headers,
+  );
+  if (res.status !== 200) {
+    throw copyLikeStatusError(res.status);
+  }
+  return JSON.parse(res.body).results.collect != null;
+}
+
+async function updateCopyLikeFavorite(config) {
+  const options = config || {};
+  const requestId = options.getRequestId
+    ? await options.getRequestId()
+    : undefined;
+  const comicData = await Network.get(
+    buildCopyLikeComicDetailUrl({
+      apiUrl: options.apiUrl,
+      id: options.comicId,
+      inMainland: true,
+      requestId,
+      platform: 3,
+    }),
+    options.getHeaders ? options.getHeaders() : options.headers,
+  );
+  if (comicData.status !== 200) {
+    throw copyLikeStatusError(comicData.status);
+  }
+  const comicId = JSON.parse(comicData.body).results.comic.uuid;
+  const response = await Network.post(
+    buildCopyLikeEndpointUrl(
+      options.apiUrl,
+      COPY_LIKE_ENDPOINT_PATHS.FAVORITE_COMIC_ACTION,
+    ),
+    withCopyLikeFormHeaders(
+      options.getHeaders ? options.getHeaders() : options.headers,
+    ),
+    `comic_id=${comicId}&is_collect=${options.isAdding ? 1 : 0}&authorization=Token+${options.token}`,
+  );
+  if (response.status === 401) throw COPY_LIKE_LOGIN_EXPIRED;
+  if (response.status !== 200) {
+    throw copyLikeStatusError(response.status);
+  }
+  return "ok";
+}
+
+async function loadCopyLikeGroupChapters(config) {
+  const options = config || {};
+  const keys = Object.keys(options.groups);
+  const result = {};
+  const getHeaders = () =>
+    options.getHeaders ? options.getHeaders() : options.headers;
+  await Promise.all(
+    keys.map(async (group) => {
+      const groupPath = options.groups[group].path_word;
+      const requestId = options.getRequestId
+        ? await options.getRequestId()
+        : undefined;
+      let res = await Network.get(
+        buildCopyLikeGroupChaptersUrl({
+          apiUrl: options.apiUrl,
+          id: options.id,
+          groupPath,
+          limit: COPY_LIKE_GROUP_CHAPTER_PAGE_SIZE,
+          offset: 0,
+          inMainland: options.inMainland,
+          requestId,
+        }),
+        getHeaders(),
+      );
+      if (res.status !== 200) {
+        throw copyLikeStatusError(res.status);
+      }
+      let data = JSON.parse(res.body);
+      const eps = new Map();
+      const append = (rows) => {
+        rows.forEach((episode) => eps.set(episode.uuid, episode.name));
+      };
+      append(data.results.list);
+      const maxChapter = data.results.total;
+      let offset = COPY_LIKE_GROUP_CHAPTER_PAGE_SIZE;
+      while (offset < maxChapter) {
+        res = await Network.get(
+          buildCopyLikeGroupChaptersUrl({
+            apiUrl: options.apiUrl,
+            id: options.id,
+            groupPath,
+            limit: COPY_LIKE_GROUP_CHAPTER_PAGE_SIZE,
+            offset,
+          }),
+          getHeaders(),
+        );
+        if (res.status !== 200) {
+          throw copyLikeStatusError(res.status);
+        }
+        data = JSON.parse(res.body);
+        append(data.results.list);
+        offset += COPY_LIKE_GROUP_CHAPTER_PAGE_SIZE;
+      }
+      result[group] = eps;
+    }),
+  );
+
+  if (
+    isCopyLikeAppVersionAfter(
+      options.appVersion,
+      COPY_LIKE_MULTI_GROUP_MINIMUM_APP_VERSION,
+    )
+  ) {
+    const sortedResult = new Map();
+    for (const key of keys) {
+      sortedResult.set(options.groups[key].name, result[key]);
+    }
+    return sortedResult;
+  }
+  const merged = new Map();
+  for (const key of keys) {
+    for (const [id, title] of result[key]) merged.set(id, title);
+  }
+  return merged;
+}
+
+async function loadCopyLikeChapterData(config) {
+  const options = config || {};
+  let attempt = 0;
+  while (attempt < COPY_LIKE_CHAPTER_RETRY_LIMIT) {
+    try {
+      const requestId = options.getRequestId
+        ? await options.getRequestId()
+        : options.requestId;
+      const res = await Network.get(
+        buildCopyLikeChapterUrl({
+          apiUrl: options.apiUrl,
+          comicId: options.comicId,
+          chapterId: options.chapterId,
+          chapterEndpoint: options.chapterEndpoint,
+          inMainland: options.inMainland,
+          requestId,
+          platform: options.platform,
+          update: options.update,
+        }),
+        { ...(options.getHeaders ? options.getHeaders() : options.headers || {}) },
+      );
+      if (res.status === COPY_LIKE_CHAPTER_RATE_LIMIT_STATUS) {
+        let waitTime = COPY_LIKE_CHAPTER_DEFAULT_WAIT_MS;
+        try {
+          const responseBody = JSON.parse(res.body);
+          if (
+            responseBody.message &&
+            responseBody.message.includes("Expected available in")
+          ) {
+            const match = responseBody.message.match(/(\d+)\s*seconds/);
+            if (match && match[1]) waitTime = parseInt(match[1]) * 1000;
+          }
+        } catch (_) {
+          console.log("Unable to parse wait time, using default wait time 40s");
+        }
+        console.log(
+          `Chapter${options.chapterId} access too frequent, waiting ${waitTime / 1000}s`,
+        );
+        await new Promise((resolve) => setTimeout(resolve, waitTime));
+        throw COPY_LIKE_RETRY_ERROR;
+      }
+      if (res.status !== 200) {
+        throw copyLikeStatusError(res.status);
+      }
+      const data = JSON.parse(res.body);
+      return options.mapResponse ? options.mapResponse(data) : data;
+    } catch (error) {
+      if (error !== COPY_LIKE_RETRY_ERROR) throw error;
+      attempt += 1;
+      if (attempt >= COPY_LIKE_CHAPTER_RETRY_LIMIT) throw error;
+    }
+  }
+}
+
 const COPY_LIKE_ENDPOINT_PATHS = {
   LOGIN: "/api/v3/login",
   RANKS: "/api/v3/ranks",
   COMICS: "/api/v3/comics",
   SEARCH_COMIC: "/api/v3/search/comic",
+  HOME_INDEX: "/api/v3/h5/homeIndex",
   HOME_INDEX_COMICS: "/api/v3/h5/homeIndex/comics",
   FAVORITE_COMICS: "/api/v3/member/collect/comics",
   FAVORITE_COMIC_ACTION: "/api/v3/member/collect/comic",
@@ -101,19 +303,7 @@ function buildCopyLikeEndpointUrl(apiUrl, endpointPath) {
 }
 
 function buildCopyLikeQueryString(entries) {
-  const parts = [];
-  for (const entry of entries || []) {
-    if (!Array.isArray(entry) || entry.length < 2) {
-      continue;
-    }
-    const key = entry[0];
-    const value = entry[1];
-    if (key == null || value == null) {
-      continue;
-    }
-    parts.push(`${String(key)}=${String(value)}`);
-  }
-  return parts.join("&");
+  return joinRawQueryEntries(entries);
 }
 
 function buildCopyLikeUrlWithQuery(apiUrl, endpointPath, entries) {
@@ -365,7 +555,7 @@ function buildCopyLikeHomeSections(payload, sectionDefinitions, parseComic) {
 
 async function loadCopyLikeHomeSectionsModule(config) {
   const payload = await getRuntimeJson(
-    `${config.apiUrl}${config.endpoint || "/api/v3/h5/homeIndex"}`,
+    `${config.apiUrl}${config.endpoint || COPY_LIKE_ENDPOINT_PATHS.HOME_INDEX}`,
     config.headers,
     config.context || "copy_like home",
   );
@@ -435,6 +625,14 @@ async function loadCopyLikeSearchModule(config) {
 }
 
 export {
+  COPY_LIKE_MULTI_GROUP_MINIMUM_APP_VERSION,
+  COPY_LIKE_LOGIN_EXPIRED,
+  copyLikeStatusError,
+  isCopyLikeAppVersionAfter,
+  loadCopyLikeFavoriteStatus,
+  updateCopyLikeFavorite,
+  loadCopyLikeGroupChapters,
+  loadCopyLikeChapterData,
   normalizeCopyLikeBaseUrl,
   buildCopyLikeApiUrl,
   buildCopyLikePageUrl,
@@ -471,6 +669,14 @@ export {
 
 if (typeof module !== "undefined" && module && module.exports) {
   module.exports = {
+    COPY_LIKE_MULTI_GROUP_MINIMUM_APP_VERSION,
+    COPY_LIKE_LOGIN_EXPIRED,
+    copyLikeStatusError,
+    isCopyLikeAppVersionAfter,
+    loadCopyLikeFavoriteStatus,
+    updateCopyLikeFavorite,
+    loadCopyLikeGroupChapters,
+    loadCopyLikeChapterData,
     normalizeCopyLikeBaseUrl,
     buildCopyLikeApiUrl,
     buildCopyLikePageUrl,

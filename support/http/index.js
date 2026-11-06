@@ -1,3 +1,4 @@
+import { joinRawQueryEntries } from "./query.js";
 import {
   runtimeGet,
   getRuntimeJson,
@@ -20,6 +21,7 @@ import {
 } from "./cooldown.js";
 
 const httpRequestApi = {
+  joinRawQueryEntries,
   runtimeGet,
   getRuntimeJson,
   getRuntimeDocument,
@@ -49,6 +51,7 @@ const httpSupportApi = {
 };
 
 export {
+  joinRawQueryEntries,
   runtimeGet,
   getRuntimeJson,
   getRuntimeDocument,
@@ -71,20 +74,7 @@ export {
 
 if (typeof module !== "undefined" && module && module.exports) {
   module.exports = {
-    runtimeGet,
-    getRuntimeJson,
-    getRuntimeDocument,
-    getSelfHostedJson,
-    postSelfHostedJson,
-    ManagedRequestClient,
-    createManagedRequestClient,
-    parseRuntimeJsonBody,
-    ensureSelfHostedHttpOk,
-    parseSelfHostedJsonBody,
-    hasNonWhitespaceText,
-    defaultRequestKey,
-    createDomainQueue,
-    markCooldown,
+    ...httpSupportApi,
     httpRequestApi,
     httpResponseApi,
     httpCooldownApi,

@@ -1,3 +1,5 @@
+import { joinRawQueryEntries } from "../../http/index.js";
+
 const PICACG_ENDPOINT_PATHS = {
   AUTH_SIGN_IN: "auth/sign-in",
   COMICS: "comics",
@@ -38,19 +40,7 @@ function buildPicacgEndpointUrl(baseUrl, endpointPath) {
 }
 
 function buildPicacgQueryString(entries) {
-  const parts = [];
-  for (const entry of entries || []) {
-    if (!Array.isArray(entry) || entry.length < 2) {
-      continue;
-    }
-    const key = entry[0];
-    const value = entry[1];
-    if (key == null || value == null) {
-      continue;
-    }
-    parts.push(`${String(key)}=${String(value)}`);
-  }
-  return parts.join("&");
+  return joinRawQueryEntries(entries);
 }
 
 function buildPicacgPathWithQuery(path, entries) {
