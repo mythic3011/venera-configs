@@ -95,15 +95,7 @@ export {
 
 if (typeof module !== "undefined" && module && module.exports) {
   module.exports = {
-    unwrapCopyLikeComic,
-    readCopyLikePath,
-    parseCopyLikeThemeTags,
-    parseCopyLikePrimaryAuthor,
-    parseCopyLikeAuthorCount,
-    formatCopyLikeRankingDescription,
-    computeCopyLikeMaxPage,
-    createCopyLikeComicParser,
-    createHtmlDocument,
+    ...parserSupportApi,
     parserCopyLikeApi,
     parserHtmlApi,
     parserSupportApi,

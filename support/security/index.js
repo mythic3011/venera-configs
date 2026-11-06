@@ -43,12 +43,7 @@ export {
 
 if (typeof module !== "undefined" && module && module.exports) {
   module.exports = {
-    withAuthorization,
-    withBearer,
-    withBasic,
-    encodeSelfHostedToken,
-    normalizeCookieUrl,
-    redactSecretValue,
+    ...securitySupportApi,
     securitySecretsApi,
     securityCookiesApi,
     securityRedactionApi,
