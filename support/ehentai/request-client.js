@@ -1,4 +1,7 @@
-class EhentaiRequestClient {
+import { createManagedRequestClient, hasNonWhitespaceText } from "support/http/index.js";
+import { domainKey } from "./cache-keys.js";
+
+export class EhentaiRequestClient {
   constructor(source) {
     this.source = source;
     this._managedClient = null;

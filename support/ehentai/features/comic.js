@@ -1,4 +1,4 @@
-function createComicFeature(source) {
+export function createComicFeature(source) {
   return {
     /**
      * load comic info

@@ -1,4 +1,4 @@
-function parseDispatchKey(document) {
+export function parseDispatchKey(document) {
   let scripts = document.querySelectorAll("script");
   let showScript = null;
   let mpvScriptNode = null;

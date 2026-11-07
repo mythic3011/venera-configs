@@ -44,8 +44,8 @@ new shared modules.
 | `plugins/goda` and `plugins/mh18`: `baseUrl`, `onThumbnailLoad` | Keep the adapters because each plugin has its own domain setting and Venera callback. Both use shared MH-like URL/header helpers. |
 | `plugins/kavita` and `plugins/komga`: `getJson` | Keep the named wrappers used throughout each plugin; both delegate to shared self-hosted JSON code. |
 | `plugins/kavita`: author/library `map` callbacks | These normalize different API collections to the same `{id, name}` shape. They are tiny local projections with no worthwhile helper extraction. |
-| `plugins/ehentai/src/features/comic.js`: two anchor callbacks | Each selects an anchor from a separate download response; a helper would add more code than it removes. |
-| `plugins/ehentai/src/parsers/gallery-list-parser.js`: three date-row predicates | The same date predicate runs over three different page layouts; extracting this one-line callback would not reduce the file. |
+| `support/ehentai/features/comic.js`: two anchor callbacks | Each selects an anchor from a separate download response; a helper would add more code than it removes. |
+| `support/ehentai/parsers/gallery-list-parser.js`: three date-row predicates | The same date predicate runs over three different page layouts; extracting this one-line callback would not reduce the file. |
 | `plugins/ccc`, `plugins/jm`, `plugins/wnacg`: `onClickTag` | These are small, required per-plugin callbacks implementing the same Venera event shape. |
 | `scripts/build/discover-plugins.js` and `write-build-manifest.js`: sort callbacks | Both sort config rows by ID. A shared comparator would add a helper/import for one-line callbacks. |
 | `plugins/nhentai/src/features/comic.js`: page-thumbnail callbacks | The same projection is used for the primary and fallback page responses; it is too small to warrant another helper. |

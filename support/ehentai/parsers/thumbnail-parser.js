@@ -1,4 +1,4 @@
-function parseThumbnailPage(document, next) {
+export function parseThumbnailPage(document, next) {
   const parseImageUrl = (e) => {
     let style = ehSafeAttr(e, "style", "");
     if (!style) {

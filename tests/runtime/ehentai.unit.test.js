@@ -7,7 +7,8 @@ const path = require("node:path");
 function evalFileInContext(filePath, ctx, exportedNames = []) {
   const code = fs
     .readFileSync(filePath, "utf8")
-    .replace(/^\s*export\s+(?=(function|class|const|let|var)\b)/gm, "")
+    .replace(/^\s*import\s+(?:[^'"]+?\s+from\s+)?["'][^"']+["']\s*;?\s*$/gm, "")
+    .replace(/^\s*export\s+(?=(?:async\s+)?(?:function|class|const|let|var)\b)/gm, "")
     .replace(/^\s*export\s*\{[^}]*\}\s*;?\s*$/gm, "");
   const exportSnip = exportedNames.length
     ? `\nthis.__EXPORT__ = { ${exportedNames
@@ -75,7 +76,7 @@ const contextBase = {
 const projectRoot = process.cwd();
 
 const cacheKeysCtx = evalFileInContext(
-  path.join(projectRoot, "plugins/ehentai/src/cache-keys.js"),
+  path.join(projectRoot, "support/ehentai/cache-keys.js"),
   { ...contextBase },
 );
 Object.assign(contextBase, cacheKeysCtx);
@@ -93,13 +94,13 @@ const supportRequestCtx = evalFileInContext(
 Object.assign(contextBase, supportRequestCtx);
 
 const rcCtx = evalFileInContext(
-  path.join(projectRoot, "plugins/ehentai/src/request-client.js"),
+  path.join(projectRoot, "support/ehentai/request-client.js"),
   { ...contextBase },
   ["EhentaiRequestClient"],
 );
 
 const imgCtx = evalFileInContext(
-  path.join(projectRoot, "plugins/ehentai/src/image-session.js"),
+  path.join(projectRoot, "support/ehentai/image-session.js"),
   { ...contextBase },
   ["ImageLoadingSessionManager"],
 );

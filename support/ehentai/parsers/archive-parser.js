@@ -1,4 +1,4 @@
-function parseArchiveOptions(document, baseUrl) {
+export function parseArchiveOptions(document, baseUrl) {
   let body = document.querySelector("div#db");
   let index = baseUrl.includes("exhentai") ? 1 : 3;
   let archives = [];
@@ -58,12 +58,12 @@ function parseArchiveOptions(document, baseUrl) {
   return archives;
 }
 
-function parseArchiveError(document) {
+export function parseArchiveError(document) {
   let node = document.querySelector("p.br");
   return node && typeof node.text === "string" ? node.text : null;
 }
 
-function parseFirstLink(document) {
+export function parseFirstLink(document) {
   let node = document.querySelector("a");
   if (node && node.attributes && node.attributes["href"]) {
     return node.attributes["href"];

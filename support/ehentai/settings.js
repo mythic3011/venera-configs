@@ -1,4 +1,4 @@
-function createSettings(source) {
+export function createSettings(source) {
   return Object.freeze({
     domain: {
       title: "domain",

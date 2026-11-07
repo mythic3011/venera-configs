@@ -1,8 +1,8 @@
-function freezeLocaleTable(table) {
+export function freezeLocaleTable(table) {
   return Object.freeze(table);
 }
 
-const commonKeys = freezeLocaleTable({
+export const commonKeys = freezeLocaleTable({
   "H@H Original": "H@H Original",
   "H@H 800x": "H@H 800x",
   "H@H 1280x": "H@H 1280x",
@@ -10,7 +10,7 @@ const commonKeys = freezeLocaleTable({
   "H@H 2560x": "H@H 2560x",
 });
 
-const enBase = freezeLocaleTable({
+export const enBase = freezeLocaleTable({
   domain: "Domain",
   ehevent: "Trigger Dawn Event",
   hvevent: "HV Encounter Alert",
@@ -48,7 +48,7 @@ const enBase = freezeLocaleTable({
   accountSwitched: "Account switched",
 });
 
-const zhCNBase = freezeLocaleTable({
+export const zhCNBase = freezeLocaleTable({
   domain: "域名",
   ehevent: "触发黎明事件",
   hvevent: "提示HV遭遇战",
@@ -86,7 +86,7 @@ const zhCNBase = freezeLocaleTable({
   accountSwitched: "已切换账号",
 });
 
-const zhTWBase = freezeLocaleTable({
+export const zhTWBase = freezeLocaleTable({
   domain: "域名",
   ehevent: "觸發黎明事件",
   hvevent: "提示HV遭遇戰",
@@ -124,22 +124,22 @@ const zhTWBase = freezeLocaleTable({
   accountSwitched: "已切換帳號",
 });
 
-const enLocale = freezeLocaleTable({
+export const enLocale = freezeLocaleTable({
   ...enBase,
   ...commonKeys,
 });
 
-const zhCNLocale = freezeLocaleTable({
+export const zhCNLocale = freezeLocaleTable({
   ...zhCNBase,
   ...commonKeys,
 });
 
-const zhTWLocale = freezeLocaleTable({
+export const zhTWLocale = freezeLocaleTable({
   ...zhTWBase,
   ...commonKeys,
 });
 
-const i18n = Object.freeze({
+export const i18n = Object.freeze({
   // Chinese
   zh_CN: zhCNLocale,
   zh_Hans: zhCNLocale,

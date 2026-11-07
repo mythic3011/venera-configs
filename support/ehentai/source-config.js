@@ -1,5 +1,18 @@
-function createEhentaiAccountFeature(source) {
-  return createAccountFeature(source, {
+import {
+  buildBaseUrl,
+  buildEhCookieUrl,
+  buildExCookieUrl,
+  buildForumsCookieUrl,
+  buildForumsHomeUrl,
+  buildForumsIndexRefererUrl,
+  buildForumsLoginUrl,
+  buildPopularUrl,
+  buildToplistUrl,
+  buildWatchedUrl,
+} from "./urls.js";
+
+export function createEhentaiAccountFeature(source) {
+  return {
     loginWithWebview: {
       url: buildForumsLoginUrl(),
       checkStatus: (url, title) => {
@@ -90,46 +103,57 @@ function createEhentaiAccountFeature(source) {
     },
 
     registerWebsite: null,
-  });
+  };
 }
 
-function createEhentaiExploreFeature(source) {
-  return createExploreFeature(source, [
-    {
-      title: "eh latest",
-      type: "multiPageComicList",
-      loadNext: (next) => {
-        let target = next != null ? next : source.baseUrl;
-        return source.getGalleries(target, false);
-      },
-    },
-    {
-      title: "eh popular",
-      type: "multiPageComicList",
-      loadNext: (next) => {
-        let target = next != null ? next : buildPopularUrl(source.baseUrl);
-        return source.getGalleries(target, false);
-      },
-    },
-    {
-      title: "eh watched",
+export const EHENTAI_EXPLORE_PAGES = [
+  {
+    title: "eh latest",
+    url: (source) => source.baseUrl,
+  },
+  {
+    title: "eh popular",
+    url: (source) => buildPopularUrl(source.baseUrl),
+  },
+  {
+    title: "eh watched",
+    url: (source) => buildWatchedUrl(source.baseUrl),
+    requiresLogin: true,
+  },
+];
+
+export const EHENTAI_RANKING = [
+  ["15", "yesterday"],
+  ["13", "month"],
+  ["12", "year"],
+  ["11", "all"],
+];
+
+export function createMappedExploreFeature(source, pages) {
+  return pages.map((page) => {
+    return {
+      title: page.title,
       type: "multiPageComicList",
       loadNext: async (next) => {
-        if (!source.isLogged) {
+        if (page.requiresLogin && !source.isLogged) {
           UI.showMessage("Need login first");
           return {
             comics: [],
             next: null,
           };
         }
-        let target = next != null ? next : buildWatchedUrl(source.baseUrl);
+        let target = next != null ? next : page.url(source);
         return source.getGalleries(target, false);
       },
-    },
-  ]);
+    };
+  });
 }
 
-function createEhentaiCategory() {
+export function createEhentaiExploreFeature(source) {
+  return createMappedExploreFeature(source, EHENTAI_EXPLORE_PAGES);
+}
+
+export function createEhentaiCategory() {
   return {
     title: "ehentai",
     parts: [],
@@ -137,10 +161,10 @@ function createEhentaiCategory() {
   };
 }
 
-function createEhentaiCategoryComics(source) {
+export function createEhentaiCategoryComics(source) {
   return {
     ranking: {
-      options: ["15-yesterday", "13-month", "12-year", "11-all"],
+      options: EHENTAI_RANKING.map((pair) => `${pair[0]}-${pair[1]}`),
       load: async (option, page) => {
         let res = await source.getGalleries(
           buildToplistUrl(buildBaseUrl("e-hentai.org"), option, page - 1),

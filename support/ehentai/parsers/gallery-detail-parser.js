@@ -1,4 +1,4 @@
-function parseGalleryDetails(
+export function parseGalleryDetails(
   document,
 ) {
   function firstMatch(text, regExp) {

@@ -1,4 +1,4 @@
-function buildAddFavoriteForm(folderId) {
+export function buildAddFavoriteForm(folderId) {
   return buildFormBody({
     favcat: folderId,
     favnote: "",
@@ -7,7 +7,7 @@ function buildAddFavoriteForm(folderId) {
   });
 }
 
-function buildDeleteFavoriteForm() {
+export function buildDeleteFavoriteForm() {
   return buildFormBody({
     favcat: "favdel",
     favnote: "",
@@ -16,13 +16,13 @@ function buildDeleteFavoriteForm() {
   });
 }
 
-function buildCommentForm(content) {
+export function buildCommentForm(content) {
   return buildFormBody({
     commenttext_new: content,
   });
 }
 
-function buildArchiveDownloadForm(aid) {
+export function buildArchiveDownloadForm(aid) {
   if (aid === "0") {
     return buildFormBody({
       dltype: "org",
@@ -38,7 +38,7 @@ function buildArchiveDownloadForm(aid) {
   throw new Error("Invalid archive type");
 }
 
-function buildHathDownloadForm(resolution) {
+export function buildHathDownloadForm(resolution) {
   return buildFormBody({
     hathdl_xres: resolution,
   });

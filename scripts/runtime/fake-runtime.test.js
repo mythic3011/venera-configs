@@ -6,7 +6,8 @@ import { test } from "node:test";
 function evalFileInContext(filePath, ctx) {
   const code = fs
     .readFileSync(filePath, "utf8")
-    .replace(/^\s*export\s+(?=(function|class|const|let|var)\b)/gm, "")
+    .replace(/^\s*import\s+(?:[^'"]+?\s+from\s+)?["'][^"']+["']\s*;?\s*$/gm, "")
+    .replace(/^\s*export\s+(?=(?:async\s+)?(?:function|class|const|let|var)\b)/gm, "")
     .replace(/^\s*export\s*\{[^}]*\}\s*;?\s*$/gm, "");
   const exportSnip = `
 this.__EXPORT__ = {
@@ -70,7 +71,7 @@ const contextBase = {
 };
 
 const requestClientContext = evalFileInContext(
-  "./plugins/ehentai/src/cache-keys.js",
+  "./support/ehentai/cache-keys.js",
   { ...contextBase },
 );
 
@@ -90,13 +91,13 @@ const supportRequestContext = evalFileInContext(
 
 Object.assign(contextBase, supportRequestContext);
 
-const rcContext = evalFileInContext("./plugins/ehentai/src/request-client.js", {
+const rcContext = evalFileInContext("./support/ehentai/request-client.js", {
   ...contextBase,
 });
 
 Object.assign(contextBase, rcContext);
 
-const imgContext = evalFileInContext("./plugins/ehentai/src/image-session.js", {
+const imgContext = evalFileInContext("./support/ehentai/image-session.js", {
   ...contextBase,
 });
 

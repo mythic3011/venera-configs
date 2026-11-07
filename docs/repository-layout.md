@@ -39,10 +39,12 @@ stops on the first failure. It does not commit, push, or publish.
 ## Shared code boundaries
 
 Keep shared behavior in its existing domain: request encoding in `support/http`,
-response parsing in `support/parser`, and service-family behavior in
-`support/plugin/features`. Plugin imports use domain indexes; implementations
-inside support may import their own modules. No runtime package loader is needed:
-the bundler follows imports and embeds the required code and JSON.
+response parsing in `support/parser`, service-family behavior in
+`support/plugin/features`, and one site's helpers in that site's domain, such as
+`support/ehentai`. Do not add a site domain to `support/plugin`; that barrel is
+inlined into every plugin that imports it. Plugin imports use domain indexes;
+implementations inside support may import their own modules. No runtime package
+loader is needed: the bundler follows imports and embeds the required code and JSON.
 
 Preserve separate protocol values when their semantics differ. Share repeated
 request flows, maps, and error contracts when they have one owner; do not add a

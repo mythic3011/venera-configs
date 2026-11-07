@@ -1,3 +1,6 @@
+import "support/ehentai/index.js";
+import { hasNonWhitespaceText } from "support/http/index.js";
+
 class Ehentai extends ComicSource {
   constructor() {
     super();
@@ -196,6 +199,3 @@ class Ehentai extends ComicSource {
   }
 }
 
-function hasValue(value) {
-  return value !== null && value !== undefined && value !== "";
-}

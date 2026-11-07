@@ -1,4 +1,4 @@
-function parseGalleryList({
+export function parseGalleryList({
   document,
   source,
   url,

@@ -463,76 +463,22 @@
         "mode": "standard",
         "injectRuntimeReleaseAuthority": true
       },
-      "runtimeShared": [
-        "support/http/index.js"
-      ],
+      "runtimeShared": [],
       "source": {
         "type": "concat",
         "moduleOrder": [
-          "plugins/ehentai/src/index.js",
-          "plugins/ehentai/src/query.js",
-          "plugins/ehentai/src/urls.js",
-          "plugins/ehentai/src/source-runtime.js",
-          "plugins/ehentai/src/account-runtime.js",
-          "plugins/ehentai/src/api-payloads.js",
-          "plugins/ehentai/src/form-payloads.js",
-          "plugins/ehentai/src/cache-keys.js",
-          "plugins/ehentai/src/parsers/node-value-helpers.js",
-          "plugins/ehentai/src/parsers/gallery-list-parser.js",
-          "plugins/ehentai/src/parsers/gallery-detail-parser.js",
-          "plugins/ehentai/src/parsers/thumbnail-parser.js",
-          "plugins/ehentai/src/parsers/dispatch-key-parser.js",
-          "plugins/ehentai/src/parsers/comment-parser.js",
-          "plugins/ehentai/src/parsers/archive-parser.js",
-          "plugins/ehentai/src/features/account.js",
-          "plugins/ehentai/src/features/explore.js",
-          "plugins/ehentai/src/features/search.js",
-          "plugins/ehentai/src/features/favorites.js",
-          "plugins/ehentai/src/features/comic.js",
-          "plugins/ehentai/src/features/comments.js",
-          "plugins/ehentai/src/features/archive.js",
-          "plugins/ehentai/src/settings.js",
-          "plugins/ehentai/src/i18n.js",
-          "plugins/ehentai/src/source-config.js",
-          "plugins/ehentai/src/request-client.js",
-          "plugins/ehentai/src/image-session.js"
+          "plugins/ehentai/src/index.js"
         ]
       },
       "sourceEntries": [
-        "plugins/ehentai/src/index.js",
-        "plugins/ehentai/src/query.js",
-        "plugins/ehentai/src/urls.js",
-        "plugins/ehentai/src/source-runtime.js",
-        "plugins/ehentai/src/account-runtime.js",
-        "plugins/ehentai/src/api-payloads.js",
-        "plugins/ehentai/src/form-payloads.js",
-        "plugins/ehentai/src/cache-keys.js",
-        "plugins/ehentai/src/parsers/node-value-helpers.js",
-        "plugins/ehentai/src/parsers/gallery-list-parser.js",
-        "plugins/ehentai/src/parsers/gallery-detail-parser.js",
-        "plugins/ehentai/src/parsers/thumbnail-parser.js",
-        "plugins/ehentai/src/parsers/dispatch-key-parser.js",
-        "plugins/ehentai/src/parsers/comment-parser.js",
-        "plugins/ehentai/src/parsers/archive-parser.js",
-        "plugins/ehentai/src/features/account.js",
-        "plugins/ehentai/src/features/explore.js",
-        "plugins/ehentai/src/features/search.js",
-        "plugins/ehentai/src/features/favorites.js",
-        "plugins/ehentai/src/features/comic.js",
-        "plugins/ehentai/src/features/comments.js",
-        "plugins/ehentai/src/features/archive.js",
-        "plugins/ehentai/src/settings.js",
-        "plugins/ehentai/src/i18n.js",
-        "plugins/ehentai/src/source-config.js",
-        "plugins/ehentai/src/request-client.js",
-        "plugins/ehentai/src/image-session.js"
+        "plugins/ehentai/src/index.js"
       ],
       "configPath": "plugins/ehentai/plugin.config.json",
       "outputPath": "dist/plugins/ehentai.js",
       "publicUrl": "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/dist/plugins/ehentai.js",
       "checksums": {
-        "sha256": "d9ad7078a9131e1e6c157e0a7273bbfb3ddc050ae7f2360594091a41994d8f72",
-        "bytes": 77893
+        "sha256": "7d31c95c3b1d43bd56c4754895430cc15cd4caf70dbbdce59e5af2c621cee6e0",
+        "bytes": 77673
       }
     },
     {

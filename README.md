@@ -126,7 +126,7 @@ The build pipeline also writes integrity metadata (`sha256`, `bytes`) into
 
 Generated artifacts are built from `plugins/*/src` using
 `plugins/*/plugin.config.json`. For example, `dist/plugins/ehentai.js` is
-generated from `plugins/ehentai/src`.
+generated from `plugins/ehentai/src` and `support/ehentai`.
 
 Generated artifacts are automatically:
 
