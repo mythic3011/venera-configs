@@ -19,21 +19,21 @@
   },
   "publicIndex": [
     {
-      "name": "\u5305\u5b50\u6f2b\u753b",
+      "name": "包子漫画",
       "fileName": "baozi.js",
       "key": "baozi",
       "version": "1.1.6",
       "url": "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/dist/plugins/baozi.js"
     },
     {
-      "name": "CCC\u8ffd\u6f2b\u53f0",
+      "name": "CCC追漫台",
       "fileName": "ccc.js",
       "key": "ccc",
       "version": "1.0.1",
       "url": "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/dist/plugins/ccc.js"
     },
     {
-      "name": "\u30ab\u30c9\u30b3\u30df",
+      "name": "カドコミ",
       "fileName": "comic_walker.js",
       "key": "comic_walker",
       "version": "1.0.0",
@@ -47,7 +47,7 @@
       "url": "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/dist/plugins/comick.js"
     },
     {
-      "name": "\u62f7\u8d1d\u6f2b\u753b",
+      "name": "拷贝漫画",
       "fileName": "copy_manga.js",
       "key": "copy_manga",
       "version": "1.4.1",
@@ -61,19 +61,19 @@
       "url": "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/dist/plugins/ehentai.js"
     },
     {
-      "name": "GoDa\u6f2b\u753b",
+      "name": "GoDa漫画",
       "fileName": "goda.js",
       "key": "goda",
       "version": "1.0.0",
       "url": "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/dist/plugins/goda.js"
     },
     {
-      "name": "\u55e8\u76ae\u6f2b\u753b",
+      "name": "嗨皮漫画",
       "fileName": "happy.js",
       "key": "happy",
       "version": "1.0.0",
       "url": "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/dist/plugins/happy.js",
-      "description": "\u4e2d\u56fd\u5927\u9646\u53ca\u65e5\u97e9IP\u65e0\u6cd5\u8bbf\u95ee\uff0c\u9047\u5230403\u53ef\u4ee5\u5c1d\u8bd5\u5207\u6362\u5176\u4ed6\u5730\u533a\u7f51\u7edc"
+      "description": "中国大陆及日韩IP无法访问，遇到403可以尝试切换其他地区网络"
     },
     {
       "name": "H-Comic",
@@ -90,14 +90,14 @@
       "url": "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/dist/plugins/hitomi.js"
     },
     {
-      "name": "\u70ed\u8fa3\u6f2b\u753b",
+      "name": "热辣漫画",
       "fileName": "hot_manga.js",
       "key": "hot_manga",
       "version": "1.0.0",
       "url": "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/dist/plugins/hot_manga.js"
     },
     {
-      "name": "\u7231\u770b\u6f2b",
+      "name": "爱看漫",
       "fileName": "ikmmh.js",
       "key": "ikmmh",
       "version": "1.0.5",
@@ -111,12 +111,12 @@
       "url": "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/dist/plugins/jcomic.js"
     },
     {
-      "name": "\u7981\u6f2b\u5929\u5802",
+      "name": "禁漫天堂",
       "fileName": "jm.js",
       "key": "jm",
       "version": "1.4.0",
       "url": "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/dist/plugins/jm.js",
-      "description": "\u7981\u6f2b\u5929\u5802\u6f2b\u756b\u6e90, \u4e0d\u80fd\u4f7f\u7528\u6642\u8acb\u5617\u8a66\u5207\u63db\u5206\u6d41"
+      "description": "禁漫天堂漫畫源, 不能使用時請嘗試切換分流"
     },
     {
       "name": "Kavita",
@@ -155,42 +155,42 @@
       "description": "Account feature is not supported yet."
     },
     {
-      "name": "\u6f2b\u753b\u67dc",
+      "name": "漫画柜",
       "fileName": "manhuagui.js",
       "key": "ManHuaGui",
       "version": "1.2.1",
       "url": "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/dist/plugins/manhuagui.js"
     },
     {
-      "name": "\u6f2b\u753b\u4eba",
+      "name": "漫画人",
       "fileName": "manhuaren.js",
       "key": "manhuaren",
       "version": "1.0.0",
       "url": "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/dist/plugins/manhuaren.js"
     },
     {
-      "name": "\u6f2b\u86d9\u5427",
+      "name": "漫蛙吧",
       "fileName": "manwaba.js",
       "key": "manwaba",
       "version": "1.0.2",
       "url": "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/dist/plugins/manwaba.js"
     },
     {
-      "name": "\u6f2b\u753b1234",
+      "name": "漫画1234",
       "fileName": "mh1234.js",
       "key": "mh1234",
       "version": "1.0.0",
       "url": "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/dist/plugins/mh1234.js"
     },
     {
-      "name": "18\u6f2b\u753b",
+      "name": "18漫画",
       "fileName": "mh18.js",
       "key": "mh18",
       "version": "1.0.0",
       "url": "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/dist/plugins/mh18.js"
     },
     {
-      "name": "\u6f2b\u5c0f\u8086",
+      "name": "漫小肆",
       "fileName": "mxs.js",
       "key": "mxs",
       "version": "1.0.0",
@@ -211,29 +211,29 @@
       "url": "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/dist/plugins/picacg.js"
     },
     {
-      "name": "\u5c11\u5e74\u30b8\u30e3\u30f3\u30d7\uff0b",
+      "name": "少年ジャンプ＋",
       "fileName": "shonen_jump_plus.js",
       "key": "shonen_jump_plus",
       "version": "1.1.1",
       "url": "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/dist/plugins/shonen_jump_plus.js"
     },
     {
-      "name": "\u7d33\u58eb\u6f2b\u756b",
+      "name": "紳士漫畫",
       "fileName": "wnacg.js",
       "key": "wnacg",
       "version": "1.0.4",
       "url": "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/dist/plugins/wnacg.js",
-      "description": "\u7d33\u58eb\u6f2b\u756b\u6f2b\u756b\u6e90, \u4e0d\u80fd\u4f7f\u7528\u6642\u8acb\u5617\u8a66\u66f4\u63dbURL"
+      "description": "紳士漫畫漫畫源, 不能使用時請嘗試更換URL"
     },
     {
-      "name": "\u4f18\u9177\u6f2b\u753b",
+      "name": "优酷漫画",
       "fileName": "ykmh.js",
       "key": "ykmh",
       "version": "1.0.0",
       "url": "https://cdn.jsdelivr.net/gh/mythic3011/venera-configs@main/dist/plugins/ykmh.js"
     },
     {
-      "name": "\u518d\u6f2b\u753b",
+      "name": "再漫画",
       "fileName": "zaimanhua.js",
       "key": "zaimanhua",
       "version": "1.0.2",
@@ -277,7 +277,7 @@
     {
       "id": "baozi",
       "artifact": "baozi.js",
-      "name": "\u5305\u5b50\u6f2b\u753b",
+      "name": "包子漫画",
       "version": "1.1.6",
       "minAppVersion": "1.0.0",
       "description": null,
@@ -310,7 +310,7 @@
     {
       "id": "ccc",
       "artifact": "ccc.js",
-      "name": "CCC\u8ffd\u6f2b\u53f0",
+      "name": "CCC追漫台",
       "version": "1.0.1",
       "minAppVersion": "1.6.0",
       "description": null,
@@ -343,7 +343,7 @@
     {
       "id": "comic_walker",
       "artifact": "comic_walker.js",
-      "name": "\u30ab\u30c9\u30b3\u30df",
+      "name": "カドコミ",
       "version": "1.0.0",
       "minAppVersion": "1.6.0",
       "description": null,
@@ -409,7 +409,7 @@
     {
       "id": "copy_manga",
       "artifact": "copy_manga.js",
-      "name": "\u62f7\u8d1d\u6f2b\u753b",
+      "name": "拷贝漫画",
       "version": "1.4.1",
       "minAppVersion": "1.6.0",
       "description": null,
@@ -538,7 +538,7 @@
     {
       "id": "goda",
       "artifact": "goda.js",
-      "name": "GoDa\u6f2b\u753b",
+      "name": "GoDa漫画",
       "version": "1.0.0",
       "minAppVersion": "1.4.0",
       "description": null,
@@ -575,10 +575,10 @@
     {
       "id": "happy",
       "artifact": "happy.js",
-      "name": "\u55e8\u76ae\u6f2b\u753b",
+      "name": "嗨皮漫画",
       "version": "1.0.0",
       "minAppVersion": "1.6.0",
-      "description": "\u4e2d\u56fd\u5927\u9646\u53ca\u65e5\u97e9IP\u65e0\u6cd5\u8bbf\u95ee\uff0c\u9047\u5230403\u53ef\u4ee5\u5c1d\u8bd5\u5207\u6362\u5176\u4ed6\u5730\u533a\u7f51\u7edc",
+      "description": "中国大陆及日韩IP无法访问，遇到403可以尝试切换其他地区网络",
       "aliases": [],
       "allowedOrigins": [],
       "allowedUrls": [],
@@ -674,7 +674,7 @@
     {
       "id": "hot_manga",
       "artifact": "hot_manga.js",
-      "name": "\u70ed\u8fa3\u6f2b\u753b",
+      "name": "热辣漫画",
       "version": "1.0.0",
       "minAppVersion": "1.6.0",
       "description": null,
@@ -711,7 +711,7 @@
     {
       "id": "ikmmh",
       "artifact": "ikmmh.js",
-      "name": "\u7231\u770b\u6f2b",
+      "name": "爱看漫",
       "version": "1.0.5",
       "minAppVersion": "1.0.0",
       "description": null,
@@ -777,10 +777,10 @@
     {
       "id": "jm",
       "artifact": "jm.js",
-      "name": "\u7981\u6f2b\u5929\u5802",
+      "name": "禁漫天堂",
       "version": "1.4.0",
       "minAppVersion": "1.5.0",
-      "description": "\u7981\u6f2b\u5929\u5802\u6f2b\u756b\u6e90, \u4e0d\u80fd\u4f7f\u7528\u6642\u8acb\u5617\u8a66\u5207\u63db\u5206\u6d41",
+      "description": "禁漫天堂漫畫源, 不能使用時請嘗試切換分流",
       "aliases": [],
       "allowedOrigins": [],
       "allowedUrls": [],
@@ -987,7 +987,7 @@
     {
       "id": "ManHuaGui",
       "artifact": "manhuagui.js",
-      "name": "\u6f2b\u753b\u67dc",
+      "name": "漫画柜",
       "version": "1.2.1",
       "minAppVersion": "1.4.0",
       "description": null,
@@ -1020,7 +1020,7 @@
     {
       "id": "manhuaren",
       "artifact": "manhuaren.js",
-      "name": "\u6f2b\u753b\u4eba",
+      "name": "漫画人",
       "version": "1.0.0",
       "minAppVersion": "1.6.0",
       "description": null,
@@ -1053,7 +1053,7 @@
     {
       "id": "manwaba",
       "artifact": "manwaba.js",
-      "name": "\u6f2b\u86d9\u5427",
+      "name": "漫蛙吧",
       "version": "1.0.2",
       "minAppVersion": "1.4.0",
       "description": null,
@@ -1086,7 +1086,7 @@
     {
       "id": "mh1234",
       "artifact": "mh1234.js",
-      "name": "\u6f2b\u753b1234",
+      "name": "漫画1234",
       "version": "1.0.0",
       "minAppVersion": "1.4.0",
       "description": null,
@@ -1121,7 +1121,7 @@
     {
       "id": "mh18",
       "artifact": "mh18.js",
-      "name": "18\u6f2b\u753b",
+      "name": "18漫画",
       "version": "1.0.0",
       "minAppVersion": "1.4.0",
       "description": null,
@@ -1158,7 +1158,7 @@
     {
       "id": "mxs",
       "artifact": "mxs.js",
-      "name": "\u6f2b\u5c0f\u8086",
+      "name": "漫小肆",
       "version": "1.0.0",
       "minAppVersion": "1.5.0",
       "description": null,
@@ -1283,7 +1283,7 @@
     {
       "id": "shonen_jump_plus",
       "artifact": "shonen_jump_plus.js",
-      "name": "\u5c11\u5e74\u30b8\u30e3\u30f3\u30d7\uff0b",
+      "name": "少年ジャンプ＋",
       "version": "1.1.1",
       "minAppVersion": "1.2.1",
       "description": null,
@@ -1316,10 +1316,10 @@
     {
       "id": "wnacg",
       "artifact": "wnacg.js",
-      "name": "\u7d33\u58eb\u6f2b\u756b",
+      "name": "紳士漫畫",
       "version": "1.0.4",
       "minAppVersion": "1.0.0",
-      "description": "\u7d33\u58eb\u6f2b\u756b\u6f2b\u756b\u6e90, \u4e0d\u80fd\u4f7f\u7528\u6642\u8acb\u5617\u8a66\u66f4\u63dbURL",
+      "description": "紳士漫畫漫畫源, 不能使用時請嘗試更換URL",
       "aliases": [],
       "allowedOrigins": [],
       "allowedUrls": [],
@@ -1349,7 +1349,7 @@
     {
       "id": "ykmh",
       "artifact": "ykmh.js",
-      "name": "\u4f18\u9177\u6f2b\u753b",
+      "name": "优酷漫画",
       "version": "1.0.0",
       "minAppVersion": "1.4.0",
       "description": null,
@@ -1384,7 +1384,7 @@
     {
       "id": "zaimanhua",
       "artifact": "zaimanhua.js",
-      "name": "\u518d\u6f2b\u753b",
+      "name": "再漫画",
       "version": "1.0.2",
       "minAppVersion": "1.0.0",
       "description": null,
