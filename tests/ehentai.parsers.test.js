@@ -3,17 +3,23 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const vm = require("node:vm");
 
+function stripModuleSource(source) {
+  return source
+    .replace(/^\s*import\s+(?:[^'"]+?\s+from\s+)?["'][^"']+["']\s*;?\s*$/gm, "")
+    .replace(/^\s*export\s+(?=(?:async\s+)?(?:function|class|const|let|var)\b)/gm, "")
+    .replace(/^\s*export\s*\{[^}]*\}\s*;?\s*$/gm, "");
+}
+
 function loadParsers() {
-  const source = [
-    fs.readFileSync("./plugins/ehentai/src/index.js", "utf8"),
-    fs.readFileSync("./plugins/ehentai/src/parsers/node-value-helpers.js", "utf8"),
-    fs.readFileSync("./plugins/ehentai/src/parsers/gallery-list-parser.js", "utf8"),
-    fs.readFileSync("./plugins/ehentai/src/parsers/gallery-detail-parser.js", "utf8"),
-    fs.readFileSync("./plugins/ehentai/src/parsers/thumbnail-parser.js", "utf8"),
-    fs.readFileSync("./plugins/ehentai/src/parsers/dispatch-key-parser.js", "utf8"),
-    fs.readFileSync("./plugins/ehentai/src/parsers/comment-parser.js", "utf8"),
-    fs.readFileSync("./plugins/ehentai/src/parsers/archive-parser.js", "utf8"),
-  ].join("\n\n");
+  const source = stripModuleSource([
+    fs.readFileSync("./support/ehentai/parsers/node-value-helpers.js", "utf8"),
+    fs.readFileSync("./support/ehentai/parsers/gallery-list-parser.js", "utf8"),
+    fs.readFileSync("./support/ehentai/parsers/gallery-detail-parser.js", "utf8"),
+    fs.readFileSync("./support/ehentai/parsers/thumbnail-parser.js", "utf8"),
+    fs.readFileSync("./support/ehentai/parsers/dispatch-key-parser.js", "utf8"),
+    fs.readFileSync("./support/ehentai/parsers/comment-parser.js", "utf8"),
+    fs.readFileSync("./support/ehentai/parsers/archive-parser.js", "utf8"),
+  ].join("\n\n"));
 
   class Comic {
     constructor(v) {

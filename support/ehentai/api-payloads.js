@@ -1,4 +1,4 @@
-function buildRateGalleryPayload({
+export function buildRateGalleryPayload({
   galleryId,
   token,
   rating,
@@ -15,7 +15,7 @@ function buildRateGalleryPayload({
   };
 }
 
-function buildVoteCommentPayload({
+export function buildVoteCommentPayload({
   galleryId,
   token,
   commentId,
@@ -34,7 +34,7 @@ function buildVoteCommentPayload({
   };
 }
 
-function buildImageDispatchPayload({
+export function buildImageDispatchPayload({
   galleryId,
   imgKey,
   page,
@@ -51,7 +51,7 @@ function buildImageDispatchPayload({
   };
 }
 
-function buildShowPagePayload({
+export function buildShowPagePayload({
   galleryId,
   imgKey,
   page,

@@ -16,7 +16,7 @@ test("lanraragi artifact boots under runtime shim", () => {
   vm.runInContext(`${source}\nthis.__Ctor__=Lanraragi;`, context, { filename: plugin.outputPath });
   const instance = new context.__Ctor__();
   assert.equal(instance.key, "lanraragi");
-  assert.equal(instance.version, "1.2.10");
+  assert.equal(instance.version, "1.2.11");
 });
 
 test("lanraragi search sends bare booleans and tanks are not archives", async () => {
@@ -616,4 +616,43 @@ test("lanraragi does not replace tags when rating metadata is invalid", async ()
     /Invalid LANraragi metadata/,
   );
   assert.equal(puts.length, 0);
+});
+
+test("lanraragi accepts hash characters in encoded archive page names", async () => {
+  const repoRoot = path.resolve(__dirname, "../..");
+  const source = fs.readFileSync(path.join(repoRoot, "dist/plugins/lanraragi.js"), "utf8");
+  const archive = "c49a42d695c64281e9207f6208973a27e2f89b72";
+  const page =
+    "./api/archives/" + archive +
+    "/page?path=NEST%235%20%E6%B1%89%E5%8C%96/NEST%235%20%2801%29.jpg";
+  const context = createVeneraHostShim({
+    Network: {
+      get: async () => ({
+        status: 200,
+        body: JSON.stringify({ pages: [page] }),
+      }),
+    },
+  });
+  vm.runInContext(`${source}\nthis.__Ctor__=Lanraragi;`, context, {
+    filename: "dist/plugins/lanraragi.js",
+  });
+  const instance = new context.__Ctor__();
+  instance.loadSetting = () => "http://10.0.0.102:3000";
+  const episode = await instance.comic.loadEp(archive, archive);
+  const filename = "NEST#5 汉化/NEST#5 (01).jpg";
+  assert.equal(episode.images[0], "lrr-page:" + archive + ":" + encodeURIComponent(filename));
+  const loaded = instance.comic.onImageLoad(episode.images[0], archive, archive);
+  assert.equal(loaded.url.includes("#"), false);
+  assert.equal(
+    loaded.url,
+    "http://10.0.0.102:3000/api/archives/" + archive + "/page?path=" + encodeURIComponent(filename),
+  );
+  assert.throws(
+    () => instance.comic.onImageLoad(
+      "lrr-page:" + archive + ":" + encodeURIComponent("NEST#5/../secret.jpg"),
+      archive,
+      archive,
+    ),
+    /filename/,
+  );
 });

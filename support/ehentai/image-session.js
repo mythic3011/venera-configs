@@ -1,4 +1,4 @@
-class ImageLoadingSessionManager {
+export class ImageLoadingSessionManager {
   constructor(source) {
     this.source = source;
     this.pendingSessions = new Map();

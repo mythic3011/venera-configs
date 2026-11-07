@@ -2,3 +2,19 @@
 .vscode
 test/
 node_modules/
+plugins/.DS_Store
+.DS_Store
+
+# Auto-added by spore init
+.claude/profile.md
+.claude/.skill-index.db
+.claude/.skill-index.json
+.claude/.audit.jsonl
+.claude/_tmp/
+.claude/_download.zip
+.claude/_import.zip
+.env
+.env.*
+*.key
+*.pem
+secrets/

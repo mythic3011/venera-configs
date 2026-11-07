@@ -63,8 +63,8 @@ class Ehentai extends ComicSource {
     async withDocument(e, t) {
         return ehentaiWithDocument(e, t);
     }
-    buildRequestHeaders(e, t, r, n) {
-        return ehentaiBuildRequestHeaders(this, e, t, r, n);
+    buildRequestHeaders(e, t, r, i) {
+        return ehentaiBuildRequestHeaders(this, e, t, r, i);
     }
     async checkEHEvent() {
         return ehentaiCheckEvent(this);
@@ -160,9 +160,9 @@ function buildPathUrl(e, t) {
     return r ? `${e}/${r}` : String(e);
 }
 
-function buildPathQueryUrl(e, t, r, n = !1) {
-    const i = buildPathUrl(e, t), a = buildQuery(r || {});
-    return a ? `${i}?${a}` : n ? `${i}?` : i;
+function buildPathQueryUrl(e, t, r, i = !1) {
+    const n = buildPathUrl(e, t), a = buildQuery(r || {});
+    return a ? `${n}?${a}` : i ? `${n}?` : n;
 }
 
 function buildApiUrl(e) {
@@ -228,11 +228,11 @@ function buildFavoritesUrl(e, t) {
     }) : buildPathUrl(e, "favorites.php");
 }
 
-function buildSearchUrl(e, t, r, n) {
+function buildSearchUrl(e, t, r, i) {
     return buildPathQueryUrl(e, "", {
         f_search: t,
         f_cats: r ? String(r) : null,
-        f_srdd: n || null
+        f_srdd: i || null
     });
 }
 
@@ -287,6 +287,222 @@ function imageKeyFromPageUrl(e) {
     return String(e || "").split("/")[4] || "";
 }
 
+function joinRawQueryEntries(e) {
+    const t = [];
+    for (const r of e || []) {
+        if (!Array.isArray(r) || r.length < 2) continue;
+        const [e, i] = r;
+        null != e && null != i && t.push(`${String(e)}=${String(i)}`);
+    }
+    return t.join("&");
+}
+
+function runtimeGet(e, t) {
+    return Network.get(e, t);
+}
+
+async function getRuntimeJson(e, t, r) {
+    const i = await runtimeGet(e, t);
+    return assertRuntimeStatus(i, 200, r || e), parseRuntimeJsonBody(i, r || e);
+}
+
+async function getRuntimeDocument(e, t, r) {
+    const i = await runtimeGet(e, t);
+    return assertRuntimeStatus(i, 200, r || e), new HtmlDocument(i.body);
+}
+
+async function getSelfHostedJson(e, t, r, i) {
+    if (!e || "object" != typeof e) throw new Error("getSelfHostedJson requires plugin source");
+    const n = i && "object" == typeof i && !Array.isArray(i) ? i : {}, a = n.headers || e.headers, o = await Network.get(e.buildUrl(t, r), a);
+    return ensureSelfHostedHttpOk(o, n), parseSelfHostedJsonBody(o.body);
+}
+
+async function postSelfHostedJson(e, t, r, i, n) {
+    if (!e || "object" != typeof e) throw new Error("postSelfHostedJson requires plugin source");
+    const a = n && "object" == typeof n && !Array.isArray(n) ? n : {}, o = a.headers || e.headers, l = await Network.post(e.buildUrl(t, r), o, i);
+    return ensureSelfHostedHttpOk(l, a), {
+        body: parseSelfHostedJsonBody(l.body),
+        headers: l.headers || {}
+    };
+}
+
+function defaultManagedDomainKey(e) {
+    try {
+        return new URL(String(e || "")).hostname || "default";
+    } catch (e) {
+        return "default";
+    }
+}
+
+function defaultManagedDispatch(e, t, r, i) {
+    return "GET" === e ? Network.get(t, r) : "POST" === e ? Network.post(t, r, i) : Network.sendRequest(e, t, r, i);
+}
+
+function defaultManagedRequestError(e, t, r) {
+    return e && "function" == typeof e.formatRequestError ? e.formatRequestError(t, r) : `${t}: ${String(r)}`;
+}
+
+function defaultManagedResponseError(e, t, r) {
+    return e && "function" == typeof e.formatResponseError ? e.formatResponseError(t, r) : `${t}: status=${r && r.status}`;
+}
+
+function normalizeManagedRequestHooks(e) {
+    return e && "object" == typeof e && !Array.isArray(e) ? e : {};
+}
+
+function ManagedRequestClient(e, t) {
+    if (!e || "object" != typeof e) throw new Error("ManagedRequestClient requires plugin source");
+    if (!e.requestState || "object" != typeof e.requestState) throw new Error("ManagedRequestClient requires source.requestState");
+    this.source = e, this.hooks = normalizeManagedRequestHooks(t);
+}
+
+function createManagedRequestClient(e, t) {
+    return new ManagedRequestClient(e, t);
+}
+
+function parseRuntimeJsonBody(e, t) {
+    try {
+        return JSON.parse(e.body);
+    } catch (e) {
+        throw "Invalid JSON response" + (t ? ` (${t})` : "");
+    }
+}
+
+function ensureSelfHostedHttpOk(e, t) {
+    const r = t && "object" == typeof t && !Array.isArray(t) ? t : {}, i = r.unauthorizedMessage || "Login expired", n = r.requestFailedMessage || "请求失败";
+    if (!e) throw n;
+    if (401 === e.status || 403 === e.status) throw i;
+    if (e.status < 200 || e.status >= 300) throw `${n}: ${e.status}`;
+}
+
+function parseSelfHostedJsonBody(e) {
+    return e ? JSON.parse(e) : null;
+}
+
+function hasNonWhitespaceText(e) {
+    const t = String(e || "");
+    for (let e = 0; e < t.length; e += 1) {
+        const r = t.charCodeAt(e);
+        if (32 !== r && 9 !== r && 10 !== r && 13 !== r) return !0;
+    }
+    return !1;
+}
+
+function defaultRequestKey(e, t, r, i) {
+    return i ? null : `${e}:${t}`;
+}
+
+function createDomainQueue(e, t, r) {
+    const i = (e.queues.get(t) || Promise.resolve()).then(r, r), n = i.then(() => {}, () => {});
+    return e.queues.set(t, n), n.finally(() => {
+        e.queues.get(t) === n && e.queues.delete(t);
+    }), i;
+}
+
+function markCooldown(e, t, r) {
+    e.cooldownUntil.set(t, Date.now() + r);
+}
+
+ManagedRequestClient.prototype.get = function(e, t, r) {
+    return this.send("GET", e, t || {}, null, r || {});
+}, ManagedRequestClient.prototype.post = function(e, t, r, i) {
+    return this.send("POST", e, t || {}, null == r ? null : r, i || {});
+}, ManagedRequestClient.prototype.head = function(e, t, r) {
+    return this.send("HEAD", e, t || {}, null, r || {});
+}, ManagedRequestClient.prototype.send = async function(e, t, r, i, n) {
+    const a = this.source, o = n && "object" == typeof n && !Array.isArray(n) ? n : {}, l = null == o.mutation ? "GET" !== e : !0 === o.mutation, s = o.requestKey || defaultRequestKey(e, t, i, l), u = "function" == typeof this.hooks.domainKeyResolver ? this.hooks.domainKeyResolver : defaultManagedDomainKey, c = {
+        action: o.action || `${e} ${t}`,
+        requestKey: s,
+        domainKey: o.domainKey || u(t, e, i, o, a, this),
+        expectedStatus: null == o.expectedStatus ? 200 : o.expectedStatus,
+        maxRetries: null == o.maxRetries ? "GET" === e ? 1 : 0 : o.maxRetries,
+        cooldownMs: null == o.cooldownMs ? 6e4 : o.cooldownMs,
+        classifyBody: null == o.classifyBody || o.classifyBody,
+        mutation: l,
+        allowDedup: null == o.allowDedup ? !l : o.allowDedup
+    }, d = a.requestState.cooldownUntil.get(c.domainKey);
+    if (d && d > Date.now()) throw `${c.action} blocked: temporary cooldown in effect`;
+    const h = this._resolveHeaders(e, t, r || {}, c), p = c.requestKey;
+    if (c.allowDedup && p && a.requestState.inflight.has(p)) return a.requestState.inflight.get(p);
+    const g = createDomainQueue(a.requestState, c.domainKey, () => this._sendWithRetry(e, t, h, i, c));
+    c.allowDedup && p && a.requestState.inflight.set(p, g);
+    try {
+        return await g;
+    } finally {
+        c.allowDedup && p && a.requestState.inflight.delete(p);
+    }
+}, ManagedRequestClient.prototype._resolveHeaders = function(e, t, r, i) {
+    return "function" == typeof this.hooks.buildHeaders ? this.hooks.buildHeaders(e, t, r, i, this.source, this) : this.source && "function" == typeof this.source.buildRequestHeaders ? this.source.buildRequestHeaders(e, t, r || {}, i || {}) : r || {};
+}, ManagedRequestClient.prototype._sendWithRetry = async function(e, t, r, i, n) {
+    let a = 0;
+    const o = Math.max(0, n.maxRetries) + 1;
+    for (;a < o; ) {
+        let l;
+        a += 1;
+        try {
+            l = await this._dispatch(e, t, r, i, n);
+        } catch (e) {
+            if (a >= o) throw defaultManagedRequestError(this.source, n.action, e);
+            continue;
+        }
+        if (this._shouldCooldown(l, n)) throw this._markCooldown(n.domainKey, n.cooldownMs),
+        defaultManagedResponseError(this.source, n.action, l);
+        if (l.status === n.expectedStatus) return l;
+        if (a >= o || n.mutation) throw defaultManagedResponseError(this.source, n.action, l);
+    }
+    throw `${n.action} failed after retries`;
+}, ManagedRequestClient.prototype._dispatch = function(e, t, r, i, n) {
+    return "function" == typeof this.hooks.dispatch ? this.hooks.dispatch(e, t, r, i, n, this.source, this) : defaultManagedDispatch(e, t, r, i);
+}, ManagedRequestClient.prototype._shouldCooldown = function(e, t) {
+    if (403 === e.status || 429 === e.status) return !0;
+    if (!t.classifyBody) return !1;
+    const r = String(e && e.body || "");
+    return !!hasNonWhitespaceText(r) && ("function" == typeof this.hooks.shouldCooldown ? this.hooks.shouldCooldown(e, t, this.source, this) : !(!this.source || "function" != typeof this.source.isAbuseResponseBody) && this.source.isAbuseResponseBody(r));
+}, ManagedRequestClient.prototype._markCooldown = function(e, t) {
+    markCooldown(this.source.requestState, e, t);
+}, "undefined" != typeof module && module && module.exports && (module.exports = {
+    runtimeGet,
+    getRuntimeJson,
+    getRuntimeDocument,
+    getSelfHostedJson,
+    postSelfHostedJson,
+    ManagedRequestClient,
+    createManagedRequestClient
+}), "undefined" != typeof module && module && module.exports && (module.exports = {
+    parseRuntimeJsonBody,
+    ensureSelfHostedHttpOk,
+    parseSelfHostedJsonBody
+}), "undefined" != typeof module && module && module.exports && (module.exports = {
+    hasNonWhitespaceText,
+    defaultRequestKey,
+    createDomainQueue,
+    markCooldown
+});
+
+const httpRequestApi = {
+    joinRawQueryEntries,
+    runtimeGet,
+    getRuntimeJson,
+    getRuntimeDocument,
+    getSelfHostedJson,
+    postSelfHostedJson,
+    ManagedRequestClient,
+    createManagedRequestClient
+}, httpResponseApi = {
+    parseRuntimeJsonBody,
+    ensureSelfHostedHttpOk,
+    parseSelfHostedJsonBody
+}, httpCooldownApi = {
+    hasNonWhitespaceText,
+    defaultRequestKey,
+    createDomainQueue,
+    markCooldown
+}, httpSupportApi = {
+    ...httpRequestApi,
+    ...httpResponseApi,
+    ...httpCooldownApi
+};
+
 function ehentaiGetErrorMessage(e) {
     return null == e ? "Unknown error" : "string" == typeof e ? e : e instanceof Error && e.message || "object" == typeof e && null !== e && "string" == typeof e.message && e.message.length > 0 ? e.message : String(e);
 }
@@ -310,30 +526,30 @@ function ehentaiFirstNonWhitespaceChar(e) {
 }
 
 function ehentaiFormatRequestError(e, t) {
-    let r = ehentaiGetErrorMessage(t), n = r.toLowerCase();
-    return n.includes("redirect") ? `${e} failed: request was redirected by the server` : n.includes("timeout") || n.includes("network") || n.includes("socket") ? `${e} failed: network error (${r})` : `${e} failed: ${r}`;
+    let r = ehentaiGetErrorMessage(t), i = r.toLowerCase();
+    return i.includes("redirect") ? `${e} failed: request was redirected by the server` : i.includes("timeout") || i.includes("network") || i.includes("socket") ? `${e} failed: network error (${r})` : `${e} failed: ${r}`;
 }
 
 function ehentaiFormatResponseError(e, t, r) {
-    let n = r ? r.status : null, i = String(r && r.body ? r.body : "").trim();
-    return 403 === n || 429 === n ? `${t} failed: server returned ${n}` : 0 === i.length ? `${t} failed: empty response from server` : e.isAbuseResponseBody(i) ? `${t} failed: access was denied by the server` : `${t} failed: invalid status code ${n}`;
+    let i = r ? r.status : null, n = String(r && r.body ? r.body : "").trim();
+    return 403 === i || 429 === i ? `${t} failed: server returned ${i}` : 0 === n.length ? `${t} failed: empty response from server` : e.isAbuseResponseBody(n) ? `${t} failed: access was denied by the server` : `${t} failed: invalid status code ${i}`;
 }
 
-function ehentaiRequireStatus(e, t, r, n) {
-    let i = null == n ? 200 : n;
-    if (!r || r.status !== i) throw e.formatResponseError(t, r || {});
+function ehentaiRequireStatus(e, t, r, i) {
+    let n = null == i ? 200 : i;
+    if (!r || r.status !== n) throw e.formatResponseError(t, r || {});
 }
 
 function ehentaiRequireNonEmptyBody(e, t, r) {
-    const n = String(r && r.body || "");
-    if (!hasNonWhitespaceText(n)) throw e.formatResponseError(t, r || {});
-    return n;
+    const i = String(r && r.body || "");
+    if (!hasNonWhitespaceText(i)) throw e.formatResponseError(t, r || {});
+    return i;
 }
 
 function ehentaiRequireHtmlBody(e, t, r) {
-    const n = ehentaiRequireNonEmptyBody(e, t, r);
-    if ("<" !== ehentaiFirstNonWhitespaceChar(n)) throw `${t} failed: invalid HTML response`;
-    return n;
+    const i = ehentaiRequireNonEmptyBody(e, t, r);
+    if ("<" !== ehentaiFirstNonWhitespaceChar(i)) throw `${t} failed: invalid HTML response`;
+    return i;
 }
 
 function ehentaiParseJsonResponse(e, t, r) {
@@ -354,9 +570,9 @@ async function ehentaiWithDocument(e, t) {
     }
 }
 
-function ehentaiBuildRequestHeaders(e, t, r, n, i) {
-    const a = i || {}, o = {
-        ...n || {}
+function ehentaiBuildRequestHeaders(e, t, r, i, n) {
+    const a = n || {}, o = {
+        ...i || {}
     };
     return "json-api" !== a.headerProfile || o["Content-Type"] || (o["Content-Type"] = "application/json"),
     "form-urlencoded" !== a.headerProfile || o["Content-Type"] || (o["Content-Type"] = "application/x-www-form-urlencoded"),
@@ -371,12 +587,12 @@ async function ehentaiCheckEvent(e) {
     if (e.isLogged && e.loadSetting("ehevent")) try {
         const t = e.loadData("lastEventTime"), r = (new Date).toISOString().split("T")[0];
         if (t === r) return;
-        const n = await e.requestClient.get(buildEhNewsUrl(), {}, {
+        const i = await e.requestClient.get(buildEhNewsUrl(), {}, {
             action: "Failed to load event news",
             requestKey: "event-news"
         });
-        if (200 !== n.status || e.isAbuseResponseBody(n.body)) return;
-        e.saveData("lastEventTime", r), await e.withDocument(n.body, async e => {
+        if (200 !== i.status || e.isAbuseResponseBody(i.body)) return;
+        e.saveData("lastEventTime", r), await e.withDocument(i.body, async e => {
             const t = e.getElementById("eventpane");
             if (null == t) return;
             const r = t.querySelector("div > p:nth-child(2)");
@@ -448,31 +664,31 @@ async function ehentaiGetGalleries(e, t, r) {
     try {
         await e.checkEHEvent();
     } catch (e) {}
-    let n;
+    let i;
     try {
-        n = await e.requestClient.get(t, {}, {
+        i = await e.requestClient.get(t, {}, {
             action: "Failed to load gallery list",
             requestKey: `galleries:${t}`
         });
     } catch (t) {
         throw e.isRedirectError(t) && await e.onLoadFailed("request was redirected"), e.formatRequestError("Failed to load gallery list", t);
     }
-    if (200 !== n.status) throw e.formatResponseError("Failed to load gallery list", n);
-    if (hasNonWhitespaceText(n.body) || await e.onLoadFailed("empty response from gallery list"),
-    "<" !== ehentaiFirstNonWhitespaceChar(n.body)) {
-        if (e.isAbuseResponseBody(n.body)) throw "Your IP address has been banned";
+    if (200 !== i.status) throw e.formatResponseError("Failed to load gallery list", i);
+    if (hasNonWhitespaceText(i.body) || await e.onLoadFailed("empty response from gallery list"),
+    "<" !== ehentaiFirstNonWhitespaceChar(i.body)) {
+        if (e.isAbuseResponseBody(i.body)) throw "Your IP address has been banned";
         throw "Failed to load gallery list";
     }
-    const i = new HtmlDocument(n.body);
+    const n = new HtmlDocument(i.body);
     try {
         return parseGalleryList({
-            document: i,
+            document: n,
             source: e,
             url: t,
             isLeaderBoard: r
         });
     } finally {
-        i.dispose();
+        n.dispose();
     }
 }
 
@@ -486,25 +702,25 @@ function ehentaiCreateEmptyAccountStore() {
 
 function ehentaiNormalizeAccountValues(e, t) {
     let r = [];
-    for (let n = 0; n < e.accountFieldNames.length; n++) r.push(String(t && t[n] || ""));
+    for (let i = 0; i < e.accountFieldNames.length; i++) r.push(String(t && t[i] || ""));
     return r;
 }
 
 function ehentaiCreateAccountCookies(e, t) {
-    let r = ehentaiNormalizeAccountValues(e, t), n = [];
+    let r = ehentaiNormalizeAccountValues(e, t), i = [];
     for (let t = 0; t < e.accountFieldNames.length; t++) {
-        let i = e.accountFieldNames[t], a = r[t];
-        n.push(new Cookie({
-            name: i,
+        let n = e.accountFieldNames[t], a = r[t];
+        i.push(new Cookie({
+            name: n,
             value: a,
             domain: ".e-hentai.org"
-        })), n.push(new Cookie({
-            name: i,
+        })), i.push(new Cookie({
+            name: n,
             value: a,
             domain: ".exhentai.org"
         }));
     }
-    return n;
+    return i;
 }
 
 function ehentaiApplyCookiesFromValues(e, t) {
@@ -535,20 +751,20 @@ function ehentaiLoadAccountStore(e) {
     } else "object" == typeof t && (r = t);
     if (!r || !Array.isArray(r.profiles)) return e._accountStoreCache = ehentaiCreateEmptyAccountStore(),
     e._accountStoreCache;
-    let n = r.profiles.map((t, r) => {
-        let n = ehentaiNormalizeAccountValues(e, t && t.values);
+    let i = r.profiles.map((t, r) => {
+        let i = ehentaiNormalizeAccountValues(e, t && t.values);
         return {
             id: String(t && t.id || `${Date.now()}_${r}`),
             name: t && t.name ? String(t.name) : "",
-            values: n,
+            values: i,
             createdAt: String(t && t.createdAt || (new Date).toISOString()),
             lastUsedAt: String(t && t.lastUsedAt || (new Date).toISOString())
         };
-    }).filter(e => e.values[0] && e.values[1]), i = r.activeProfileId && n.some(e => e.id === r.activeProfileId) ? String(r.activeProfileId) : null;
+    }).filter(e => e.values[0] && e.values[1]), n = r.activeProfileId && i.some(e => e.id === r.activeProfileId) ? String(r.activeProfileId) : null;
     return e._accountStoreCache = {
         version: 1,
-        activeProfileId: i,
-        profiles: n
+        activeProfileId: n,
+        profiles: i
     }, e._accountStoreCache;
 }
 
@@ -562,24 +778,24 @@ function ehentaiSaveAccountStore(e, t) {
 }
 
 function ehentaiGetAccountDisplayName(e, t, r) {
-    let n = t && t.name ? t.name : `${e.translate("account")} ${r + 1}`, i = t && t.values ? t.values[0] : "";
-    return i ? `${n} (${i})` : n;
+    let i = t && t.name ? t.name : `${e.translate("account")} ${r + 1}`, n = t && t.values ? t.values[0] : "";
+    return n ? `${i} (${n})` : i;
 }
 
 function ehentaiUpsertAccountProfile(e, t, r) {
-    let n = ehentaiNormalizeAccountValues(e, t);
-    if (!n[0] || !n[1]) return null;
-    let i = e.loadAccountStore(), a = (new Date).toISOString(), o = i.profiles.find(e => e.values[0] === n[0] && e.values[1] === n[1]);
-    if (o) return o.values = n, r && (o.name = r), o.lastUsedAt = a, i.activeProfileId = o.id,
-    e.saveAccountStore(i), o.id;
+    let i = ehentaiNormalizeAccountValues(e, t);
+    if (!i[0] || !i[1]) return null;
+    let n = e.loadAccountStore(), a = (new Date).toISOString(), o = n.profiles.find(e => e.values[0] === i[0] && e.values[1] === i[1]);
+    if (o) return o.values = i, r && (o.name = r), o.lastUsedAt = a, n.activeProfileId = o.id,
+    e.saveAccountStore(n), o.id;
     let l = `${Date.now()}_${Math.floor(1e5 * Math.random())}`;
-    return i.profiles.push({
+    return n.profiles.push({
         id: l,
         name: r || "",
-        values: n,
+        values: i,
         createdAt: a,
         lastUsedAt: a
-    }), i.activeProfileId = l, e.saveAccountStore(i), l;
+    }), n.activeProfileId = l, e.saveAccountStore(n), l;
 }
 
 async function ehentaiCaptureAccountFromCookieJar(e, t) {
@@ -598,20 +814,20 @@ async function ehentaiCollectAccountValuesFromCookieDomains(e) {
         }
         for (let e of t) {
             if (!e || !e.name) continue;
-            let t = String(e.name), n = String(e.value || "");
-            0 !== n.length && (r.has(t) || r.set(t, n));
+            let t = String(e.name), i = String(e.value || "");
+            0 !== i.length && (r.has(t) || r.set(t, i));
         }
     }
-    let n = [];
-    for (let t of e.accountFieldNames) n.push(r.get(t) || "");
-    return n;
+    let i = [];
+    for (let t of e.accountFieldNames) i.push(r.get(t) || "");
+    return i;
 }
 
 async function ehentaiActivateAccountProfile(e, t) {
-    let r = e.loadAccountStore(), n = r.profiles.find(e => e.id === t);
-    if (!n) throw "Account profile not found";
-    return e.applyCookiesFromValues(n.values), e.clearRuntimeCaches(), n.lastUsedAt = (new Date).toISOString(),
-    r.activeProfileId = n.id, e.saveAccountStore(r), n;
+    let r = e.loadAccountStore(), i = r.profiles.find(e => e.id === t);
+    if (!i) throw "Account profile not found";
+    return e.applyCookiesFromValues(i.values), e.clearRuntimeCaches(), i.lastUsedAt = (new Date).toISOString(),
+    r.activeProfileId = i.id, e.saveAccountStore(r), i;
 }
 
 function ehentaiLogoutAccountSession(e) {
@@ -620,48 +836,48 @@ function ehentaiLogoutAccountSession(e) {
     t.activeProfileId = null, e.saveAccountStore(t);
 }
 
-function buildRateGalleryPayload({galleryId: e, token: t, rating: r, apikey: n, apiuid: i}) {
+function buildRateGalleryPayload({galleryId: e, token: t, rating: r, apikey: i, apiuid: n}) {
     return {
         gid: e,
         token: t,
         method: "rategallery",
         rating: r,
-        apikey: n,
-        apiuid: i
+        apikey: i,
+        apiuid: n
     };
 }
 
-function buildVoteCommentPayload({galleryId: e, token: t, commentId: r, isUp: n, apikey: i, apiuid: a}) {
+function buildVoteCommentPayload({galleryId: e, token: t, commentId: r, isUp: i, apikey: n, apiuid: a}) {
     return {
         gid: e,
         token: t,
         method: "votecomment",
         comment_id: r,
-        comment_vote: n ? 1 : -1,
-        apikey: i,
+        comment_vote: i ? 1 : -1,
+        apikey: n,
         apiuid: a
     };
 }
 
-function buildImageDispatchPayload({galleryId: e, imgKey: t, page: r, mpvkey: n, nl: i}) {
+function buildImageDispatchPayload({galleryId: e, imgKey: t, page: r, mpvkey: i, nl: n}) {
     return {
         gid: e,
         imgkey: t,
         method: "imagedispatch",
         page: r,
-        mpvkey: n,
-        nl: i
+        mpvkey: i,
+        nl: n
     };
 }
 
-function buildShowPagePayload({galleryId: e, imgKey: t, page: r, showkey: n, nl: i}) {
+function buildShowPagePayload({galleryId: e, imgKey: t, page: r, showkey: i, nl: n}) {
     return {
         gid: e,
         imgkey: t,
         method: "showpage",
         page: r,
-        showkey: n,
-        nl: i
+        showkey: i,
+        nl: n
     };
 }
 
@@ -727,31 +943,31 @@ function ehSafeAttr(e, t, r) {
     return e && e.attributes && void 0 !== e.attributes[t] ? e.attributes[t] : r;
 }
 
-function parseGalleryList({document: e, source: t, url: r, isLeaderBoard: n}) {
-    function i(e, t) {
+function parseGalleryList({document: e, source: t, url: r, isLeaderBoard: i}) {
+    function n(e, t) {
         let r = e ? e.match(/\d+/) : null;
         if (!r) return t;
-        let n = Number(r[0]);
-        return isNaN(n) ? t : n;
+        let i = Number(r[0]);
+        return isNaN(i) ? t : i;
     }
-    const a = n ? 1 : 0, o = [];
-    for (let n of e.querySelectorAll("table.itg.gltc > tbody > tr")) try {
-        let e = n.children.length > 1 + a ? n.children[1 + a] : null;
+    const a = i ? 1 : 0, o = [];
+    for (let i of e.querySelectorAll("table.itg.gltc > tbody > tr")) try {
+        let e = i.children.length > 1 + a ? i.children[1 + a] : null;
         if (!e) continue;
         let l = e.children.length > 2 ? e.children[2] : null, s = ehSafeText(l && l.children.length > 0 ? l.children[0] : null, ""), u = t.getStarsFromPosition(ehSafeAttr(l && l.children.length > 1 ? l.children[1] : null, "style", "")), c = e;
         c && c.children.length > 1 && (c = c.children[1]), c && c.children.length > 0 && (c = c.children[0]),
         c && c.children.length > 0 && (c = c.children[0]);
         let d = ehSafeAttr(c, "src", "");
         d && "d" === d[0] && (d = ehSafeAttr(c, "data-src", d));
-        let h = n.children.length > 2 + a ? n.children[2 + a] : null, p = h && h.children.length > 0 ? h.children[0] : null, g = ehSafeText(p && p.children.length > 0 ? p.children[0] : null, "Unknown"), f = ehSafeAttr(p, "href", ""), m = "", y = 0;
+        let h = i.children.length > 2 + a ? i.children[2 + a] : null, p = h && h.children.length > 0 ? h.children[0] : null, g = ehSafeText(p && p.children.length > 0 ? p.children[0] : null, "Unknown"), f = ehSafeAttr(p, "href", ""), m = "", y = 0;
         try {
             if (r.includes("/favorites.php")) {
                 let t = e;
                 t.children.length > 1 && (t = t.children[1]), t.children.length > 1 && (t = t.children[1]),
-                t.children.length > 1 && (t = t.children[1]), y = i(ehSafeText(t && t.children.length > 1 ? t.children[1] : null, ""), 0);
+                t.children.length > 1 && (t = t.children[1]), y = n(ehSafeText(t && t.children.length > 1 ? t.children[1] : null, ""), 0);
             } else {
-                let e = n.children.length > 3 + a ? n.children[3 + a] : null;
-                y = i(ehSafeText(e && e.children.length > 1 ? e.children[1] : null, ""), 0);
+                let e = i.children.length > 3 + a ? i.children[3 + a] : null;
+                y = n(ehSafeText(e && e.children.length > 1 ? e.children[1] : null, ""), 0);
                 let t = null;
                 e && e.children.length > 0 && (t = e.children[0]), t && t.children.length > 0 && (t = t.children[0]),
                 m = ehSafeText(t, "");
@@ -782,9 +998,9 @@ function parseGalleryList({document: e, source: t, url: r, isLeaderBoard: n}) {
         }));
     } catch (e) {}
     for (let r of e.querySelectorAll("div.gl1t")) try {
-        let e = ehSafeText(r.querySelector("a"), "Unknown"), n = r.querySelectorAll("div.gl5t > div > div"), a = n.find(e => !isNaN(Date.parse(e.text)));
+        let e = ehSafeText(r.querySelector("a"), "Unknown"), i = r.querySelectorAll("div.gl5t > div > div"), a = i.find(e => !isNaN(Date.parse(e.text)));
         a = ehSafeText(a, "");
-        let l = ehSafeAttr(r.querySelector("img"), "src", ""), s = t.getStarsFromPosition(ehSafeAttr(r.querySelector("div.gl5t > div > div.ir"), "style", "")), u = ehSafeAttr(r.querySelector("a"), "href", ""), c = i(ehSafeText(n.find(e => e.text.includes("page")), ""), 0);
+        let l = ehSafeAttr(r.querySelector("img"), "src", ""), s = t.getStarsFromPosition(ehSafeAttr(r.querySelector("div.gl5t > div > div.ir"), "style", "")), u = ehSafeAttr(r.querySelector("a"), "href", ""), c = n(ehSafeText(i.find(e => e.text.includes("page")), ""), 0);
         o.push(new Comic({
             id: u,
             title: e,
@@ -795,9 +1011,9 @@ function parseGalleryList({document: e, source: t, url: r, isLeaderBoard: n}) {
         }));
     } catch (e) {}
     for (let r of e.querySelectorAll("table.itg.glte > tbody > tr")) try {
-        let e = ehSafeText(r.querySelector("td.gl2e > div > a > div > div.glink"), "Unknown"), n = r.querySelectorAll("td.gl2e > div > div.gl3e > div"), a = ehSafeText(n.find(e => !isNaN(Date.parse(e.text))), "Unknown"), l = ehSafeText(r.querySelector("td.gl2e > div > div.gl3e > div > a"), "Unknown"), s = ehSafeAttr(r.querySelector("td.gl1e > div > a > img"), "src", ""), u = t.getStarsFromPosition(ehSafeAttr(r.querySelector("td.gl2e > div > div.gl3e > div.ir"), "style", "")), c = ehSafeAttr(r.querySelector("td.gl1e > div > a"), "href", ""), d = r.querySelectorAll("div.gt, div.gtl").map(e => ehSafeAttr(e, "title", ""));
+        let e = ehSafeText(r.querySelector("td.gl2e > div > a > div > div.glink"), "Unknown"), i = r.querySelectorAll("td.gl2e > div > div.gl3e > div"), a = ehSafeText(i.find(e => !isNaN(Date.parse(e.text))), "Unknown"), l = ehSafeText(r.querySelector("td.gl2e > div > div.gl3e > div > a"), "Unknown"), s = ehSafeAttr(r.querySelector("td.gl1e > div > a > img"), "src", ""), u = t.getStarsFromPosition(ehSafeAttr(r.querySelector("td.gl2e > div > div.gl3e > div.ir"), "style", "")), c = ehSafeAttr(r.querySelector("td.gl1e > div > a"), "href", ""), d = r.querySelectorAll("div.gt, div.gtl").map(e => ehSafeAttr(e, "title", ""));
         d = d.filter(e => !!e);
-        let h = i(ehSafeText(n.find(e => e.text.includes("page")), ""), 0), p = null, g = d.find(e => e.startsWith("language:") && !e.includes("translated"));
+        let h = n(ehSafeText(i.find(e => e.text.includes("page")), ""), 0), p = null, g = d.find(e => e.startsWith("language:") && !e.includes("translated"));
         g && g.includes(":") && (p = g.split(":")[1].trim()), o.push(new Comic({
             id: c,
             title: e,
@@ -811,15 +1027,15 @@ function parseGalleryList({document: e, source: t, url: r, isLeaderBoard: n}) {
         }));
     } catch (e) {}
     for (let r of e.querySelectorAll("table.itg.gltm > tbody > tr")) try {
-        let e = ehSafeText(r.querySelector("td.gl3m > a > div.glink"), "Unknown"), n = ehSafeText(r.querySelectorAll("td.gl2m > div").find(e => !isNaN(Date.parse(e.text))), "Unknown"), i = ehSafeText(r.querySelector("td.gl5m > div > a"), "Unknown"), a = r.querySelector("td.gl2m > div > div > img"), l = ehSafeAttr(a, "src", "");
+        let e = ehSafeText(r.querySelector("td.gl3m > a > div.glink"), "Unknown"), i = ehSafeText(r.querySelectorAll("td.gl2m > div").find(e => !isNaN(Date.parse(e.text))), "Unknown"), n = ehSafeText(r.querySelector("td.gl5m > div > a"), "Unknown"), a = r.querySelector("td.gl2m > div > div > img"), l = ehSafeAttr(a, "src", "");
         l && "d" === l[0] && (l = ehSafeAttr(a, "data-src", l));
         let s = t.getStarsFromPosition(ehSafeAttr(r.querySelector("td.gl4m > div.ir"), "style", "")), u = ehSafeAttr(r.querySelector("td.gl3m > a"), "href", "");
         o.push(new Comic({
             id: u,
             title: e,
-            subTitle: i,
+            subTitle: n,
             cover: l,
-            description: n,
+            description: i,
             stars: s
         }));
     } catch (e) {}
@@ -837,26 +1053,26 @@ function parseGalleryDetails(e) {
     }
     let r = new Map;
     for (let t of e.querySelectorAll("div#taglist > table > tbody > tr")) {
-        let e = t.children.length > 0 ? t.children[0] : null, n = t.children.length > 1 ? t.children[1] : null, i = ehSafeText(e, "");
-        if (!i) continue;
-        let a = [], o = n ? n.children : [];
+        let e = t.children.length > 0 ? t.children[0] : null, i = t.children.length > 1 ? t.children[1] : null, n = ehSafeText(e, "");
+        if (!n) continue;
+        let a = [], o = i ? i.children : [];
         for (let e of o) try {
             let t = e.children.length > 0 ? e.children[0] : null, r = t && t.attributes ? t.attributes.onclick : null;
             if (!r) continue;
-            let n = r.split(":");
-            if (n.length < 2) continue;
-            let i = n[1].split("'")[0];
-            i && a.push(i);
+            let i = r.split(":");
+            if (i.length < 2) continue;
+            let n = i[1].split("'")[0];
+            n && a.push(n);
         } catch (e) {}
-        r.set(i.substring(0, i.length - 1), a);
+        r.set(n.substring(0, n.length - 1), a);
     }
-    let n = "1";
+    let i = "1";
     for (let r of e.querySelectorAll("td.gdt2")) if (r.text.includes("page")) {
         let e = t(r.text, /\d+/);
-        e && (n = e);
+        e && (i = e);
     }
-    let i = " Add to Favorites" !== ehSafeText(e.querySelector("a#favoritelink"), ""), a = null;
-    if (i) {
+    let n = " Add to Favorites" !== ehSafeText(e.querySelector("a#favoritelink"), ""), a = null;
+    if (n) {
         let t = e.querySelector("div#fav"), r = null;
         if (t && t.children.length > 0 && t.children[0].attributes && (r = t.children[0].attributes.style),
         r && r.includes("background-position:0px -")) {
@@ -880,8 +1096,8 @@ function parseGalleryDetails(e) {
         coverPath: o,
         tags: r,
         stars: m,
-        maxPage: Number(n),
-        isFavorited: i,
+        maxPage: Number(i),
+        isFavorited: n,
         folder: a,
         time: b,
         token: C.get("token"),
@@ -894,8 +1110,8 @@ function parseThumbnailPage(e, t) {
     const r = e => {
         let t = ehSafeAttr(e, "style", "");
         if (!t) return "";
-        let r = 0, n = 0, i = t.match(/width:(\d+)px/), a = t.match(/height:(\d+)px/);
-        i && (r = Number(i[1])), a && (n = Number(a[1]));
+        let r = 0, i = 0, n = t.match(/width:(\d+)px/), a = t.match(/height:(\d+)px/);
+        n && (r = Number(n[1])), a && (i = Number(a[1]));
         let o = t.split("background:transparent url(");
         if (o.length < 2) return "";
         let l = o[1], s = l.split(")")[0];
@@ -908,17 +1124,17 @@ function parseThumbnailPage(e, t) {
                 isNaN(t) || (u += `x=${t}-${t + r}`);
             }
         }
-        return n && (u += `${u ? "&" : ""}y=0-${n}`), u && (s += `@${u}`), s;
-    }, n = (t, r) => e.querySelectorAll(t).map(e => r(e)).filter(e => !!e);
-    let i = e.querySelectorAll("div.gdtm > div").map(e => r(e)).filter(e => !!e);
-    if (i.push(...n("div.gdtl > a > img", e => ehSafeAttr(e, "src", ""))), 0 === i.length) {
+        return i && (u += `${u ? "&" : ""}y=0-${i}`), u && (s += `@${u}`), s;
+    }, i = (t, r) => e.querySelectorAll(t).map(e => r(e)).filter(e => !!e);
+    let n = e.querySelectorAll("div.gdtm > div").map(e => r(e)).filter(e => !!e);
+    if (n.push(...i("div.gdtl > a > img", e => ehSafeAttr(e, "src", ""))), 0 === n.length) {
         const e = [ "div.gt100 > a > div", "div.gt200 > a > div" ];
-        for (let t of e) i.push(...n(t, e => {
+        for (let t of e) n.push(...i(t, e => {
             let t = 0 === e.children.length ? e : e.children[0];
             return r(t);
         }));
     }
-    let a = n("table.ptb > tbody > tr > td > a", e => ehSafeAttr(e, "href", "")), o = 0;
+    let a = i("table.ptb > tbody > tr > td > a", e => ehSafeAttr(e, "href", "")), o = 0;
     for (let e of a) {
         let t = e.split("="), r = Number(t.length > 1 ? t[1] : "");
         !isNaN(r) && r > o && (o = r);
@@ -927,18 +1143,18 @@ function parseThumbnailPage(e, t) {
     l += 1;
     let s = l > o ? null : l.toString();
     return {
-        thumbnails: i,
-        urls: n("div#gdt a", e => ehSafeAttr(e, "href", "")),
+        thumbnails: n,
+        urls: i("div#gdt a", e => ehSafeAttr(e, "href", "")),
         next: s
     };
 }
 
 function parseDispatchKey(e) {
-    let t = e.querySelectorAll("script"), r = null, n = null;
+    let t = e.querySelectorAll("script"), r = null, i = null;
     for (let e of t) {
         let t = ehSafeText(e, "");
-        if (!r && t.includes("showkey") && (r = e), !n && t.includes("mpvkey") && (n = e),
-        r && n) break;
+        if (!r && t.includes("showkey") && (r = e), !i && t.includes("mpvkey") && (i = e),
+        r && i) break;
     }
     if (r) {
         let e = RegExp('showkey="(.*?)"', "g").exec(ehSafeText(r, ""));
@@ -946,11 +1162,11 @@ function parseDispatchKey(e) {
             showkey: e[1]
         };
     }
-    let i = ehSafeText(n, "");
-    if (i) {
-        let e = "", t = [], r = i.split(";"), n = r.find(e => e.includes("mpvkey"));
-        if (n) {
-            let t = n.replace(/ /g, "").split("=");
+    let n = ehSafeText(i, "");
+    if (n) {
+        let e = "", t = [], r = n.split(";"), i = r.find(e => e.includes("mpvkey"));
+        if (i) {
+            let t = i.replace(/ /g, "").split("=");
             t.length > 1 && (e = t[1].replace(/"/g, ""));
         }
         let a = r.find(e => e.includes("imagelist"));
@@ -974,7 +1190,7 @@ function parseDispatchKey(e) {
 function parseComments(e) {
     let t = [];
     for (let r of e.querySelectorAll("div.c1")) {
-        let e = ehSafeText(r.querySelector("div.c3 > a"), ""), n = r.querySelector("div.c3"), i = n && n.text ? n.text : null, a = i ? i.split("Posted on") : [], o = a.length > 1 ? a[1] : "", l = o ? o.split("by") : [], s = l.length > 0 ? l[0] : "", u = s && s.trim ? s.trim() : "unknown", c = "", d = r.querySelector("div.c6");
+        let e = ehSafeText(r.querySelector("div.c3 > a"), ""), i = r.querySelector("div.c3"), n = i && i.text ? i.text : null, a = n ? n.split("Posted on") : [], o = a.length > 1 ? a[1] : "", l = o ? o.split("by") : [], s = l.length > 0 ? l[0] : "", u = s && s.trim ? s.trim() : "unknown", c = "", d = r.querySelector("div.c6");
         c = "undefined" != typeof appVersion ? d && "string" == typeof d.innerHTML ? d.innerHTML : "" : ehSafeText(d, "");
         let h = Number(ehSafeText(r.querySelector("div.c5 > span"), ""));
         isNaN(h) && (h = null);
@@ -997,16 +1213,16 @@ function parseComments(e) {
 }
 
 function parseArchiveOptions(e, t) {
-    let r = e.querySelector("div#db"), n = t.includes("exhentai") ? 1 : 3, i = [], a = e.querySelector("table");
+    let r = e.querySelector("div#db"), i = t.includes("exhentai") ? 1 : 3, n = [], a = e.querySelector("table");
     if (a) {
         let e = a.querySelectorAll("td");
         for (let t of e) {
             let e = t.querySelector("a");
             if (e) {
-                let r = e.attributes ? e.attributes.onclick : null, n = r ? r.match(/do_hathdl\('([^']+)'\)/) : null;
-                if (n) {
-                    let r = n[1], a = ehSafeText(e, "Unknown"), o = t.querySelectorAll("p"), l = o.length > 1 ? ehSafeText(o[1], "Unknown") : "Unknown", s = o.length > 2 ? ehSafeText(o[2], "Unknown") : "Unknown";
-                    i.push({
+                let r = e.attributes ? e.attributes.onclick : null, i = r ? r.match(/do_hathdl\('([^']+)'\)/) : null;
+                if (i) {
+                    let r = i[1], a = ehSafeText(e, "Unknown"), o = t.querySelectorAll("p"), l = o.length > 1 ? ehSafeText(o[1], "Unknown") : "Unknown", s = o.length > 2 ? ehSafeText(o[2], "Unknown") : "Unknown";
+                    n.push({
                         id: `h@h_${r}`,
                         title: `H@H ${a}`,
                         description: `Size: ${l}, Cost: ${s}`
@@ -1016,26 +1232,26 @@ function parseArchiveOptions(e, t) {
         }
     }
     let o = null;
-    if (r && r.children.length > n && r.children[n].children.length > 0 && (o = r.children[n].children[0]),
+    if (r && r.children.length > i && r.children[i].children.length > 0 && (o = r.children[i].children[0]),
     o) {
         let e = ehSafeText(o.querySelector("div > strong"), "Unknown"), t = ehSafeText(o.querySelector("p > strong"), "Unknown");
-        i.push({
+        n.push({
             id: "0",
             title: "Original",
             description: `Cost: ${e}, Size: ${t}`
         });
     }
     let l = null;
-    if (r && r.children.length > n && r.children[n].children.length > 1 && (l = r.children[n].children[1]),
+    if (r && r.children.length > i && r.children[i].children.length > 1 && (l = r.children[i].children[1]),
     l) {
         let e = ehSafeText(l.querySelector("div > strong"), "Unknown"), t = ehSafeText(l.querySelector("p > strong"), "Unknown");
-        i.push({
+        n.push({
             id: "1",
             title: "Resample",
             description: `Cost: ${e}, Size: ${t}`
         });
     }
-    return i;
+    return n;
 }
 
 function parseArchiveError(e) {
@@ -1048,29 +1264,21 @@ function parseFirstLink(e) {
     return t && t.attributes && t.attributes.href ? t.attributes.href : null;
 }
 
-function createAccountFeature(e, t) {
-    return t;
-}
-
-function createExploreFeature(e, t) {
-    return t;
-}
-
 function createSearchFeature(e) {
     return {
-        loadNext: async (t, r, n) => {
-            let i = [];
+        loadNext: async (t, r, i) => {
+            let n = [];
             try {
-                i = JSON.parse(r[0]);
+                n = JSON.parse(r[0]);
             } catch (e) {
                 throw "Failed to parse search options";
             }
             let a = r[1], o = r[2], l = 1023;
-            Array.isArray(i) || (i = [ i ]);
-            for (let e of i) l -= 1 << Number(e);
+            Array.isArray(n) || (n = [ n ]);
+            for (let e of n) l -= 1 << Number(e);
             o && !t.includes("language:") && (t += ` language:${o}`);
             let s = buildSearchUrl(e.baseUrl, t, l, a);
-            return e.getGalleries(null != n ? n : s, !1);
+            return e.getGalleries(null != i ? i : s, !1);
         },
         optionList: [ {
             type: "multi-select",
@@ -1094,18 +1302,18 @@ function createFavoritesFeature(e) {
     return {
         multiFolder: !0,
         singleFolderForSingleComic: !0,
-        addOrDelFavorite: async (t, r, n, i) => {
+        addOrDelFavorite: async (t, r, i, n) => {
             let a = e.parseUrl(t), o = a.id, l = a.token;
             const s = buildGalleryPopupUrl(e.baseUrl, o, l);
-            if (n) {
-                let n = await e.requestClient.post(s, {}, buildAddFavoriteForm(r), {
+            if (i) {
+                let i = await e.requestClient.post(s, {}, buildAddFavoriteForm(r), {
                     action: "Failed to add favorite",
                     requestKey: `favorite:add:${t}:${r}`,
                     mutation: !0,
                     maxRetries: 0,
                     headerProfile: "form-urlencoded"
                 });
-                return e.requireStatus("Failed to add favorite", n), e.requireHtmlBody("Failed to add favorite", n),
+                return e.requireStatus("Failed to add favorite", i), e.requireHtmlBody("Failed to add favorite", i),
                 "ok";
             }
             {
@@ -1129,30 +1337,30 @@ function createFavoritesFeature(e) {
                 requestKey: "favorites:folders"
             });
             e.requireStatus("Failed to load favorite folders", r), e.requireHtmlBody("Failed to load favorite folders", r);
-            let n = await e.withDocument(r.body, async e => {
+            let i = await e.withDocument(r.body, async e => {
                 let t = new Map;
                 t.set("-1", "All");
                 let r = 0;
                 for (let o of e.querySelectorAll("div.fp")) {
-                    var n, i, a;
+                    var i, n, a;
                     if ("Show All Favorites" === o.text) continue;
-                    let e = null != (n = null == (i = o.children[2]) ? void 0 : i.text) ? n : `Favorite ${t.size}`, l = null == (a = o.children[0]) ? void 0 : a.text;
+                    let e = null != (i = null == (n = o.children[2]) ? void 0 : n.text) ? i : `Favorite ${t.size}`, l = null == (a = o.children[0]) ? void 0 : a.text;
                     l && (e += ` (${l})`, r += +l), t.set((t.size - 1).toString(), e);
                 }
                 return t.set("-1", `All (${r})`), t;
-            }), i = [];
+            }), n = [];
             if (t) {
                 let r = await e.comic.loadInfo(t);
-                r.isFavorite && i.push(r.folder);
+                r.isFavorite && n.push(r.folder);
             }
             return {
-                folders: n,
-                favorited: i
+                folders: i,
+                favorited: n
             };
         },
         loadNext: async (t, r) => {
-            let n = buildFavoritesUrl(e.baseUrl, r);
-            return e.getGalleries(null != t ? t : n, !1);
+            let i = buildFavoritesUrl(e.baseUrl, r);
+            return e.getGalleries(null != t ? t : i, !1);
         }
     };
 }
@@ -1170,12 +1378,12 @@ function createComicFeature(e) {
                 headerProfile: "gallery-view"
             });
             e.requireStatus("Failed to load gallery details", r), e.requireHtmlBody("Failed to load gallery details", r);
-            let n = await e.withDocument(r.body, async r => {
+            let i = await e.withDocument(r.body, async r => {
                 if (e.isLogged && e.loadSetting("hvevent")) {
                     const t = r.getElementById("eventpane");
                     if (null != t) {
-                        var n;
-                        const r = null == (n = t.querySelector("div > a")) ? void 0 : n.attributes.href;
+                        var i;
+                        const r = null == (i = t.querySelector("div > a")) ? void 0 : i.attributes.href;
                         null != r && UI.showDialog("HentaiVerse", e.translate("hentaiverse"), [ {
                             text: e.translate("cancel"),
                             callback: () => {}
@@ -1187,45 +1395,45 @@ function createComicFeature(e) {
                         } ]);
                     }
                 }
-                const i = parseGalleryDetails(r);
+                const n = parseGalleryDetails(r);
                 let a = e.comic.parseComments(r), o = new ComicDetails({
                     id: t,
-                    title: i.title,
-                    subTitle: i.subtitle,
-                    cover: i.coverPath,
-                    tags: i.tags,
-                    stars: i.stars,
-                    maxPage: i.maxPage,
-                    isFavorite: i.isFavorited,
-                    uploadTime: i.time,
+                    title: n.title,
+                    subTitle: n.subtitle,
+                    cover: n.coverPath,
+                    tags: n.tags,
+                    stars: n.stars,
+                    maxPage: n.maxPage,
+                    isFavorite: n.isFavorited,
+                    uploadTime: n.time,
                     url: t,
                     comments: a.comments
                 });
-                return o.folder = i.folder, o.token = i.token, e.apikey = i.apikey, e.apikey && '"' === e.apikey[0] && (e.apikey = e.apikey.substring(1, e.apikey.length - 1)),
-                e.uid = i.uid, o;
+                return o.folder = n.folder, o.token = n.token, e.apikey = n.apikey, e.apikey && '"' === e.apikey[0] && (e.apikey = e.apikey.substring(1, e.apikey.length - 1)),
+                e.uid = n.uid, o;
             });
-            return e.galleryInfoCache.set(t, n), n;
+            return e.galleryInfoCache.set(t, i), i;
         },
         loadThumbnails: async (t, r) => {
-            const n = thumbnailCacheKey(t, r);
-            if (e.thumbnailCache.has(n)) return e.thumbnailCache.get(n);
-            let i = buildGalleryPageUrl(t, r), a = await e.requestClient.get(i, {
+            const i = thumbnailCacheKey(t, r);
+            if (e.thumbnailCache.has(i)) return e.thumbnailCache.get(i);
+            let n = buildGalleryPageUrl(t, r), a = await e.requestClient.get(n, {
                 "cache-time": "long",
                 "prevent-parallel": "true"
             }, {
                 action: "Failed to load thumbnails",
-                requestKey: `thumbnails:${n}`,
+                requestKey: `thumbnails:${i}`,
                 headerProfile: "gallery-view"
             });
             e.requireStatus("Failed to load thumbnails", a), e.requireHtmlBody("Failed to load thumbnails", a);
             const o = await e.withDocument(a.body, async e => parseThumbnailPage(e, r));
-            return e.thumbnailCache.set(n, o), o;
+            return e.thumbnailCache.set(i, o), o;
         },
         starRating: async (t, r) => {
-            const n = e.parseUrl(t);
-            let i = await e.requestClient.post(e.apiUrl, {}, buildRateGalleryPayload({
-                galleryId: n.id,
-                token: n.token,
+            const i = e.parseUrl(t);
+            let n = await e.requestClient.post(e.apiUrl, {}, buildRateGalleryPayload({
+                galleryId: i.id,
+                token: i.token,
                 rating: r,
                 apikey: e.apikey,
                 apiuid: e.uid
@@ -1237,7 +1445,7 @@ function createComicFeature(e) {
                 classifyBody: !1,
                 headerProfile: "json-api"
             });
-            return e.requireStatus("Failed to submit rating", i), "ok";
+            return e.requireStatus("Failed to submit rating", n), "ok";
         },
         getKey: async t => {
             if (e.keyCache.has(t)) return e.keyCache.get(t);
@@ -1249,22 +1457,22 @@ function createComicFeature(e) {
                 requestKey: `key:${t}`
             });
             e.requireStatus("Failed to load dispatch key", r), e.requireHtmlBody("Failed to load dispatch key", r);
-            const n = await e.withDocument(r.body, async e => parseDispatchKey(e));
-            return e.keyCache.set(t, n), n;
+            const i = await e.withDocument(r.body, async e => parseDispatchKey(e));
+            return e.keyCache.set(t, i), i;
         },
         loadEp: async (t, r) => {
-            let n = await e.comic.loadInfo(t);
+            let i = await e.comic.loadInfo(t);
             return {
                 images: Array.from({
-                    length: n.maxPage
+                    length: i.maxPage
                 }, (e, t) => t.toString())
             };
         },
-        onImageLoad: async (t, r, n, i) => e.imageSessions.load({
+        onImageLoad: async (t, r, i, n) => e.imageSessions.load({
             image: t,
             comicId: r,
-            epId: n,
-            nl: i,
+            epId: i,
+            nl: n,
             attempt: 0
         }),
         onThumbnailLoad: t => ({
@@ -1274,7 +1482,7 @@ function createComicFeature(e) {
             })
         }),
         parseComments: e => parseComments(e),
-        loadComments: async (t, r, n, i) => {
+        loadComments: async (t, r, i, n) => {
             let a = await e.requestClient.get(buildCommentsUrl(t), {}, {
                 action: "Failed to load comments",
                 requestKey: `comments:${t}`,
@@ -1283,8 +1491,8 @@ function createComicFeature(e) {
             return e.requireStatus("Failed to load comments", a), e.requireHtmlBody("Failed to load comments", a),
             e.withDocument(a.body, async t => e.comic.parseComments(t));
         },
-        sendComment: async (t, r, n, i) => {
-            let a = await e.requestClient.post(t, {}, buildCommentForm(n), {
+        sendComment: async (t, r, i, n) => {
+            let a = await e.requestClient.post(t, {}, buildCommentForm(i), {
                 action: "Failed to submit comment",
                 requestKey: `comment:${t}`,
                 mutation: !0,
@@ -1298,19 +1506,19 @@ function createComicFeature(e) {
                 if (t) throw t.text;
             }), "ok";
         },
-        voteComment: async (t, r, n, i, a) => {
+        voteComment: async (t, r, i, n, a) => {
             if (null == e.apikey || null == e.uid) throw "Login required";
             const o = e.parseUrl(t);
             let l = await e.requestClient.post(e.apiUrl, {}, buildVoteCommentPayload({
                 galleryId: o.id,
                 token: o.token,
-                commentId: n,
-                isUp: i,
+                commentId: i,
+                isUp: n,
                 apikey: e.apikey,
                 apiuid: e.uid
             }), {
                 action: "Failed to vote comment",
-                requestKey: `vote:${t}:${n}:${i ? "up" : "down"}`,
+                requestKey: `vote:${t}:${i}:${n ? "up" : "down"}`,
                 mutation: !0,
                 maxRetries: 0,
                 classifyBody: !1,
@@ -1324,8 +1532,8 @@ function createComicFeature(e) {
         archive: {
             getArchives: async t => {
                 await e.comic.loadInfo(t);
-                let r = e.parseUrl(t), n = r.id, i = r.token;
-                const a = buildArchiverUrl(e.baseUrl, n, i);
+                let r = e.parseUrl(t), i = r.id, n = r.token;
+                const a = buildArchiverUrl(e.baseUrl, i, n);
                 let o = await e.requestClient.get(a, {}, {
                     action: "Failed to load archive options",
                     requestKey: `archive:options:${t}`
@@ -1334,18 +1542,18 @@ function createComicFeature(e) {
                 e.withDocument(o.body, async t => parseArchiveOptions(t, e.baseUrl));
             },
             getDownloadUrl: async (t, r) => {
-                let n = e.parseUrl(t), i = n.id, a = n.token;
-                const o = buildArchiverUrl(e.baseUrl, i, a);
+                let i = e.parseUrl(t), n = i.id, a = i.token;
+                const o = buildArchiverUrl(e.baseUrl, n, a);
                 if (r.startsWith("h@h_")) {
-                    let n = r.substring(4), i = await e.requestClient.post(o, {}, buildHathDownloadForm(n), {
+                    let i = r.substring(4), n = await e.requestClient.post(o, {}, buildHathDownloadForm(i), {
                         action: "Failed to send H@H download command",
-                        requestKey: `archive:hath:${t}:${n}`,
+                        requestKey: `archive:hath:${t}:${i}`,
                         mutation: !0,
                         maxRetries: 0,
                         headerProfile: "form-urlencoded"
                     });
-                    return e.requireStatus("Failed to send H@H download command", i), e.requireHtmlBody("Failed to send H@H download command", i),
-                    await e.withDocument(i.body, async e => {
+                    return e.requireStatus("Failed to send H@H download command", n), e.requireHtmlBody("Failed to send H@H download command", n),
+                    await e.withDocument(n.body, async e => {
                         let t = e.querySelector("p.br");
                         if (t) {
                             let e = t.text;
@@ -1405,14 +1613,6 @@ function createComicFeature(e) {
     };
 }
 
-function createCommentsFeature(e, t) {
-    return t;
-}
-
-function createArchiveFeature(e, t) {
-    return t;
-}
-
 function createSettings(e) {
     return Object.freeze({
         domain: {
@@ -1442,14 +1642,14 @@ function createSettings(e) {
             callback: async () => {
                 let t = e.loadAccountStore();
                 if (!t.profiles.length) return void UI.showMessage(e.translate("noSavedAccounts"));
-                let r = t.profiles.map((r, n) => {
-                    let i = e.getAccountDisplayName(r, n);
-                    return t.activeProfileId === r.id ? `${i} *` : i;
-                }), n = t.profiles.findIndex(e => e.id === t.activeProfileId);
-                n < 0 && (n = 0);
-                let i = await UI.showSelectDialog(e.translate("accountSwitch"), r, n);
-                if (null == i || i < 0 || i >= t.profiles.length) return;
-                let a = t.profiles[i];
+                let r = t.profiles.map((r, i) => {
+                    let n = e.getAccountDisplayName(r, i);
+                    return t.activeProfileId === r.id ? `${n} *` : n;
+                }), i = t.profiles.findIndex(e => e.id === t.activeProfileId);
+                i < 0 && (i = 0);
+                let n = await UI.showSelectDialog(e.translate("accountSwitch"), r, i);
+                if (null == n || n < 0 || n >= t.profiles.length) return;
+                let a = t.profiles[n];
                 await e.activateAccountProfile(a.id), UI.showMessage(e.translate("accountSwitched"));
             }
         }
@@ -1459,6 +1659,14 @@ function createSettings(e) {
 function freezeLocaleTable(e) {
     return Object.freeze(e);
 }
+
+"undefined" != typeof module && module && module.exports && (module.exports = {
+    ...httpSupportApi,
+    httpRequestApi,
+    httpResponseApi,
+    httpCooldownApi,
+    httpSupportApi
+});
 
 const commonKeys = freezeLocaleTable({
     "H@H Original": "H@H Original",
@@ -1593,7 +1801,7 @@ const commonKeys = freezeLocaleTable({
 });
 
 function createEhentaiAccountFeature(e) {
-    return createAccountFeature(e, {
+    return {
         loginWithWebview: {
             url: buildForumsLoginUrl(),
             checkStatus: (e, t) => "E-Hentai Forums" === t,
@@ -1602,14 +1810,14 @@ function createEhentaiAccountFeature(e) {
                 t.forEach(t => {
                     if (!t || !t.name) return;
                     if (!e.accountFieldNames.includes(String(t.name))) return;
-                    let n = String(t.value || "");
-                    0 !== n.length && (r.push(new Cookie({
+                    let i = String(t.value || "");
+                    0 !== i.length && (r.push(new Cookie({
                         name: String(t.name),
-                        value: n,
+                        value: i,
                         domain: ".e-hentai.org"
                     })), r.push(new Cookie({
                         name: String(t.name),
-                        value: n,
+                        value: i,
                         domain: ".exhentai.org"
                     })));
                 }), r.length > 0 && (Network.setCookies(buildEhCookieUrl(), r), Network.setCookies(buildExCookieUrl(), r));
@@ -1632,47 +1840,49 @@ function createEhentaiAccountFeature(e) {
                     refererUrl: buildForumsIndexRefererUrl()
                 });
                 if (200 !== r.status) return !1;
-                let n = null;
+                let i = null;
                 return !!await e.withDocument(r.body, async e => {
                     let t = e.querySelector("div#userlinks > p.home > b > a");
-                    return !!t && (n = t.text, !0);
-                }) && (e.upsertAccountProfile(t, n || ""), !0);
+                    return !!t && (i = t.text, !0);
+                }) && (e.upsertAccountProfile(t, i || ""), !0);
             }
         },
         logout: () => {
             e.logoutAccountSession();
         },
         registerWebsite: null
-    });
+    };
 }
 
-function createEhentaiExploreFeature(e) {
-    return createExploreFeature(e, [ {
-        title: "eh latest",
+const EHENTAI_EXPLORE_PAGES = [ {
+    title: "eh latest",
+    url: e => e.baseUrl
+}, {
+    title: "eh popular",
+    url: e => buildPopularUrl(e.baseUrl)
+}, {
+    title: "eh watched",
+    url: e => buildWatchedUrl(e.baseUrl),
+    requiresLogin: !0
+} ], EHENTAI_RANKING = [ [ "15", "yesterday" ], [ "13", "month" ], [ "12", "year" ], [ "11", "all" ] ];
+
+function createMappedExploreFeature(e, t) {
+    return t.map(t => ({
+        title: t.title,
         type: "multiPageComicList",
-        loadNext: t => {
-            let r = null != t ? t : e.baseUrl;
-            return e.getGalleries(r, !1);
-        }
-    }, {
-        title: "eh popular",
-        type: "multiPageComicList",
-        loadNext: t => {
-            let r = null != t ? t : buildPopularUrl(e.baseUrl);
-            return e.getGalleries(r, !1);
-        }
-    }, {
-        title: "eh watched",
-        type: "multiPageComicList",
-        loadNext: async t => {
-            if (!e.isLogged) return UI.showMessage("Need login first"), {
+        loadNext: async r => {
+            if (t.requiresLogin && !e.isLogged) return UI.showMessage("Need login first"), {
                 comics: [],
                 next: null
             };
-            let r = null != t ? t : buildWatchedUrl(e.baseUrl);
-            return e.getGalleries(r, !1);
+            let i = null != r ? r : t.url(e);
+            return e.getGalleries(i, !1);
         }
-    } ]);
+    }));
+}
+
+function createEhentaiExploreFeature(e) {
+    return createMappedExploreFeature(e, EHENTAI_EXPLORE_PAGES);
 }
 
 function createEhentaiCategory() {
@@ -1686,13 +1896,13 @@ function createEhentaiCategory() {
 function createEhentaiCategoryComics(e) {
     return {
         ranking: {
-            options: [ "15-yesterday", "13-month", "12-year", "11-all" ],
+            options: EHENTAI_RANKING.map(e => `${e[0]}-${e[1]}`),
             load: async (t, r) => {
-                let n = (await e.getGalleries(buildToplistUrl(buildBaseUrl("e-hentai.org"), t, r - 1), !0)).comics;
-                return "exhentai.org" === e.loadSetting("domain") && n.forEach(e => {
+                let i = (await e.getGalleries(buildToplistUrl(buildBaseUrl("e-hentai.org"), t, r - 1), !0)).comics;
+                return "exhentai.org" === e.loadSetting("domain") && i.forEach(e => {
                     e.id = e.id.replace("e-hentai", "exhentai");
                 }), {
-                    comics: n,
+                    comics: i,
                     maxPage: 200
                 };
             }
@@ -1707,8 +1917,8 @@ class EhentaiRequestClient {
     get(e, t = {}, r = {}) {
         return this._getManagedClient().get(e, t, r);
     }
-    post(e, t = {}, r = null, n = {}) {
-        return this._getManagedClient().post(e, t, r, n);
+    post(e, t = {}, r = null, i = {}) {
+        return this._getManagedClient().post(e, t, r, i);
     }
     head(e, t = {}, r = {}) {
         return this._getManagedClient().head(e, t, r);
@@ -1718,8 +1928,8 @@ class EhentaiRequestClient {
             domainKeyResolver: e => domainKey(e),
             shouldCooldown: (e, t, r) => {
                 if (!t.classifyBody) return !1;
-                const n = String(e && e.body || "");
-                return !!hasNonWhitespaceText(n) && r.isAbuseResponseBody(n);
+                const i = String(e && e.body || "");
+                return !!hasNonWhitespaceText(i) && r.isAbuseResponseBody(i);
             }
         })), this._managedClient;
     }
@@ -1756,23 +1966,23 @@ class ImageLoadingSessionManager {
         var r;
         if (t < 0) throw `Invalid page index: ${t}`;
         if (t < e.firstPage.urls.length) return e.firstPage.urls[t];
-        const n = e.firstPage.thumbnails.length;
-        if (!n) throw "Failed to resolve page URL: empty thumbnail page";
-        const i = Math.floor(t / n), a = t % n, o = null == (r = (await this.source.comic.loadThumbnails(e.comicId, i.toString())).urls) ? void 0 : r[a];
+        const i = e.firstPage.thumbnails.length;
+        if (!i) throw "Failed to resolve page URL: empty thumbnail page";
+        const n = Math.floor(t / i), a = t % i, o = null == (r = (await this.source.comic.loadThumbnails(e.comicId, n.toString())).urls) ? void 0 : r[a];
         if (!o) throw `Failed to resolve page URL for page ${t}`;
         return o;
     }
     async dispatchImage({comicId: e, page: t, nl: r}) {
-        const n = await this.ensureSession(e), i = this.source.parseUrl(e), a = r || "initial";
-        if (n.key.mpvkey) {
+        const i = await this.ensureSession(e), n = this.source.parseUrl(e), a = r || "initial";
+        if (i.key.mpvkey) {
             var o;
-            const l = null == (o = n.key.imageKeys) ? void 0 : o[t];
+            const l = null == (o = i.key.imageKeys) ? void 0 : o[t];
             if (!l) throw `Failed to dispatch image: missing mpv image key for page ${t}`;
             const s = buildImageDispatchPayload({
-                galleryId: i.id,
+                galleryId: n.id,
                 imgKey: l,
                 page: t + 1,
-                mpvkey: n.key.mpvkey,
+                mpvkey: i.key.mpvkey,
                 nl: r
             }), u = await this.source.requestClient.post(this.source.apiUrl, {}, s, {
                 action: "Failed to dispatch image",
@@ -1789,13 +1999,13 @@ class ImageLoadingSessionManager {
                 nl: h
             };
         }
-        const l = imageKeyFromPageUrl(await this.getPageUrl(n, t));
+        const l = imageKeyFromPageUrl(await this.getPageUrl(i, t));
         if (!l) throw `Failed to dispatch image: missing showpage image key for page ${t}`;
         const s = buildShowPagePayload({
-            galleryId: i.id,
+            galleryId: n.id,
             imgKey: l,
             page: t + 1,
-            showkey: n.key.showkey,
+            showkey: i.key.showkey,
             nl: r
         }), u = await this.source.requestClient.post(this.source.apiUrl, {}, s, {
             action: "Failed to dispatch image",
@@ -1820,20 +2030,20 @@ class ImageLoadingSessionManager {
         if (!r || !r[1]) throw "Failed to parse image URL from dispatch response";
         return r[1];
     }
-    createRetry({image: e, comicId: t, epId: r, nl: n, attempt: i}) {
-        return n ? i >= 2 ? null : async () => this.source.imageSessions.load({
+    createRetry({image: e, comicId: t, epId: r, nl: i, attempt: n}) {
+        return i ? n >= 2 ? null : async () => this.source.imageSessions.load({
             image: e,
             comicId: t,
             epId: r,
-            nl: n,
-            attempt: i + 1
+            nl: i,
+            attempt: n + 1
         }) : null;
     }
-    async load({image: e, comicId: t, epId: r, nl: n, attempt: i = 0}) {
+    async load({image: e, comicId: t, epId: r, nl: i, attempt: n = 0}) {
         const a = Number(e), o = await this.dispatchImage({
             comicId: t,
             page: a,
-            nl: n
+            nl: i
         });
         return {
             url: o.url,
@@ -1845,251 +2055,29 @@ class ImageLoadingSessionManager {
                 comicId: t,
                 epId: r,
                 nl: o.nl,
-                attempt: i
+                attempt: n
             })
         };
     }
 }
-
-function joinRawQueryEntries(e) {
-    const t = [];
-    for (const r of e || []) {
-        if (!Array.isArray(r) || r.length < 2) continue;
-        const [e, n] = r;
-        null != e && null != n && t.push(`${String(e)}=${String(n)}`);
-    }
-    return t.join("&");
-}
-
-function runtimeGet(e, t) {
-    return Network.get(e, t);
-}
-
-async function getRuntimeJson(e, t, r) {
-    const n = await runtimeGet(e, t);
-    return assertRuntimeStatus(n, 200, r || e), parseRuntimeJsonBody(n, r || e);
-}
-
-async function getRuntimeDocument(e, t, r) {
-    const n = await runtimeGet(e, t);
-    return assertRuntimeStatus(n, 200, r || e), new HtmlDocument(n.body);
-}
-
-async function getSelfHostedJson(e, t, r, n) {
-    if (!e || "object" != typeof e) throw new Error("getSelfHostedJson requires plugin source");
-    const i = n && "object" == typeof n && !Array.isArray(n) ? n : {}, a = i.headers || e.headers, o = await Network.get(e.buildUrl(t, r), a);
-    return ensureSelfHostedHttpOk(o, i), parseSelfHostedJsonBody(o.body);
-}
-
-async function postSelfHostedJson(e, t, r, n, i) {
-    if (!e || "object" != typeof e) throw new Error("postSelfHostedJson requires plugin source");
-    const a = i && "object" == typeof i && !Array.isArray(i) ? i : {}, o = a.headers || e.headers, l = await Network.post(e.buildUrl(t, r), o, n);
-    return ensureSelfHostedHttpOk(l, a), {
-        body: parseSelfHostedJsonBody(l.body),
-        headers: l.headers || {}
-    };
-}
-
-function defaultManagedDomainKey(e) {
-    try {
-        return new URL(String(e || "")).hostname || "default";
-    } catch (e) {
-        return "default";
-    }
-}
-
-function defaultManagedDispatch(e, t, r, n) {
-    return "GET" === e ? Network.get(t, r) : "POST" === e ? Network.post(t, r, n) : Network.sendRequest(e, t, r, n);
-}
-
-function defaultManagedRequestError(e, t, r) {
-    return e && "function" == typeof e.formatRequestError ? e.formatRequestError(t, r) : `${t}: ${String(r)}`;
-}
-
-function defaultManagedResponseError(e, t, r) {
-    return e && "function" == typeof e.formatResponseError ? e.formatResponseError(t, r) : `${t}: status=${r && r.status}`;
-}
-
-function normalizeManagedRequestHooks(e) {
-    return e && "object" == typeof e && !Array.isArray(e) ? e : {};
-}
-
-function ManagedRequestClient(e, t) {
-    if (!e || "object" != typeof e) throw new Error("ManagedRequestClient requires plugin source");
-    if (!e.requestState || "object" != typeof e.requestState) throw new Error("ManagedRequestClient requires source.requestState");
-    this.source = e, this.hooks = normalizeManagedRequestHooks(t);
-}
-
-function createManagedRequestClient(e, t) {
-    return new ManagedRequestClient(e, t);
-}
-
-function parseRuntimeJsonBody(e, t) {
-    try {
-        return JSON.parse(e.body);
-    } catch (e) {
-        throw "Invalid JSON response" + (t ? ` (${t})` : "");
-    }
-}
-
-function ensureSelfHostedHttpOk(e, t) {
-    const r = t && "object" == typeof t && !Array.isArray(t) ? t : {}, n = r.unauthorizedMessage || "Login expired", i = r.requestFailedMessage || "请求失败";
-    if (!e) throw i;
-    if (401 === e.status || 403 === e.status) throw n;
-    if (e.status < 200 || e.status >= 300) throw `${i}: ${e.status}`;
-}
-
-function parseSelfHostedJsonBody(e) {
-    return e ? JSON.parse(e) : null;
-}
-
-function hasNonWhitespaceText(e) {
-    const t = String(e || "");
-    for (let e = 0; e < t.length; e += 1) {
-        const r = t.charCodeAt(e);
-        if (32 !== r && 9 !== r && 10 !== r && 13 !== r) return !0;
-    }
-    return !1;
-}
-
-function defaultRequestKey(e, t, r, n) {
-    return n ? null : `${e}:${t}`;
-}
-
-function createDomainQueue(e, t, r) {
-    const n = (e.queues.get(t) || Promise.resolve()).then(r, r), i = n.then(() => {}, () => {});
-    return e.queues.set(t, i), i.finally(() => {
-        e.queues.get(t) === i && e.queues.delete(t);
-    }), n;
-}
-
-function markCooldown(e, t, r) {
-    e.cooldownUntil.set(t, Date.now() + r);
-}
-
-ManagedRequestClient.prototype.get = function(e, t, r) {
-    return this.send("GET", e, t || {}, null, r || {});
-}, ManagedRequestClient.prototype.post = function(e, t, r, n) {
-    return this.send("POST", e, t || {}, null == r ? null : r, n || {});
-}, ManagedRequestClient.prototype.head = function(e, t, r) {
-    return this.send("HEAD", e, t || {}, null, r || {});
-}, ManagedRequestClient.prototype.send = async function(e, t, r, n, i) {
-    const a = this.source, o = i && "object" == typeof i && !Array.isArray(i) ? i : {}, l = null == o.mutation ? "GET" !== e : !0 === o.mutation, s = o.requestKey || defaultRequestKey(e, t, n, l), u = "function" == typeof this.hooks.domainKeyResolver ? this.hooks.domainKeyResolver : defaultManagedDomainKey, c = {
-        action: o.action || `${e} ${t}`,
-        requestKey: s,
-        domainKey: o.domainKey || u(t, e, n, o, a, this),
-        expectedStatus: null == o.expectedStatus ? 200 : o.expectedStatus,
-        maxRetries: null == o.maxRetries ? "GET" === e ? 1 : 0 : o.maxRetries,
-        cooldownMs: null == o.cooldownMs ? 6e4 : o.cooldownMs,
-        classifyBody: null == o.classifyBody || o.classifyBody,
-        mutation: l,
-        allowDedup: null == o.allowDedup ? !l : o.allowDedup
-    }, d = a.requestState.cooldownUntil.get(c.domainKey);
-    if (d && d > Date.now()) throw `${c.action} blocked: temporary cooldown in effect`;
-    const h = this._resolveHeaders(e, t, r || {}, c), p = c.requestKey;
-    if (c.allowDedup && p && a.requestState.inflight.has(p)) return a.requestState.inflight.get(p);
-    const g = createDomainQueue(a.requestState, c.domainKey, () => this._sendWithRetry(e, t, h, n, c));
-    c.allowDedup && p && a.requestState.inflight.set(p, g);
-    try {
-        return await g;
-    } finally {
-        c.allowDedup && p && a.requestState.inflight.delete(p);
-    }
-}, ManagedRequestClient.prototype._resolveHeaders = function(e, t, r, n) {
-    return "function" == typeof this.hooks.buildHeaders ? this.hooks.buildHeaders(e, t, r, n, this.source, this) : this.source && "function" == typeof this.source.buildRequestHeaders ? this.source.buildRequestHeaders(e, t, r || {}, n || {}) : r || {};
-}, ManagedRequestClient.prototype._sendWithRetry = async function(e, t, r, n, i) {
-    let a = 0;
-    const o = Math.max(0, i.maxRetries) + 1;
-    for (;a < o; ) {
-        let l;
-        a += 1;
-        try {
-            l = await this._dispatch(e, t, r, n, i);
-        } catch (e) {
-            if (a >= o) throw defaultManagedRequestError(this.source, i.action, e);
-            continue;
-        }
-        if (this._shouldCooldown(l, i)) throw this._markCooldown(i.domainKey, i.cooldownMs),
-        defaultManagedResponseError(this.source, i.action, l);
-        if (l.status === i.expectedStatus) return l;
-        if (a >= o || i.mutation) throw defaultManagedResponseError(this.source, i.action, l);
-    }
-    throw `${i.action} failed after retries`;
-}, ManagedRequestClient.prototype._dispatch = function(e, t, r, n, i) {
-    return "function" == typeof this.hooks.dispatch ? this.hooks.dispatch(e, t, r, n, i, this.source, this) : defaultManagedDispatch(e, t, r, n);
-}, ManagedRequestClient.prototype._shouldCooldown = function(e, t) {
-    if (403 === e.status || 429 === e.status) return !0;
-    if (!t.classifyBody) return !1;
-    const r = String(e && e.body || "");
-    return !!hasNonWhitespaceText(r) && ("function" == typeof this.hooks.shouldCooldown ? this.hooks.shouldCooldown(e, t, this.source, this) : !(!this.source || "function" != typeof this.source.isAbuseResponseBody) && this.source.isAbuseResponseBody(r));
-}, ManagedRequestClient.prototype._markCooldown = function(e, t) {
-    markCooldown(this.source.requestState, e, t);
-}, "undefined" != typeof module && module && module.exports && (module.exports = {
-    runtimeGet,
-    getRuntimeJson,
-    getRuntimeDocument,
-    getSelfHostedJson,
-    postSelfHostedJson,
-    ManagedRequestClient,
-    createManagedRequestClient
-}), "undefined" != typeof module && module && module.exports && (module.exports = {
-    parseRuntimeJsonBody,
-    ensureSelfHostedHttpOk,
-    parseSelfHostedJsonBody
-}), "undefined" != typeof module && module && module.exports && (module.exports = {
-    hasNonWhitespaceText,
-    defaultRequestKey,
-    createDomainQueue,
-    markCooldown
-});
-
-const httpRequestApi = {
-    joinRawQueryEntries,
-    runtimeGet,
-    getRuntimeJson,
-    getRuntimeDocument,
-    getSelfHostedJson,
-    postSelfHostedJson,
-    ManagedRequestClient,
-    createManagedRequestClient
-}, httpResponseApi = {
-    parseRuntimeJsonBody,
-    ensureSelfHostedHttpOk,
-    parseSelfHostedJsonBody
-}, httpCooldownApi = {
-    hasNonWhitespaceText,
-    defaultRequestKey,
-    createDomainQueue,
-    markCooldown
-}, httpSupportApi = {
-    ...httpRequestApi,
-    ...httpResponseApi,
-    ...httpCooldownApi
-};
 
 function __veneraGetRuntimeGlobal() {
     return "object" == typeof globalThis && null !== globalThis ? globalThis : {};
 }
 
 function __veneraNormalizeAuthorityPart(e, t, r) {
-    const n = String(null == e ? "" : e).trim() || t;
-    return r ? n.replace(/^\/+|\/+$/g, "") : n;
+    const i = String(null == e ? "" : e).trim() || t;
+    return r ? i.replace(/^\/+|\/+$/g, "") : i;
 }
 
 function resolvePluginUpdateUrl(e) {
-    const t = __veneraGetRuntimeGlobal(), r = t.__VENERA_RELEASE_AUTHORITY__ && "object" == typeof t.__VENERA_RELEASE_AUTHORITY__ ? t.__VENERA_RELEASE_AUTHORITY__ : {}, n = __veneraNormalizeAuthorityPart(r.cdnOrigin, "https://cdn.jsdelivr.net", !1).replace(/\/+$/, ""), i = __veneraNormalizeAuthorityPart(r.providerPath, "gh", !0), a = __veneraNormalizeAuthorityPart(r.repository, "mythic3011/venera-configs", !0), o = __veneraNormalizeAuthorityPart(r.releaseRef, "main", !1), l = __veneraNormalizeAuthorityPart(r.artifactPathPrefix, "dist/plugins", !0), s = String(e || "").replace(/^\/+/, "");
-    if (!s) return `${n}/${i}/${a}@${o}`;
+    const t = __veneraGetRuntimeGlobal(), r = t.__VENERA_RELEASE_AUTHORITY__ && "object" == typeof t.__VENERA_RELEASE_AUTHORITY__ ? t.__VENERA_RELEASE_AUTHORITY__ : {}, i = __veneraNormalizeAuthorityPart(r.cdnOrigin, "https://cdn.jsdelivr.net", !1).replace(/\/+$/, ""), n = __veneraNormalizeAuthorityPart(r.providerPath, "gh", !0), a = __veneraNormalizeAuthorityPart(r.repository, "mythic3011/venera-configs", !0), o = __veneraNormalizeAuthorityPart(r.releaseRef, "main", !1), l = __veneraNormalizeAuthorityPart(r.artifactPathPrefix, "dist/plugins", !0), s = String(e || "").replace(/^\/+/, "");
+    if (!s) return `${i}/${n}/${a}@${o}`;
     const u = l ? `${l}/${s}` : s;
-    return `${n}/${i}/${a}@${o}/${s.startsWith(`${l}/`) ? s : u}`;
+    return `${i}/${n}/${a}@${o}/${s.startsWith(`${l}/`) ? s : u}`;
 }
 
 "undefined" != typeof module && module && module.exports && (module.exports = {
-    ...httpSupportApi,
-    httpRequestApi,
-    httpResponseApi,
-    httpCooldownApi,
-    httpSupportApi
-}), "undefined" != typeof module && module && module.exports && (module.exports = {
     resolvePluginUpdateUrl
 });
 

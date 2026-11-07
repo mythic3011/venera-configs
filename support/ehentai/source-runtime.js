@@ -1,4 +1,6 @@
-function ehentaiGetErrorMessage(error) {
+import { hasNonWhitespaceText } from "support/http/index.js";
+
+export function ehentaiGetErrorMessage(error) {
   if (error == null) {
     return "Unknown error";
   }
@@ -19,11 +21,11 @@ function ehentaiGetErrorMessage(error) {
   return String(error);
 }
 
-function ehentaiIsRedirectError(error) {
+export function ehentaiIsRedirectError(error) {
   return ehentaiGetErrorMessage(error).toLowerCase().includes("redirect");
 }
 
-function ehentaiIsAbuseResponseBody(source, body) {
+export function ehentaiIsAbuseResponseBody(source, body) {
   let text = String((body && body.body) || body || "");
   if (!hasNonWhitespaceText(text)) {
     return true;
@@ -31,7 +33,7 @@ function ehentaiIsAbuseResponseBody(source, body) {
   return source._abuseResponsePattern.test(text);
 }
 
-function ehentaiFirstNonWhitespaceChar(text) {
+export function ehentaiFirstNonWhitespaceChar(text) {
   let value = String(text || "");
   for (let i = 0; i < value.length; i++) {
     let code = value.charCodeAt(i);
@@ -42,7 +44,7 @@ function ehentaiFirstNonWhitespaceChar(text) {
   return "";
 }
 
-function ehentaiFormatRequestError(action, error) {
+export function ehentaiFormatRequestError(action, error) {
   let message = ehentaiGetErrorMessage(error);
   let lowered = message.toLowerCase();
   if (lowered.includes("redirect")) {
@@ -58,7 +60,7 @@ function ehentaiFormatRequestError(action, error) {
   return `${action} failed: ${message}`;
 }
 
-function ehentaiFormatResponseError(source, action, response) {
+export function ehentaiFormatResponseError(source, action, response) {
   let status = response ? response.status : null;
   let body = String(response && response.body ? response.body : "").trim();
   if (status === 403 || status === 429) {
@@ -73,14 +75,14 @@ function ehentaiFormatResponseError(source, action, response) {
   return `${action} failed: invalid status code ${status}`;
 }
 
-function ehentaiRequireStatus(source, action, response, expectedStatus) {
+export function ehentaiRequireStatus(source, action, response, expectedStatus) {
   let targetStatus = expectedStatus == null ? 200 : expectedStatus;
   if (!response || response.status !== targetStatus) {
     throw source.formatResponseError(action, response || {});
   }
 }
 
-function ehentaiRequireNonEmptyBody(source, action, response) {
+export function ehentaiRequireNonEmptyBody(source, action, response) {
   const body = String((response && response.body) || "");
   if (!hasNonWhitespaceText(body)) {
     throw source.formatResponseError(action, response || {});
@@ -88,7 +90,7 @@ function ehentaiRequireNonEmptyBody(source, action, response) {
   return body;
 }
 
-function ehentaiRequireHtmlBody(source, action, response) {
+export function ehentaiRequireHtmlBody(source, action, response) {
   const body = ehentaiRequireNonEmptyBody(source, action, response);
   if (ehentaiFirstNonWhitespaceChar(body) !== "<") {
     throw `${action} failed: invalid HTML response`;
@@ -96,7 +98,7 @@ function ehentaiRequireHtmlBody(source, action, response) {
   return body;
 }
 
-function ehentaiParseJsonResponse(source, action, response) {
+export function ehentaiParseJsonResponse(source, action, response) {
   ehentaiRequireNonEmptyBody(source, action, response);
   try {
     return JSON.parse(response.body);
@@ -105,7 +107,7 @@ function ehentaiParseJsonResponse(source, action, response) {
   }
 }
 
-async function ehentaiWithDocument(html, parser) {
+export async function ehentaiWithDocument(html, parser) {
   const document = new HtmlDocument(html);
   try {
     return await parser(document);
@@ -114,7 +116,7 @@ async function ehentaiWithDocument(html, parser) {
   }
 }
 
-function ehentaiBuildRequestHeaders(source, method, url, headers, options) {
+export function ehentaiBuildRequestHeaders(source, method, url, headers, options) {
   const settings = options || {};
   const merged = { ...(headers || {}) };
 
@@ -161,7 +163,7 @@ function ehentaiBuildRequestHeaders(source, method, url, headers, options) {
   return merged;
 }
 
-async function ehentaiCheckEvent(source) {
+export async function ehentaiCheckEvent(source) {
   if (!source.isLogged) {
     return;
   }
@@ -200,7 +202,7 @@ async function ehentaiCheckEvent(source) {
   } catch (_) {}
 }
 
-function ehentaiResolveBaseUrl(source) {
+export function ehentaiResolveBaseUrl(source) {
   const domain = source.loadSetting("domain");
   if (domain !== source._cachedDomain || !source._cachedBaseUrl) {
     source._cachedDomain = domain;
@@ -210,14 +212,14 @@ function ehentaiResolveBaseUrl(source) {
   return source._cachedBaseUrl;
 }
 
-function ehentaiResolveApiUrl(source) {
+export function ehentaiResolveApiUrl(source) {
   if (!source._cachedApiUrl) {
     source._cachedApiUrl = buildApiUrl(source.baseUrl);
   }
   return source._cachedApiUrl;
 }
 
-function ehentaiParseStarsFromPosition(position) {
+export function ehentaiParseStarsFromPosition(position) {
   let value = String(position || "");
   let i = 0;
   while (value[i] !== ";") {
@@ -252,7 +254,7 @@ function ehentaiParseStarsFromPosition(position) {
   }
 }
 
-async function ehentaiOnLoadFailed(source, reason) {
+export async function ehentaiOnLoadFailed(source, reason) {
   let cookies;
   try {
     cookies = await Network.getCookies(buildEhCookieUrl());
@@ -269,7 +271,7 @@ async function ehentaiOnLoadFailed(source, reason) {
   throw `You may not have permission to access this page${suffix}. Please check your network or try to login again.`;
 }
 
-async function ehentaiGetGalleries(source, url, isLeaderBoard) {
+export async function ehentaiGetGalleries(source, url, isLeaderBoard) {
   try {
     await source.checkEHEvent();
   } catch (_) {}

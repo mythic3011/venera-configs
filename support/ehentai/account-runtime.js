@@ -1,4 +1,4 @@
-function ehentaiCreateEmptyAccountStore() {
+export function ehentaiCreateEmptyAccountStore() {
   return {
     version: 1,
     activeProfileId: null,
@@ -6,7 +6,7 @@ function ehentaiCreateEmptyAccountStore() {
   };
 }
 
-function ehentaiNormalizeAccountValues(source, values) {
+export function ehentaiNormalizeAccountValues(source, values) {
   let normalized = [];
   for (let i = 0; i < source.accountFieldNames.length; i++) {
     normalized.push(String((values && values[i]) || ""));
@@ -14,7 +14,7 @@ function ehentaiNormalizeAccountValues(source, values) {
   return normalized;
 }
 
-function ehentaiCreateAccountCookies(source, values) {
+export function ehentaiCreateAccountCookies(source, values) {
   let normalized = ehentaiNormalizeAccountValues(source, values);
   let cookies = [];
   for (let i = 0; i < source.accountFieldNames.length; i++) {
@@ -38,7 +38,7 @@ function ehentaiCreateAccountCookies(source, values) {
   return cookies;
 }
 
-function ehentaiApplyCookiesFromValues(source, values) {
+export function ehentaiApplyCookiesFromValues(source, values) {
   let cookies = source.createAccountCookies(values);
   Network.deleteCookies(buildEhCookieUrl());
   Network.deleteCookies(buildExCookieUrl());
@@ -46,7 +46,7 @@ function ehentaiApplyCookiesFromValues(source, values) {
   Network.setCookies(buildExCookieUrl(), cookies);
 }
 
-function ehentaiClearRuntimeCaches(source) {
+export function ehentaiClearRuntimeCaches(source) {
   source.responseCache.clear();
   source.thumbnailCache.clear();
   source.keyCache.clear();
@@ -56,13 +56,13 @@ function ehentaiClearRuntimeCaches(source) {
   source.uid = null;
 }
 
-function ehentaiClearSessionCookies() {
+export function ehentaiClearSessionCookies() {
   Network.deleteCookies(buildEhCookieUrl());
   Network.deleteCookies(buildForumsCookieUrl());
   Network.deleteCookies(buildExCookieUrl());
 }
 
-function ehentaiLoadAccountStore(source) {
+export function ehentaiLoadAccountStore(source) {
   if (source._accountStoreCache) {
     return source._accountStoreCache;
   }
@@ -120,7 +120,7 @@ function ehentaiLoadAccountStore(source) {
   return source._accountStoreCache;
 }
 
-function ehentaiSaveAccountStore(source, store) {
+export function ehentaiSaveAccountStore(source, store) {
   let normalized = {
     version: 1,
     activeProfileId: store.activeProfileId || null,
@@ -130,7 +130,7 @@ function ehentaiSaveAccountStore(source, store) {
   source.saveData("accountStore", JSON.stringify(normalized));
 }
 
-function ehentaiGetAccountDisplayName(source, profile, index) {
+export function ehentaiGetAccountDisplayName(source, profile, index) {
   let base =
     profile && profile.name
       ? profile.name
@@ -139,7 +139,7 @@ function ehentaiGetAccountDisplayName(source, profile, index) {
   return memberId ? `${base} (${memberId})` : base;
 }
 
-function ehentaiUpsertAccountProfile(source, values, preferredName) {
+export function ehentaiUpsertAccountProfile(source, values, preferredName) {
   let normalized = ehentaiNormalizeAccountValues(source, values);
   if (!normalized[0] || !normalized[1]) {
     return null;
@@ -178,12 +178,12 @@ function ehentaiUpsertAccountProfile(source, values, preferredName) {
   return id;
 }
 
-async function ehentaiCaptureAccountFromCookieJar(source, preferredName) {
+export async function ehentaiCaptureAccountFromCookieJar(source, preferredName) {
   let values = await source.collectAccountValuesFromCookieDomains();
   return source.upsertAccountProfile(values, preferredName || "");
 }
 
-async function ehentaiCollectAccountValuesFromCookieDomains(source) {
+export async function ehentaiCollectAccountValuesFromCookieDomains(source) {
   let domains = [
     buildForumsCookieUrl(),
     buildEhCookieUrl(),
@@ -220,7 +220,7 @@ async function ehentaiCollectAccountValuesFromCookieDomains(source) {
   return values;
 }
 
-async function ehentaiActivateAccountProfile(source, profileId) {
+export async function ehentaiActivateAccountProfile(source, profileId) {
   let store = source.loadAccountStore();
   let profile = store.profiles.find((item) => item.id === profileId);
   if (!profile) {
@@ -234,7 +234,7 @@ async function ehentaiActivateAccountProfile(source, profileId) {
   return profile;
 }
 
-function ehentaiLogoutAccountSession(source) {
+export function ehentaiLogoutAccountSession(source) {
   source.clearSessionCookies();
   source.clearRuntimeCaches();
   let store = source.loadAccountStore();

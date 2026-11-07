@@ -73,11 +73,13 @@ function isLrrObject(value) {
 }
 
 function lrrPagePath(value) {
+  // '#' is a legal archive name (LANraragi sends %23, as in NEST#5).
+  // The page URL percent-encodes it again, so it cannot start a fragment.
   if (
     typeof value !== "string" ||
     value.length === 0 ||
     value.length > 4096 ||
-    /[\u0000-\u001f\u007f\\?#]/.test(value) ||
+    /[\u0000-\u001f\u007f\\?]/.test(value) ||
     value.charAt(0) === "/" ||
     value.split("/").some((part) => !part || part === "." || part === "..") ||
     /%(?:2e|2f|5c|00)/i.test(value)
@@ -214,7 +216,7 @@ function resolveLrrBaseUrl(rawValue, fallbackValue) {
 class Lanraragi extends ComicSource {
   name = "Lanraragi";
   key = "lanraragi";
-  version = "1.2.10";
+  version = "1.2.11";
   minAppVersion = "1.4.0";
   url = resolvePluginUpdateUrl("lanraragi.js");
 

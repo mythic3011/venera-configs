@@ -1,4 +1,4 @@
-function domainKey(url) {
+export function domainKey(url) {
   try {
     return new URL(url).hostname;
   } catch (_) {
@@ -6,6 +6,6 @@ function domainKey(url) {
   }
 }
 
-function thumbnailCacheKey(comicId, pageToken) {
+export function thumbnailCacheKey(comicId, pageToken) {
   return `${comicId}::${pageToken ?? "0"}`;
 }

@@ -1,4 +1,4 @@
-function createSearchFeature(source) {
+export function createSearchFeature(source) {
   return {
     /**
      * load search result with next page token

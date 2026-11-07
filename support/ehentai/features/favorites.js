@@ -1,4 +1,4 @@
-function createFavoritesFeature(source) {
+export function createFavoritesFeature(source) {
   return {
     // whether support multi folders
     multiFolder: true,

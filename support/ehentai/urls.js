@@ -1,15 +1,17 @@
-const URL_HOSTS = {
+import { hasValue } from "./query.js";
+
+export const URL_HOSTS = {
   EH: "e-hentai.org",
   EX: "exhentai.org",
   FORUMS: "forums.e-hentai.org",
   API_EH: "api.e-hentai.org",
 };
 
-function buildBaseUrl(domain) {
+export function buildBaseUrl(domain) {
   return `https://${domain}`;
 }
 
-function buildPathUrl(baseUrl, path) {
+export function buildPathUrl(baseUrl, path) {
   const normalizedPath = String(path || "").replace(/^\/+/, "");
   if (!normalizedPath) {
     return String(baseUrl);
@@ -17,7 +19,7 @@ function buildPathUrl(baseUrl, path) {
   return `${baseUrl}/${normalizedPath}`;
 }
 
-function buildPathQueryUrl(
+export function buildPathQueryUrl(
   baseUrl,
   path,
   params,
@@ -31,7 +33,7 @@ function buildPathQueryUrl(
   return `${base}?${query}`;
 }
 
-function buildApiUrl(baseUrl) {
+export function buildApiUrl(baseUrl) {
   if (baseUrl.includes(URL_HOSTS.EX)) {
     return buildPathUrl(
       buildBaseUrl(URL_HOSTS.EX),
@@ -44,14 +46,14 @@ function buildApiUrl(baseUrl) {
   );
 }
 
-function buildEhNewsUrl() {
+export function buildEhNewsUrl() {
   return buildPathUrl(
     buildBaseUrl(URL_HOSTS.EH),
     "news.php",
   );
 }
 
-function buildForumsLoginUrl() {
+export function buildForumsLoginUrl() {
   return buildPathQueryUrl(
     buildBaseUrl(URL_HOSTS.FORUMS),
     "index.php",
@@ -59,14 +61,14 @@ function buildForumsLoginUrl() {
   );
 }
 
-function buildForumsHomeUrl() {
+export function buildForumsHomeUrl() {
   return `${buildPathUrl(
     buildBaseUrl(URL_HOSTS.FORUMS),
     "",
   )}/`;
 }
 
-function buildForumsIndexRefererUrl() {
+export function buildForumsIndexRefererUrl() {
   return buildPathQueryUrl(
     buildBaseUrl(URL_HOSTS.FORUMS),
     "index.php",
@@ -75,27 +77,27 @@ function buildForumsIndexRefererUrl() {
   );
 }
 
-function buildEhCookieUrl() {
+export function buildEhCookieUrl() {
   return buildBaseUrl(URL_HOSTS.EH);
 }
 
-function buildExCookieUrl() {
+export function buildExCookieUrl() {
   return buildBaseUrl(URL_HOSTS.EX);
 }
 
-function buildForumsCookieUrl() {
+export function buildForumsCookieUrl() {
   return buildBaseUrl(URL_HOSTS.FORUMS);
 }
 
-function buildPopularUrl(baseUrl) {
+export function buildPopularUrl(baseUrl) {
   return buildPathUrl(baseUrl, "popular");
 }
 
-function buildWatchedUrl(baseUrl) {
+export function buildWatchedUrl(baseUrl) {
   return buildPathUrl(baseUrl, "watched");
 }
 
-function buildGalleryPageUrl(
+export function buildGalleryPageUrl(
   comicId,
   pageToken,
 ) {
@@ -105,7 +107,7 @@ function buildGalleryPageUrl(
   return buildPathQueryUrl(comicId, "", { p: pageToken });
 }
 
-function parseGalleryUrl(url) {
+export function parseGalleryUrl(url) {
   const clean = String(url || "")
     .split("?")[0]
     .split("#")[0];
@@ -113,7 +115,7 @@ function parseGalleryUrl(url) {
   return { id: segments[4], token: segments[5] };
 }
 
-function buildFavoritesUrl(
+export function buildFavoritesUrl(
   baseUrl,
   folderId,
 ) {
@@ -125,7 +127,7 @@ function buildFavoritesUrl(
   });
 }
 
-function buildSearchUrl(
+export function buildSearchUrl(
   baseUrl,
   keyword,
   fcats,
@@ -139,7 +141,7 @@ function buildSearchUrl(
   return buildPathQueryUrl(baseUrl, "", query);
 }
 
-function buildToplistUrl(
+export function buildToplistUrl(
   baseUrl,
   option,
   page,
@@ -150,7 +152,7 @@ function buildToplistUrl(
   });
 }
 
-function buildGalleryPopupUrl(
+export function buildGalleryPopupUrl(
   baseUrl,
   galleryId,
   token,
@@ -162,7 +164,7 @@ function buildGalleryPopupUrl(
   });
 }
 
-function buildArchiverUrl(
+export function buildArchiverUrl(
   baseUrl,
   gid,
   token,
@@ -173,17 +175,17 @@ function buildArchiverUrl(
   });
 }
 
-function buildCommentsUrl(comicId) {
+export function buildCommentsUrl(comicId) {
   return buildPathQueryUrl(comicId, "", { hc: 1 });
 }
 
-function extractHost(url) {
+export function extractHost(url) {
   const regex = /^(?:https?:\/\/)?(?:www\.)?([^\/]+)/i;
   const match = String(url || "").match(regex);
   return match ? match[1] : null;
 }
 
-function buildArchiveResultUrl(
+export function buildArchiveResultUrl(
   downloadPageUrl,
   hrefPath,
 ) {
@@ -194,7 +196,7 @@ function buildArchiveResultUrl(
   return `${buildBaseUrl(host)}${String(hrefPath)}`;
 }
 
-function normalizeGalleryLink(
+export function normalizeGalleryLink(
   baseUrl,
   url,
 ) {
@@ -208,13 +210,13 @@ function normalizeGalleryLink(
   return `${baseUrl}/g/${parsed.id}/${parsed.token}/`;
 }
 
-function normalizeThumbnailHost(url) {
+export function normalizeThumbnailHost(url) {
   if (String(url || "").includes("s.exhentai.org")) {
     return String(url).replace("s.exhentai.org", "ehgt.org");
   }
   return url;
 }
 
-function imageKeyFromPageUrl(url) {
+export function imageKeyFromPageUrl(url) {
   return String(url || "").split("/")[4] || "";
 }

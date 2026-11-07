@@ -120,7 +120,7 @@ function collectModuleAndImports(filePath, pluginId, options = {}) {
 
   const normalized = strippedSource
     // Keep module code executable in script mode after inlining.
-    .replace(/^\s*export\s+(?=(function|class|const|let|var)\b)/gm, "")
+    .replace(/^\s*export\s+(?=(?:async\s+)?(?:function|class|const|let|var)\b)/gm, "")
     .replace(/^\s*export\s*\{[^}]*\}\s*;?\s*$/gm, "")
     .trimEnd();
 

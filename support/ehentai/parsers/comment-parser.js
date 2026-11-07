@@ -1,4 +1,4 @@
-function parseComments(document) {
+export function parseComments(document) {
   let comments = [];
   for (let c of document.querySelectorAll("div.c1")) {
     let name = ehSafeText(c.querySelector("div.c3 > a"), "");
