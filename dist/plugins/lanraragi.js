@@ -1,6 +1,6 @@
 class Lanraragi extends ComicSource {
     constructor(...e) {
-        super(...e), this.name = "Lanraragi", this.key = "lanraragi", this.version = "1.2.10",
+        super(...e), this.name = "Lanraragi", this.key = "lanraragi", this.version = "1.2.11",
         this.minAppVersion = "1.4.0", this.url = resolvePluginUpdateUrl("lanraragi.js"),
         this.settings = {
             translationUrl: {
@@ -3020,7 +3020,7 @@ function isLrrObject(e) {
 }
 
 function lrrPagePath(e) {
-    if ("string" != typeof e || 0 === e.length || e.length > 4096 || /[\u0000-\u001f\u007f\\?#]/.test(e) || "/" === e.charAt(0) || e.split("/").some(e => !e || "." === e || ".." === e) || /%(?:2e|2f|5c|00)/i.test(e)) throw "Unsafe LANraragi image filename.";
+    if ("string" != typeof e || 0 === e.length || e.length > 4096 || /[\u0000-\u001f\u007f\\?]/.test(e) || "/" === e.charAt(0) || e.split("/").some(e => !e || "." === e || ".." === e) || /%(?:2e|2f|5c|00)/i.test(e)) throw "Unsafe LANraragi image filename.";
     return e;
 }
 
